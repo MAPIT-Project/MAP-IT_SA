@@ -40,7 +40,7 @@ The V3 architecture uses a **single agentic loop** without intent classification
 ### Agentic Architecture (ReAct Pattern)
 The system uses a sophisticated **agentic architecture** that can:
 - **Self-correct** when initial search results are insufficient
-- **Use multiple tools** to gather information from different sources (23 tools available)
+- **Use multiple tools** to gather information from different sources (41 tools available)
 - **Reason iteratively** to answer complex comparison and analysis questions
 - **Synthesize answers** from graph databases, vector stores, and external APIs
 - **Speculatively execute** tools in parallel to reduce latency
@@ -64,7 +64,7 @@ The system uses a sophisticated **agentic architecture** that can:
 - `embedding/` - Incremental embedding updates for new projects
 - `feedback/` - User feedback collection and analysis
 - `rag/` - RAG-specific components (retrievers, chunkers, generators)
-- `tools/` - Tool orchestration for multi-step reasoning (23 tools available)
+- `tools/` - Tool orchestration for multi-step reasoning (41 tools available)
 - `call_extractors/` - Funding call document processing
 - `conversation/` - Conversation management and memory
 - `memory/` - Short/long-term memory systems
@@ -79,12 +79,13 @@ The system uses a sophisticated **agentic architecture** that can:
 - `document_routes.py` - Document management endpoints
 - `call_document_routes.py` - Call document access endpoints
 
-### Available Tools (23 Tools)
-The system has 23 tools available for the multi-tool agent:
+### Available Tools (41 Tools)
+The system has 41 tools available for the multi-tool agent:
 
 **Statistics Tools:**
 - `get_programme_statistics`: Success rates, funding amounts for a programme
 - `get_country_statistics`: Participation stats for a country
+- `analyze_geographic_diversification`: Analyze geographic diversity of consortium partners by custom country groups (Nordic, CEE, Baltic, etc.)
 
 **Comparison Tools:**
 - `compare_programmes`: Compare two programmes side-by-side
@@ -97,11 +98,13 @@ The system has 23 tools available for the multi-tool agent:
 - `get_call_details`: Get details for a specific call
 
 **Project Tools:**
-- `search_projects`: Search CORDIS for funded projects (LOCAL-FIRST: PostgreSQL + Neo4j + Vector, no API calls)
-- `get_project_details`: Get details for a project
+- `search_projects`: Search CORDIS for funded projects (LOCAL-FIRST: PostgreSQL + Neo4j + Vector, no API calls). Supports `sort_by` parameter: `'relevance'` (default), `'ec_contribution'`, `'total_cost'`, `'start_date'`. Auto-fetches partners when user query mentions partners and limit ≤ 5.
+- `get_project_details`: Get details for a project including full partner list
+- `get_project_partners`: Get full list of partner organizations for a specific project by ID or acronym. Returns partner names, countries, roles, activity types, and EC contributions.
+- `get_organization_stats`: Get aggregate statistics for an organization: total project count, coordinator count, total funding. Uses Neo4j graph with SQL fallback when graph is unavailable.
 - `find_similar_projects`: Find projects similar to a given project (by topic, consortium, or cluster)
 - `find_semantically_similar_projects`: Find projects semantically similar using AI embeddings (understands objectives)
-- `find_organization_projects`: Find all projects an organization participated in
+- `find_organization_projects`: Find all projects an organization participated in. Returns total project count including beyond display limit.
 - `get_collaboration_network`: Get collaboration network showing which organizations partner together
 - `search_by_cluster`: Find projects in a specific research cluster (e.g., Climate, Health, Digital)
 
@@ -126,6 +129,28 @@ The system has 23 tools available for the multi-tool agent:
 - `calculate_creative_europe_budget`: Calculate Creative Europe budgets based on action type, funding rates, and project scale
 - `search_creative_europe_templates`: Search Creative Europe documents (Work Programmes, CulturEU Guide) for application guidance and programme information
 
+**EU4Health Programme Tools:**
+- `check_eu4health_eligibility`: Check organization eligibility for EU4Health actions (Action Grants, Joint Actions, Operating Grants, Procurement) by organization type and strand (CRISIS, PREVENTION, HEALTH_SYSTEMS, DIGITAL)
+- `search_eu4health_templates`: Search EU4Health documents (Annual Work Programmes, Regulation) for application guidance and programme information
+
+**Digital Europe Programme Tools:**
+- `check_digital_europe_eligibility`: Check organization eligibility for Digital Europe funding across 6 objectives (HPC, AI, Cybersecurity, Skills, Deployment/EDIHs, Semiconductors)
+
+**LIFE Programme Tools:**
+- `check_life_eligibility`: Check organization eligibility for LIFE Programme across 4 sub-programmes (NAT, ENV, CCA, CET) covering nature, environment, climate, and clean energy
+- `search_life_templates`: Search LIFE Programme documents for application guidance, eligibility criteria, and funding rules
+
+**Cross-Programme Tools:**
+- `search_all_programmes`: Search for funding opportunities across ALL 6 EU programmes in one query (Horizon Europe, Erasmus+, Creative Europe, EU4Health, Digital Europe, LIFE)
+- `recommend_programmes`: Recommend the best EU funding programmes for a given project/organization based on description, org type, and sector
+- `get_programme_info`: Get detailed information about a specific EU funding programme (budget, focus areas, action types, eligibility, actionable links)
+
+**Proposal Quality Scoring Tools:**
+- `score_proposal_section`: Evaluate a proposal section using EU Horizon Europe evaluation criteria (0-5 score, strengths, weaknesses, suggestions)
+- `score_full_proposal`: Evaluate a complete proposal with all three sections (0-15 overall score, funding probability, section breakdown)
+- `quick_quality_check`: Quick quality check for draft proposal text without full AI evaluation
+- `validate_budget`: Validate a proposal budget against EU Horizon Europe funding rules (compliance score, issues)
+
 ### Key Services
 
 **Core Services:**
@@ -137,10 +162,11 @@ The system has 23 tools available for the multi-tool agent:
 **Data Services:**
 - `DataIntelligenceService` (`data_intelligence_service.py`): Graph + Vector search
 - `VectorSearchService` (`vector_search_service.py`): Semantic search
-- `GraphSearchService` (`graph_service.py`): Neo4j queries
+- `GraphSearchService` (`graph_service.py`): Neo4j queries (lazy-imported to avoid neo4j package shadowing)
 - `LocalCallSearchService` (`local_call_search_service.py`): Call search
 - `LocalProjectSearchService` (`local_project_search_service.py`): Multi-source project search (PostgreSQL + Neo4j + Vector embeddings)
-- `CordisProjectRepository` (`data/cordis_repository.py`): PostgreSQL project data access
+- `CordisProjectRepository` (`data/cordis_repository.py`): PostgreSQL project data access (includes `get_project_partners()` for consortium lookup)
+- `org_name_utils` (`data_intelligence/org_name_utils.py`): Organization name expansion utilities — city transliterations (Munich→muenchen) and university abbreviations (TU→technische universitaet). Separated from graph_service.py to avoid neo4j import dependency.
 
 **Support Services:**
 - `QueryPlanner` (`query_planner.py`): LLM-based query planning
@@ -347,7 +373,9 @@ When results are insufficient, the system identifies causes:
 - **Contains**: All Horizon Europe funded projects (13,865+ projects), project descriptions, objectives, consortium compositions, funding amounts, publications, deliverables
 - **Tables**: `projects`, `organizations`, `project_embeddings` (in public schema)
 - **Queries via**: `CordisProjectRepository` → `LocalProjectSearchService`
-- **Search**: Full-text search with PostgreSQL tsquery, vector similarity search with pgvector, multi-source fusion with Neo4j using RRF algorithm
+- **Partner Lookup**: `get_project_partners()` queries `organizations` table by project ID to return full consortium with names, countries, roles, activity types, and EC contributions
+- **Organization Stats**: `get_organization_stats` tool provides aggregate counts (total projects, coordinator count, total funding) via Neo4j graph with SQL fallback
+- **Search**: Full-text search with PostgreSQL tsquery, vector similarity search with pgvector, multi-source fusion with Neo4j using RRF algorithm. Supports sorting by relevance, EC contribution, total cost, or start date.
 - **Embeddings**: 13,850 project embeddings (768-dim vectors via Google text-embedding-004) for semantic similarity search
 
 ### 4. EU Portal API

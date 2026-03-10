@@ -446,6 +446,7 @@ class LocalProjectSearchService:
         limit: int = 10,
         include_graph: bool = True,
         include_semantic: bool = True,
+        sort_by: str | None = None,
     ) -> dict[str, Any]:
         """
         Search for projects using all available local sources.
@@ -467,7 +468,7 @@ class LocalProjectSearchService:
             Dict with projects, metadata, and statistics
         """
         start_time = time.time()
-        logger.info(f"🔍 LocalProjectSearch: '{query}' (limit={limit})")
+        logger.info(f"🔍 LocalProjectSearch: '{query}' (limit={limit}, sort_by={sort_by})")
 
         # 1. Parse query for implicit filters
         parsed_filters, search_terms = self._parse_query(query, filters)
@@ -482,7 +483,7 @@ class LocalProjectSearchService:
         if self._postgres_repo:
             try:
                 postgres_results = await self._search_postgres(
-                    search_terms, parsed_filters, limit * 2
+                    search_terms, parsed_filters, limit * 2, sort_by=sort_by
                 )
                 all_results["postgresql"] = postgres_results
                 sources_used.append("postgresql")
@@ -521,6 +522,28 @@ class LocalProjectSearchService:
 
         # 4. Deduplicate by project_id
         unique_results = self._deduplicate(fused_results)
+
+        # 4b. Re-sort by explicit sort_by if specified (RRF fusion may override SQL sort)
+        if sort_by:
+            sort_key_map = {
+                "ec_contribution": lambda p: float(
+                    p.get("ec_contribution") or p.get("ecMaxContribution") or p.get("budget") or 0
+                ),
+                "total_cost": lambda p: float(p.get("total_cost") or p.get("totalCost") or 0),
+                "start_date": lambda p: str(p.get("start_date") or p.get("startDate") or ""),
+            }
+            key_fn = sort_key_map.get(sort_by)
+            if key_fn:
+                logger.info(f"   Re-sorting {len(unique_results)} results by {sort_by}")
+                for p in unique_results[:3]:
+                    logger.info(
+                        f"     Before sort: {p.get('acronym')} ec={p.get('ec_contribution')} ecMax={p.get('ecMaxContribution')} budget={p.get('budget')} src={p.get('_source')}"
+                    )
+                unique_results.sort(key=key_fn, reverse=True)
+                for p in unique_results[:3]:
+                    logger.info(
+                        f"     After sort: {p.get('acronym')} ec={p.get('ec_contribution')} ecMax={p.get('ecMaxContribution')} val={key_fn(p)}"
+                    )
 
         # 5. Take top N
         final_results = unique_results[:limit]
@@ -865,7 +888,11 @@ class LocalProjectSearchService:
         return filters, search_terms
 
     async def _search_postgres(
-        self, search_terms: list[str], filters: dict[str, Any], limit: int
+        self,
+        search_terms: list[str],
+        filters: dict[str, Any],
+        limit: int,
+        sort_by: str | None = None,
     ) -> list[dict[str, Any]]:
         """Search PostgreSQL using the CordisProjectRepository."""
         if not self._postgres_repo:
@@ -886,7 +913,10 @@ class LocalProjectSearchService:
 
             # Execute search
             projects, total = self._postgres_repo.search_projects(
-                queries=search_terms, filters=repo_filters if repo_filters else None, limit=limit
+                queries=search_terms,
+                filters=repo_filters if repo_filters else None,
+                limit=limit,
+                sort_by=sort_by,
             )
 
             # Convert DTOs to dicts with source marker
@@ -1344,6 +1374,10 @@ class LocalProjectSearchService:
             "cordis_url": (
                 f"https://cordis.europa.eu/project/id/{project_id}" if project_id else None
             ),
+            "doi_url": (
+                project.get("doi_url")
+                or (f"https://doi.org/10.3030/{project_id}" if project_id else None)
+            ),
         }
 
     def _format_project_from_dto(self, dto) -> dict[str, Any]:
@@ -1372,6 +1406,7 @@ class LocalProjectSearchService:
             "relevance_score": dto.relevance_score,
             "sources": [dto.data_source],
             "cordis_url": f"https://cordis.europa.eu/project/id/{dto.id}",
+            "doi_url": getattr(dto, "doi_url", None) or f"https://doi.org/10.3030/{dto.id}",
         }
 
     def _truncate(self, text: str, max_length: int) -> str:

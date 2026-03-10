@@ -23,6 +23,101 @@ from app.core.neo4j_config import neo4j_db
 
 logger = logging.getLogger(__name__)
 
+# Common city name transliterations used in CORDIS organization names
+_CITY_TRANSLITERATIONS = {
+    "munich": "muenchen",
+    "cologne": "koeln",
+    "vienna": "wien",
+    "zurich": "zuerich",
+    "nuremberg": "nuernberg",
+    "copenhagen": "kobenhavn",
+    "prague": "praha",
+    "warsaw": "warszawa",
+    "lisbon": "lisboa",
+    "rome": "roma",
+    "milan": "milano",
+    "florence": "firenze",
+    "naples": "napoli",
+    "turin": "torino",
+    "geneva": "geneve",
+    "brussels": "bruxelles",
+    "the hague": "den haag",
+    "gothenburg": "goteborg",
+    "athens": "athinai",
+}
+
+# Common university abbreviation patterns
+_UNI_ABBREVIATIONS = {
+    "tu": "technische universitaet",
+    "tum": "technische universitaet muenchen",
+    "eth": "eidgenoessische technische hochschule",
+    "kit": "karlsruher institut fuer technologie",
+    "rwth": "rheinisch-westfaelische technische hochschule",
+    "epfl": "ecole polytechnique federale de lausanne",
+    "ucl": "university college london",
+    "mit": "massachusetts institute of technology",
+    "kth": "kungliga tekniska hoegskolan",
+    "dtu": "danmarks tekniske universitet",
+    "vtt": "teknologian tutkimuskeskus vtt",
+    "cnrs": "centre national de la recherche scientifique",
+    "csic": "agencia estatal consejo superior de investigaciones cientificas",
+    "fraunhofer": "fraunhofer",
+    "max planck": "max-planck",
+    "lmu": "ludwig-maximilians-universitaet muenchen",
+}
+
+
+def _expand_org_search_terms(name: str) -> list[str]:
+    """Generate alternative search terms for an organization name.
+
+    Handles common European city transliterations and university abbreviations.
+    Returns a list of terms to try, most specific first.
+    """
+    terms = [name.lower()]
+    lower = name.lower().strip()
+
+    # Check abbreviation expansions
+    if lower in _UNI_ABBREVIATIONS:
+        terms.append(_UNI_ABBREVIATIONS[lower])
+
+    # Check if name starts with a known abbreviation (e.g., "TU Munich")
+    parts = lower.split()
+    if len(parts) >= 2 and parts[0] in _UNI_ABBREVIATIONS:
+        expanded_prefix = _UNI_ABBREVIATIONS[parts[0]]
+        # Replace city names with transliterations
+        remaining = " ".join(parts[1:])
+        for eng, local in _CITY_TRANSLITERATIONS.items():
+            if eng in remaining:
+                remaining = remaining.replace(eng, local)
+        terms.append(f"{expanded_prefix} {remaining}")
+        # Also try just the expanded prefix
+        terms.append(expanded_prefix)
+
+    # Apply city transliterations to the full name
+    translated = lower
+    for eng, local in _CITY_TRANSLITERATIONS.items():
+        if eng in translated:
+            translated = translated.replace(eng, local)
+    if translated != lower:
+        terms.append(translated)
+
+    # Try individual meaningful words (3+ chars) as fallback
+    meaningful_words = [w for w in parts if len(w) >= 4]
+    for word in meaningful_words:
+        if word in _CITY_TRANSLITERATIONS:
+            terms.append(_CITY_TRANSLITERATIONS[word])
+        elif word not in terms:
+            terms.append(word)
+
+    # Deduplicate while preserving order
+    seen = set()
+    unique = []
+    for t in terms:
+        if t not in seen:
+            seen.add(t)
+            unique.append(t)
+    return unique
+
 
 class GraphSearchService:
     """
@@ -827,7 +922,13 @@ class GraphSearchService:
         """
 
         try:
-            results = self.db.execute_query(query, {"org_name": org_name})
+            search_terms = _expand_org_search_terms(org_name)
+            results = None
+            for term in search_terms:
+                results = self.db.execute_query(query, {"org_name": term})
+                if results and results[0].get("projectCount", 0) > 0:
+                    break
+
             if not results:
                 return None
 
@@ -849,6 +950,46 @@ class GraphSearchService:
         except Exception as e:
             logger.error(f"Error getting organization profile: {e}")
             return None
+
+    def get_organization_project_count(
+        self, organization_name: str, role: str | None = None
+    ) -> int:
+        """
+        Get the total count of projects an organization has participated in.
+
+        Args:
+            organization_name: Name (or partial name) of organization
+            role: Optional filter by 'coordinator' or 'participant'
+
+        Returns:
+            Total project count
+        """
+        search_terms = _expand_org_search_terms(organization_name)
+
+        role_filter = ""
+        if role == "coordinator":
+            role_filter = "AND r.role = 'coordinator'"
+        elif role == "participant":
+            role_filter = "AND r.role <> 'coordinator'"
+
+        query = f"""
+        MATCH (o:Organization)-[r:PARTICIPATES_IN]->(p:Project)
+        WHERE (toLower(o.name) CONTAINS $org_name
+           OR toLower(o.shortName) CONTAINS $org_name)
+           {role_filter}
+        RETURN COUNT(DISTINCT p) as total_count
+        """
+
+        try:
+            for term in search_terms:
+                params = {"org_name": term}
+                results = self.db.execute_query(query, params)
+                if results and results[0].get("total_count", 0) > 0:
+                    return results[0].get("total_count", 0)
+            return 0
+        except Exception as e:
+            logger.error(f"Error getting organization project count: {e}")
+            return 0
 
     # ========================================================================
     # Utility Methods
@@ -1687,24 +1828,18 @@ class GraphSearchService:
         Returns:
             List of projects with organization role info
         """
-        params = {"org_name": organization_name.lower(), "limit": limit}
+        search_terms = _expand_org_search_terms(organization_name)
 
-        # Build the query - detect coordinator by naming convention or first participant
+        # Build the query - role is stored on the relationship
+        # Try each search term until we get results
         query = """
-        MATCH (o:Organization)-[:PARTICIPATES_IN]->(p:Project)
+        MATCH (o:Organization)-[r:PARTICIPATES_IN]->(p:Project)
         WHERE toLower(o.name) CONTAINS $org_name
            OR toLower(o.shortName) CONTAINS $org_name
 
-        // Try to determine role - coordinator if ID ends with _coordinator or first alphabetically
-        WITH o, p,
-             CASE
-               WHEN o.id ENDS WITH '_coordinator' THEN 'coordinator'
-               ELSE 'participant'
-             END as detected_role
-
         RETURN p.id as id, p.title as title, p.acronym as acronym,
                p.ecMaxContribution as budget, p.status as status,
-               o.name as organization, detected_role as role,
+               o.name as organization, r.role as role,
                o.country as org_country, p.fundingScheme as fundingScheme,
                p.startDate as start_date
         ORDER BY p.startDate DESC
@@ -1712,7 +1847,12 @@ class GraphSearchService:
         """
 
         try:
-            results = self.db.execute_query(query, params)
+            results = []
+            for term in search_terms:
+                params = {"org_name": term, "limit": limit}
+                results = self.db.execute_query(query, params)
+                if results:
+                    break
             formatted_results = [
                 {
                     "id": r.get("id"),

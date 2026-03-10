@@ -688,9 +688,27 @@ class ConversationManager:
             # 4. Get the answer - ALWAYS try V3 formatter for structured results first
             answer = None
 
-            # First, try the V3 formatter for structured results (calls, projects)
+            agent_answer = agent_result.get("answer", "")
             tool_results = agent_result.get("tool_results", {})
-            if tool_results:
+
+            # Check if agent produced a substantive answer with specific data
+            agent_has_detailed_answer = (
+                agent_answer
+                and len(agent_answer) > 200
+                and any(
+                    indicator in agent_answer.lower()
+                    for indicator in [
+                        "partner",
+                        "consortium",
+                        "coordinator",
+                        "| country |",
+                        "| role |",
+                    ]
+                )
+            )
+
+            # Use V3 formatter unless agent already synthesized detailed answer
+            if tool_results and not agent_has_detailed_answer:
                 try:
                     from ..response.v3_response_formatter import get_formatter
 
@@ -703,10 +721,13 @@ class ConversationManager:
                         answer = formatted_answer
                 except Exception as e:
                     logger.warning(f"V3 formatter failed: {e}")
+            elif agent_has_detailed_answer:
+                logger.info("✅ Using agent's detailed synthesis (sync, bypassing formatter)")
+                answer = agent_answer
 
             # If formatter didn't produce output, use agent's answer
             if not answer:
-                answer = agent_result.get("answer", "")
+                answer = agent_answer
 
             # 5. If agent didn't produce a good answer, synthesize from results
             if not answer or len(answer) < 50 or self._is_poor_quality_answer(answer):
@@ -934,9 +955,28 @@ class ConversationManager:
             answer = None
 
             if agent_result:
-                # First, try the V3 formatter for structured results (calls, projects)
+                agent_answer = agent_result.get("answer", "")
                 tool_results = agent_result.get("tool_results", {})
-                if tool_results:
+
+                # Check if agent produced a substantive answer with specific data
+                # (partners, tables, detailed analysis). If so, prefer it over formatter.
+                agent_has_detailed_answer = (
+                    agent_answer
+                    and len(agent_answer) > 200
+                    and any(
+                        indicator in agent_answer.lower()
+                        for indicator in [
+                            "partner",
+                            "consortium",
+                            "coordinator",
+                            "| country |",
+                            "| role |",
+                        ]
+                    )
+                )
+
+                # Use V3 formatter for structured results unless agent already synthesized
+                if tool_results and not agent_has_detailed_answer:
                     try:
                         from ..response.v3_response_formatter import get_formatter
 
@@ -949,10 +989,15 @@ class ConversationManager:
                             answer = formatted_answer
                     except Exception as e:
                         logger.warning(f"V3 formatter failed: {e}")
+                elif agent_has_detailed_answer:
+                    logger.info(
+                        f"✅ Using agent's detailed synthesis (bypassing formatter) - {len(agent_answer)} chars: {agent_answer[:200]}"
+                    )
+                    answer = agent_answer
 
                 # If formatter didn't produce output, use agent's answer or synthesize
                 if not answer:
-                    answer = agent_result.get("answer", "")
+                    answer = agent_answer
 
                 if not answer or len(answer) < 50 or self._is_poor_quality_answer(answer):
                     yield {

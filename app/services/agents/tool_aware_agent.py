@@ -37,12 +37,12 @@ class ContextLimits:
 
     # Maximum tokens for various components (approximate, using char/4 ratio)
     max_context_chars: int = 100000  # ~25k tokens
-    max_tool_result_chars: int = 5000  # Per tool result
-    max_observation_chars: int = 1500  # Per reasoning step
-    max_document_chars: int = 600  # Per document in synthesis
+    max_tool_result_chars: int = 8000  # Per tool result
+    max_observation_chars: int = 3000  # Per reasoning step
+    max_document_chars: int = 1000  # Per document in synthesis
     max_documents_per_result: int = 10  # Max docs to include
     max_calls_per_result: int = 15  # Max calls to include
-    max_projects_per_result: int = 10  # Max projects to include
+    max_projects_per_result: int = 15  # Max projects to include
     reserved_for_response: int = 4000  # Reserve for output
 
     @classmethod
@@ -50,9 +50,9 @@ class ContextLimits:
         """Load limits from environment variables with defaults."""
         return cls(
             max_context_chars=int(os.getenv("MAX_CONTEXT_CHARS", "100000")),
-            max_tool_result_chars=int(os.getenv("MAX_TOOL_RESULT_CHARS", "5000")),
-            max_observation_chars=int(os.getenv("MAX_OBSERVATION_CHARS", "1500")),
-            max_document_chars=int(os.getenv("MAX_DOCUMENT_CHARS", "600")),
+            max_tool_result_chars=int(os.getenv("MAX_TOOL_RESULT_CHARS", "8000")),
+            max_observation_chars=int(os.getenv("MAX_OBSERVATION_CHARS", "3000")),
+            max_document_chars=int(os.getenv("MAX_DOCUMENT_CHARS", "1000")),
         )
 
 
@@ -2154,7 +2154,7 @@ Example: After discussing hydrogen storage calls, if user asks "What's the typic
      * Include actionable resource links from BUILT-IN KNOWLEDGE in your final answer
    - For **specific call ID** (user gives ID like HORIZON-*, CREA-*, EIC-*) → use get_call_details (fetches from EU Portal API)
    - For **finding/searching** funding calls by topic → use search_funding_calls
-   - For projects → use search_projects
+   - For projects / "find projects about X" / "relevant projects about X" → use search_projects (NOT search_funding_calls!)
    - For statistics → use get_programme_statistics or get_country_statistics
    - For **country eligibility** ("Can X participate?", "Is Y eligible?") → Check BUILT-IN KNOWLEDGE first:
      * For EU Member States (AT, BE, BG, CY, CZ, DE, DK, EE, EL, ES, FI, FR, HR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK): Full eligibility, answer from knowledge
@@ -2860,6 +2860,14 @@ When searching for projects on water AND health (e.g., "drinking water health im
 
 6. **User asks for PARTICIPANTS - you MUST provide at least partner counts and key countries for each project**
 
+7. **MULTI-STEP: When user asks for PARTNERS of top/specific projects:**
+   - FIRST: Use search_projects to find the projects (with sort_by if needed)
+   - THEN: For EACH project found, call get_project_partners(project_id=<id>) to get the full partner list
+   - Example: "Show partners of top 3 quantum computing projects by EC contribution"
+     → Step 1: search_projects(keywords='quantum computing', sort_by='ec_contribution', limit=3)
+     → Step 2: get_project_partners(project_id='<id1>'), get_project_partners(project_id='<id2>'), get_project_partners(project_id='<id3>')
+   - NEVER skip the get_project_partners step when the user explicitly asks for partner details!
+
 **SPECIAL CASE - Project Search Results:**
 When the search_projects tool was used, your conclusion MUST:
 1. **List ALL projects found** with their key details in a structured format
@@ -3537,17 +3545,19 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
         self.register_tool(
             Tool(
                 name="search_projects",
-                description="""Search the CORDIS database for funded Horizon Europe projects by topic/keywords.
+                description="""Search the CORDIS database for funded Horizon Europe projects by topic/keywords. Supports sorting by EC contribution, relevance, or date.
 
 **USE THIS TOOL FOR**: Simple keyword-based project searches like "find projects about AI", "show me quantum computing projects", "projects on climate change"
 **DO NOT USE FOR**: Queries asking for "similar to [concept]" or semantic similarity - use get_similar_funded_projects instead!
-**Returns**: List of funded projects matching the keywords with titles, budgets, consortiums, and descriptions.
+**Returns**: List of funded projects matching the keywords with titles, budgets, consortiums, descriptions, and DOI links.
 
 **SEARCH TIPS**:
 - For AI/ML research: Use keywords like "machine learning", "neural network", "deep learning", "artificial intelligence"
 - Short acronyms like "AI", "ML", "IoT", "HPC" are supported but may benefit from expanded terms
 - Combine specific terms for better results: "AI healthcare diagnostics" rather than just "AI"
 - The search uses full-text matching on project titles, objectives, and topics
+- Use sort_by='ec_contribution' to find projects with the largest EU funding
+- **To get partner/consortium details**: After finding projects, call get_project_partners(project_id=<id>) for each project
 
 This is the PRIMARY tool for finding projects by keyword matching.""",
                 category=ToolCategory.PROJECTS,
@@ -3556,12 +3566,14 @@ This is the PRIMARY tool for finding projects by keyword matching.""",
                     "programme": "Optional: Filter by programme (Horizon Europe, EIC, ERC, etc.)",
                     "country": "Optional: Filter by coordinator/participant country",
                     "limit": "Optional: Number of results (default 10)",
+                    "sort_by": "Optional: Sort results by 'relevance' (default), 'ec_contribution' (largest EU funding first), 'total_cost' (largest budget first), or 'start_date' (newest first)",
                 },
                 examples=[
                     "search_projects(keywords='machine learning healthcare diagnostics')",
                     "search_projects(keywords='artificial intelligence robotics')",
                     "search_projects(keywords='renewable energy', country='Germany')",
                     "search_projects(keywords='deep learning computer vision', limit=15)",
+                    "search_projects(keywords='quantum computing', sort_by='ec_contribution', limit=3)",
                 ],
             )
         )
@@ -3569,10 +3581,13 @@ This is the PRIMARY tool for finding projects by keyword matching.""",
         self.register_tool(
             Tool(
                 name="get_project_details",
-                description="Get detailed information about a specific project",
+                description="Get detailed information about a specific project including full partner list with names, countries, and roles. USE THIS when you need complete project info or partner/consortium details for a known project.",
                 category=ToolCategory.PROJECTS,
                 parameters={"project_id": "The project identifier or acronym"},
-                examples=["get_project_details(project_id='101000000')"],
+                examples=[
+                    "get_project_details(project_id='101000000')",
+                    "get_project_details(project_id='MAPIT')",
+                ],
             )
         )
 
@@ -3612,7 +3627,7 @@ This is the PRIMARY tool for finding projects by keyword matching.""",
         self.register_tool(
             Tool(
                 name="find_organization_projects",
-                description="Find all projects an organization has participated in",
+                description="Find all projects an organization has participated in. Also returns the TRUE TOTAL project count and coordinator count for the organization (not limited by display limit). USE THIS for counting how many projects an organization has, or listing their projects.",
                 category=ToolCategory.PROJECTS,
                 parameters={
                     "organization_name": "Name (or partial name) of the organization",
@@ -3621,6 +3636,56 @@ This is the PRIMARY tool for finding projects by keyword matching.""",
                 examples=[
                     "find_organization_projects(organization_name='Fraunhofer')",
                     "find_organization_projects(organization_name='TU Munich', role='coordinator')",
+                ],
+            )
+        )
+
+        # Project partners tool
+        self.register_tool(
+            Tool(
+                name="get_project_partners",
+                description="""Get the full list of partner organizations in a specific project.
+
+**USE THIS WHEN USER ASKS:**
+- "Who are the partners of project X?" / "List consortium members of X"
+- "Which organizations participate in X?"
+- "Show me the partners of MAPIT and UDENE"
+- "Do projects X and Y share any common partners?"
+
+Returns: Full partner list with names, countries, roles (coordinator/participant), activity type, SME status, and EC contribution per partner.""",
+                category=ToolCategory.PROJECTS,
+                parameters={
+                    "project_id": "Project ID, RCN, or acronym (e.g., 'MAPIT', '101158945')",
+                },
+                examples=[
+                    "get_project_partners(project_id='MAPIT')",
+                    "get_project_partners(project_id='101158945')",
+                    "get_project_partners(project_id='UDENE')",
+                ],
+            )
+        )
+
+        # Organization statistics tool
+        self.register_tool(
+            Tool(
+                name="get_organization_stats",
+                description="""Get aggregate statistics for an organization: total project count, coordinator count, total funding, active research clusters.
+
+**USE THIS WHEN USER ASKS:**
+- "How many projects does X have?" / "How many projects has TU Munich participated in?"
+- "Is X a coordinator?" / "How often does X coordinate?"
+- "What is X's total funding?" / "How much EU funding has X received?"
+- "What clusters does X work in?"
+
+Returns: Organization name, country, project count, coordinator count, total funding, active clusters, and sample recent projects.""",
+                category=ToolCategory.STATISTICS,
+                parameters={
+                    "organization_name": "Full or partial name of the organization (e.g., 'TECHNISCHE UNIVERSITAET MUENCHEN', 'TU Munich', 'Fraunhofer')",
+                },
+                examples=[
+                    "get_organization_stats(organization_name='TECHNISCHE UNIVERSITAET MUENCHEN')",
+                    "get_organization_stats(organization_name='Fraunhofer')",
+                    "get_organization_stats(organization_name='CNRS')",
                 ],
             )
         )
@@ -4100,6 +4165,7 @@ digital_europe, life""",
             Dict with answer, reasoning steps, and sources
         """
         start_time = datetime.now()
+        self._current_query = query  # Store for tool methods to reference
 
         # Reset context window manager to prevent memory leak across queries
         _context_manager.reset()
@@ -4426,6 +4492,7 @@ digital_europe, life""",
             Dict events as processing happens
         """
         start_time = datetime.now()
+        self._current_query = query  # Store for tool methods to reference
 
         # Reset context window manager to prevent memory leak across queries
         _context_manager.reset()
@@ -4520,6 +4587,7 @@ digital_europe, life""",
                 thought=reasoning_result.get("thought", ""),
                 action=reasoning_result.get("action", "conclude"),
             )
+            logger.info(f"🧠 [Streaming] Action: {step.action}, thought: {step.thought[:100]}")
 
             # YIELD: Agent thinking event immediately
             yield {
@@ -14136,7 +14204,12 @@ Per Partner Distribution:
                     content_pieces.append("\n".join(similar_parts))
 
             # Extract collaboration network results (get_collaboration_network)
-            elif "partners" in result and isinstance(result.get("partners"), list):
+            # Note: skip if result has "project_acronym" (that's get_project_partners, handled below)
+            elif (
+                "partners" in result
+                and isinstance(result.get("partners"), list)
+                and "project_acronym" not in result
+            ):
                 org_name = result.get("organization", "Unknown Organization")
                 org_country = result.get("country", "")
                 partners = result.get("partners", [])
@@ -14285,11 +14358,99 @@ No projects found for this organization in the database.
 
             # Extract project results (generic fallback for other project queries)
             elif "projects" in result and isinstance(result["projects"], list):
-                for proj in result["projects"][:5]:
+                projects = result["projects"]
+                project_parts = []
+                for i, proj in enumerate(projects[:10]):
                     acronym = proj.get("acronym", "")
                     title = proj.get("title", "")
-                    if acronym or title:
-                        content_pieces.append(f"Project {acronym}: {title}")
+                    pid = proj.get("id") or proj.get("project_id", "")
+                    ec = proj.get("ec_contribution") or proj.get("ecMaxContribution") or 0
+                    coordinator_raw = proj.get("coordinator_name") or proj.get("coordinator", "")
+                    coordinator = (
+                        coordinator_raw.get("name", str(coordinator_raw))
+                        if isinstance(coordinator_raw, dict)
+                        else str(coordinator_raw)
+                    )
+                    desc = (proj.get("objective") or proj.get("description") or "")[:200]
+
+                    if not (acronym or title):
+                        continue
+
+                    ec_str = f"€{float(ec)/1_000_000:.1f}M" if ec else ""
+                    parts = [f"### {i+1}. {acronym}: {title}"]
+                    if pid:
+                        parts.append(f"- **Project ID:** {pid}")
+                    if ec_str:
+                        parts.append(f"- **EC Contribution:** {ec_str}")
+                    if coordinator:
+                        parts.append(f"- **Coordinator:** {coordinator}")
+                    if desc:
+                        parts.append(f"- **Objective:** {desc}")
+
+                    # Include partners if available
+                    partners = proj.get("partners", [])
+                    if partners:
+                        parts.append(f"\n**Partners ({len(partners)}):**")
+                        parts.append("| Name | Country | Role |")
+                        parts.append("|------|---------|------|")
+                        for p in partners:
+                            pname = p.get("name", "Unknown")
+                            pcountry = p.get("country", "")
+                            prole = p.get("role", "participant")
+                            parts.append(f"| {pname} | {pcountry} | {prole} |")
+
+                    project_parts.append("\n".join(parts))
+
+                if project_parts:
+                    content_pieces.append("\n\n".join(project_parts))
+
+            # Extract project partner results (get_project_partners)
+            elif "partners" in result and "project_acronym" in result:
+                acronym = result.get("project_acronym", "Unknown")
+                title = result.get("project_title", "")
+                pid = result.get("project_id", "")
+                coordinator = result.get("coordinator", "")
+                partners = result.get("partners", [])
+
+                parts = [f"### {acronym}: {title}"]
+                if pid:
+                    parts.append(f"- **Project ID:** {pid}")
+                if coordinator:
+                    parts.append(f"- **Coordinator:** {coordinator}")
+                parts.append(f"\n**Partners ({len(partners)}):**")
+                parts.append("| Name | Country | Role |")
+                parts.append("|------|---------|------|")
+                for p in partners:
+                    pname = p.get("name", "Unknown")
+                    pcountry = p.get("country", "")
+                    prole = p.get("role", "participant")
+                    parts.append(f"| {pname} | {pcountry} | {prole} |")
+
+                content_pieces.append("\n".join(parts))
+
+            # Extract organization statistics results (get_organization_stats)
+            elif "project_count" in result and "coordinator_count" in result and "name" in result:
+                org_name = result.get("name", "Unknown Organization")
+                country = result.get("country", "")
+                proj_count = result.get("project_count", 0)
+                coord_count = result.get("coordinator_count", 0)
+                total_funding = result.get("total_funding", 0)
+                entity_type = result.get("entity_type_name") or result.get("entity_type", "")
+                active_clusters = result.get("active_clusters", [])
+
+                org_text = f"""## Organization Statistics: {org_name}
+- **Country:** {country}
+- **Total Projects:** {proj_count:,}
+- **As Coordinator:** {coord_count:,}
+- **Total EC Funding:** €{total_funding:,.0f}"""
+                if entity_type:
+                    org_text += f"\n- **Organization Type:** {entity_type}"
+                if active_clusters:
+                    org_text += (
+                        f"\n- **Active Clusters:** {', '.join(str(c) for c in active_clusters[:5])}"
+                    )
+
+                content_pieces.append(org_text)
 
             # Extract country statistics results
             elif "country_code" in result and "eligibility" in result:
@@ -14998,6 +15159,11 @@ Found **{total_found} organizations** with relevant track records:
                     "similar",
                     "call details",
                     "budget",
+                    "partner",
+                    "consortium",
+                    "coordinator",
+                    "project id",
+                    "ec contribution",
                 ]
             )
             max_len = 8000 if is_detailed else 1500
@@ -15133,6 +15299,10 @@ Found **{total_found} organizations** with relevant track records:
                 return await self._tool_find_semantically_similar_projects(params)
             elif tool_name == "find_organization_projects":
                 return await self._tool_find_organization_projects(params)
+            elif tool_name == "get_project_partners":
+                return await self._tool_get_project_partners(params)
+            elif tool_name == "get_organization_stats":
+                return await self._tool_get_organization_stats(params)
             elif tool_name == "get_collaboration_network":
                 return await self._tool_get_collaboration_network(params)
             elif tool_name == "search_by_cluster":
@@ -16102,6 +16272,13 @@ Found **{total_found} organizations** with relevant track records:
             keywords = params.get("keywords", "")
             country = params.get("country")
             programme = params.get("programme")
+            sort_by = params.get("sort_by")
+            limit = params.get("limit", 10)
+            if isinstance(limit, str):
+                try:
+                    limit = int(limit)
+                except ValueError:
+                    limit = 10
 
             # Build the full query including country if provided
             # Let the LocalProjectSearchService handle country extraction from natural language
@@ -16117,11 +16294,46 @@ Found **{total_found} organizations** with relevant track records:
             # Use local search service - it will parse country from query
             service = LocalProjectSearchService()
             results = await service.search_projects(
-                query=query, filters=filters if filters else None, limit=10
+                query=query,
+                filters=filters if filters else None,
+                limit=limit,
+                sort_by=sort_by,
             )
 
+            projects = results.get("projects", [])
+
+            # Auto-fetch partners when limit is small and user query mentions partners/consortium
+            user_query = (
+                (self._current_query or "").lower() if hasattr(self, "_current_query") else ""
+            )
+            wants_partners = any(
+                kw in user_query for kw in ["partner", "consortium", "participant", "member"]
+            )
+            if wants_partners and limit <= 5 and projects:
+                logger.info(
+                    f"🔗 Auto-fetching partners for {len(projects)} projects (user asked for partners)"
+                )
+                from ..data.cordis_repository import CordisProjectRepository
+
+                repo = CordisProjectRepository()
+                for proj in projects:
+                    pid = proj.get("id") or proj.get("project_id")
+                    if pid:
+                        try:
+                            partners = repo.get_project_partners(str(pid))
+                            if partners:
+                                proj["partners"] = partners
+                                proj["partner_count"] = len(partners)
+                                coordinator = next(
+                                    (p for p in partners if p.get("role") == "coordinator"), None
+                                )
+                                if coordinator:
+                                    proj["coordinator_name"] = coordinator.get("name", "")
+                        except Exception as pe:
+                            logger.warning(f"Failed to fetch partners for {pid}: {pe}")
+
             return {
-                "projects": results.get("projects", []),
+                "projects": projects,
                 "total_found": results.get("total_found", 0),
                 "sources": results.get("sources_used", []),
             }
@@ -16154,9 +16366,12 @@ Found **{total_found} organizations** with relevant track records:
                 # Find exact acronym match
                 for p in search_results.get("projects", []):
                     if p.get("acronym", "").upper() == project_id.upper():
+                        pid = p.get("project_id") or p.get("id")
+                        # Get partners for this project
+                        partners = repo.get_project_partners(str(pid)) if pid else []
                         # Return this project's details
                         return {
-                            "project_id": p.get("project_id") or p.get("id"),
+                            "project_id": pid,
                             "rcn": p.get("rcn"),
                             "acronym": p.get("acronym"),
                             "title": p.get("title"),
@@ -16177,7 +16392,9 @@ Found **{total_found} organizations** with relevant track records:
                             },
                             "participant_count": p.get("participant_count"),
                             "country_count": p.get("country_count"),
-                            "cordis_url": f"https://cordis.europa.eu/project/id/{p.get('project_id') or p.get('id')}",
+                            "partners": partners,
+                            "cordis_url": f"https://cordis.europa.eu/project/id/{pid}",
+                            "doi_url": f"https://doi.org/10.3030/{pid}" if pid else "",
                         }
 
                 return {
@@ -16185,6 +16402,9 @@ Found **{total_found} organizations** with relevant track records:
                     "project": None,
                     "suggestion": "Try searching with search_projects tool using keywords from the project title",
                 }
+
+            # Get partners for this project
+            partners = repo.get_project_partners(project.id)
 
             # Convert DTO to dict with full details
             return {
@@ -16207,7 +16427,9 @@ Found **{total_found} organizations** with relevant track records:
                 },
                 "participant_count": project.participant_count,
                 "country_count": project.country_count,
+                "partners": partners,
                 "cordis_url": f"https://cordis.europa.eu/project/id/{project.id}",
+                "doi_url": f"https://doi.org/10.3030/{project.id}",
             }
         except Exception as e:
             logger.error(f"Get project details error: {e}")
@@ -16280,8 +16502,22 @@ Found **{total_found} organizations** with relevant track records:
             if not org_name:
                 return {"error": "organization_name is required", "projects": []}
 
-            results = await asyncio.to_thread(
-                graph.find_projects_by_organization, organization_name=org_name, role=role, limit=20
+            # Get true total count (no limit) and coordinator count in parallel
+            total_count, coordinator_count, results = await asyncio.gather(
+                asyncio.to_thread(
+                    graph.get_organization_project_count, organization_name=org_name, role=None
+                ),
+                asyncio.to_thread(
+                    graph.get_organization_project_count,
+                    organization_name=org_name,
+                    role="coordinator",
+                ),
+                asyncio.to_thread(
+                    graph.find_projects_by_organization,
+                    organization_name=org_name,
+                    role=role,
+                    limit=50,
+                ),
             )
 
             return {
@@ -16289,10 +16525,174 @@ Found **{total_found} organizations** with relevant track records:
                 "role_filter": role,
                 "projects": results,
                 "count": len(results),
+                "total_project_count": total_count,
+                "coordinator_count": coordinator_count,
+                "note": f"Showing {len(results)} of {total_count} total projects"
+                if len(results) < total_count
+                else None,
             }
         except Exception as e:
             logger.error(f"Organization projects search error: {e}")
             return {"error": str(e), "projects": []}
+
+    async def _tool_get_project_partners(self, params: dict) -> dict:
+        """Get all partner organizations for a specific project."""
+        try:
+            from ..data.cordis_repository import CordisProjectRepository
+
+            project_id = params.get("project_id", "")
+
+            if not project_id:
+                return {"error": "project_id is required", "partners": []}
+
+            repo = CordisProjectRepository()
+
+            # Try to get project by ID first
+            project = repo.get_project_by_id(str(project_id))
+
+            if not project:
+                # Try search by acronym
+                project = repo.get_project_by_acronym(str(project_id))
+
+            if not project:
+                # Last resort: search by keywords
+                from ..local_project_search_service import LocalProjectSearchService
+
+                service = LocalProjectSearchService()
+                search_results = await service.search_projects(query=project_id, limit=5)
+
+                for p in search_results.get("projects", []):
+                    if p.get("acronym", "").upper() == project_id.upper():
+                        project_id_found = p.get("id") or p.get("project_id")
+                        if project_id_found:
+                            project = repo.get_project_by_id(str(project_id_found))
+                            break
+
+            if not project:
+                return {
+                    "error": f"Project not found: {project_id}",
+                    "partners": [],
+                    "suggestion": "Try using the exact project ID number or acronym",
+                }
+
+            # Get partners
+            partners = repo.get_project_partners(project.id)
+
+            # Identify coordinator
+            coordinator = None
+            for p in partners:
+                if p.get("role") == "coordinator":
+                    coordinator = p.get("name")
+                    break
+
+            return {
+                "project_id": project.id,
+                "project_acronym": project.acronym,
+                "project_title": project.title,
+                "coordinator": coordinator,
+                "partner_count": len(partners),
+                "partners": partners,
+                "doi_url": f"https://doi.org/10.3030/{project.id}",
+            }
+        except Exception as e:
+            logger.error(f"Get project partners error: {e}")
+            return {"error": str(e), "partners": []}
+
+    async def _tool_get_organization_stats(self, params: dict) -> dict:
+        """Get aggregate statistics for an organization."""
+        try:
+            org_name = params.get("organization_name", "")
+
+            if not org_name:
+                return {"error": "organization_name is required"}
+
+            # Try graph service first (may not be available)
+            try:
+                from ..data_intelligence.graph_service import GraphSearchService
+
+                graph = GraphSearchService()
+                profile = await asyncio.to_thread(graph.get_organization_profile, org_name)
+                if profile:
+                    return {
+                        "name": profile.get("name"),
+                        "short_name": profile.get("short_name"),
+                        "country": profile.get("country"),
+                        "entity_type": profile.get("entity_type"),
+                        "entity_type_name": profile.get("entity_type_name"),
+                        "project_count": profile.get("project_count", 0),
+                        "coordinator_count": profile.get("coordinations", 0),
+                        "total_funding": profile.get("total_funding", 0),
+                        "active_clusters": profile.get("active_clusters", []),
+                        "recent_projects": profile.get("recent_projects", []),
+                        "source": "neo4j_graph",
+                    }
+            except Exception as graph_err:
+                logger.warning(
+                    f"Graph service unavailable for org stats, using SQL fallback: {graph_err}"
+                )
+
+            # Fallback: use SQL count with expanded search terms
+            from ..data.cordis_repository import CordisProjectRepository
+            from ..data_intelligence.org_name_utils import (
+                expand_org_search_terms as _expand_org_search_terms,
+            )
+
+            logger.info(f"📊 SQL fallback for org stats: {org_name}")
+            repo = CordisProjectRepository()
+            conn = None
+            try:
+                conn = repo.db_pool.getconn()
+                cursor = conn.cursor()
+
+                search_terms = _expand_org_search_terms(org_name)
+                row = None
+                for term in search_terms:
+                    cursor.execute(
+                        """
+                        SELECT
+                            name,
+                            country,
+                            COUNT(DISTINCT "projectID") as project_count,
+                            COUNT(DISTINCT CASE WHEN role = 'coordinator' THEN "projectID" END) as coordinator_count,
+                            COALESCE(SUM("ecContribution"), 0) as total_funding
+                        FROM organizations
+                        WHERE name ILIKE %s
+                        GROUP BY name, country
+                        ORDER BY project_count DESC
+                        LIMIT 1
+                        """,
+                        (f"%{term}%",),
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        break
+                cursor.close()
+
+                if row:
+                    logger.info(
+                        f"✅ SQL org stats found: {row[0]} - {row[2]} projects, {row[3]} coordinations"
+                    )
+                    return {
+                        "name": row[0],
+                        "country": row[1],
+                        "project_count": row[2],
+                        "coordinator_count": row[3],
+                        "total_funding": float(row[4]) if row[4] else 0,
+                        "source": "postgresql",
+                    }
+
+                logger.warning(f"❌ Organization not found in SQL: {org_name}")
+                return {
+                    "error": f"Organization not found: {org_name}",
+                    "suggestion": "Try using the full official name of the organization",
+                }
+            finally:
+                if conn:
+                    repo.db_pool.putconn(conn)
+
+        except Exception as e:
+            logger.error(f"Get organization stats error: {e}")
+            return {"error": str(e)}
 
     async def _tool_get_collaboration_network(self, params: dict) -> dict:
         """Get collaboration network for an organization."""
@@ -18124,6 +18524,28 @@ This may be because:
         if not isinstance(result, dict):
             return f"{tool_name}: {str(result)[:500]}"
 
+        # Handle project partner results
+        if "partners" in result and "project_acronym" in result:
+            acronym = result.get("project_acronym", "Unknown")
+            partners = result.get("partners", [])
+            coordinator = result.get("coordinator", "")
+            parts = [f"Project {acronym}: {len(partners)} partners, Coordinator: {coordinator}"]
+            for p in partners:
+                parts.append(
+                    f"  - {p.get('name', 'Unknown')} ({p.get('country', '')}) [{p.get('role', '')}]"
+                )
+            return "\n".join(parts)
+
+        # Handle organization statistics results
+        if "project_count" in result and "coordinator_count" in result and "name" in result:
+            name = result.get("name", "Unknown")
+            return (
+                f"Organization: {name} ({result.get('country', '')})\n"
+                f"- Total projects: {result['project_count']}\n"
+                f"- As coordinator: {result['coordinator_count']}\n"
+                f"- Total funding: €{result.get('total_funding', 0):,.0f}"
+            )
+
         # Handle document search results
         if "documents" in result and isinstance(result["documents"], list):
             docs = result["documents"]
@@ -18156,7 +18578,38 @@ This may be because:
             projects = result["projects"]
             if not projects:
                 return f"{tool_name}: No projects found"
-            return f"Found {len(projects)} project(s)"
+
+            parts = [f"Found {len(projects)} project(s):"]
+            for i, p in enumerate(projects[:10]):
+                acronym = p.get("acronym", "Unknown")
+                title = p.get("title", "")[:120]
+                pid = p.get("id") or p.get("project_id", "")
+                ec = p.get("ec_contribution") or p.get("ecMaxContribution") or 0
+                coordinator_raw = p.get("coordinator_name") or p.get("coordinator", "")
+                coordinator = (
+                    coordinator_raw.get("name", str(coordinator_raw))
+                    if isinstance(coordinator_raw, dict)
+                    else str(coordinator_raw)
+                )
+                ec_str = f"€{float(ec)/1_000_000:.1f}M" if ec else ""
+
+                parts.append(f"\n**{i+1}. {acronym}** (ID: {pid}) - {title}")
+                if ec_str:
+                    parts.append(f"   EC Contribution: {ec_str}")
+                if coordinator:
+                    parts.append(f"   Coordinator: {coordinator}")
+
+                # Include partners if available
+                partners = p.get("partners", [])
+                if partners:
+                    parts.append(f"   Partners ({len(partners)}):")
+                    for partner in partners[:30]:
+                        name = partner.get("name", "Unknown")
+                        country = partner.get("country", "")
+                        role = partner.get("role", "participant")
+                        parts.append(f"   - {name} ({country}) [{role}]")
+
+            return "\n".join(parts)
 
         # Handle call details
         if "call_id" in result or "topic_code" in result:
@@ -18626,12 +19079,17 @@ This may be because:
         if not plan.reasoning_steps:
             return ""  # Return empty to trigger synthesis
 
-        # Collect all tool results from steps
+        # Collect all tool results from steps (use unique keys for duplicate tool names)
         all_results = {}
+        call_idx = 0
         for step in plan.reasoning_steps:
             for tc in step.tool_calls:
                 if tc.success and tc.result:
-                    all_results[tc.tool_name] = tc.result
+                    key = tc.tool_name
+                    if key in all_results:
+                        key = f"{tc.tool_name}_{call_idx}"
+                    all_results[key] = tc.result
+                    call_idx += 1
 
         # If we have tool results, synthesize from them
         if all_results:

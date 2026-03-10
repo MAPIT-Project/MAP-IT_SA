@@ -42,6 +42,7 @@ class CordisProjectDTO:
     sme_count: int
     participant_countries: list[str]
     cordis_url: str
+    doi_url: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         """Convert DTO to dictionary."""
@@ -133,11 +134,24 @@ class CordisProjectRepository:
         if not clean_terms:
             return ""
 
-        # Join with OR for flexible matching
-        return " | ".join(clean_terms)
+        # Use AND for precision but avoid over-restriction with many terms
+        if len(clean_terms) <= 3:
+            # Short queries: AND all terms
+            return " & ".join(clean_terms)
+        else:
+            # Longer queries: AND the first 2 core terms, require at least
+            # one more from the rest. This balances precision with recall.
+            core = clean_terms[:2]
+            rest = clean_terms[2:5]  # Cap at 5 total terms
+            rest_group = " | ".join(rest)
+            return f"{' & '.join(core)} & ({rest_group})"
 
     def search_projects(
-        self, queries: list[str], filters: dict[str, Any] | None = None, limit: int = 10
+        self,
+        queries: list[str],
+        filters: dict[str, Any] | None = None,
+        limit: int = 10,
+        sort_by: str | None = None,
     ) -> tuple[list[CordisProjectDTO], int]:
         """
         Search projects using full-text search and filters.
@@ -226,6 +240,14 @@ class CordisProjectRepository:
             cursor.execute(count_sql, params)
             total_count = cursor.fetchone()[0]
 
+            # Determine sort order
+            sort_clause_map = {
+                "ec_contribution": 'p."ecMaxContribution" DESC NULLS LAST',
+                "total_cost": 'p."totalCost" DESC NULLS LAST',
+                "start_date": 'p."startDate" DESC',
+            }
+            order_clause = sort_clause_map.get(sort_by, 'p."startDate" DESC')
+
             # Main query with organization aggregation
             # Note: PostgreSQL column names use camelCase with quotes
             params.append(limit)
@@ -253,7 +275,7 @@ class CordisProjectRepository:
                 FROM projects p
                 LEFT JOIN organizations coord ON coord."projectID" = p.id AND coord.role = 'coordinator'
                 WHERE {where_sql}
-                ORDER BY p."startDate" DESC
+                ORDER BY {order_clause}
                 LIMIT %s
             """
 
@@ -284,6 +306,7 @@ class CordisProjectRepository:
                     sme_count=row[17] or 0,
                     participant_countries=row[18] or [],
                     cordis_url=f"https://cordis.europa.eu/project/id/{row[0]}" if row[0] else "",
+                    doi_url=f"https://doi.org/10.3030/{row[0]}" if row[0] else "",
                 )
                 projects.append(project)
 
@@ -353,6 +376,11 @@ class CordisProjectRepository:
                 LIMIT 1
             """
 
+            # Only query if project_id looks numeric (IDs are integers in the DB)
+            if not project_id.isdigit():
+                cursor.close()
+                return None
+
             cursor.execute(sql, (project_id, project_id))
             row = cursor.fetchone()
 
@@ -381,6 +409,7 @@ class CordisProjectRepository:
                 sme_count=row[17] or 0,
                 participant_countries=row[18] or [],
                 cordis_url=f"https://cordis.europa.eu/project/id/{row[0]}" if row[0] else "",
+                doi_url=f"https://doi.org/10.3030/{row[0]}" if row[0] else "",
             )
 
             cursor.close()
@@ -388,6 +417,151 @@ class CordisProjectRepository:
 
         except Exception as e:
             logger.error(f"Get project error: {e}")
+            if conn:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+            return None
+        finally:
+            if conn:
+                self.db_pool.putconn(conn)
+
+    def get_project_partners(self, project_id: str) -> list[dict[str, Any]]:
+        """
+        Get all organizations participating in a project.
+
+        Args:
+            project_id: Project ID
+
+        Returns:
+            List of partner organizations with their details
+        """
+        conn = None
+
+        try:
+            conn = self.db_pool.getconn()
+            cursor = conn.cursor()
+
+            sql = """
+                SELECT name, country, role, "activityType",
+                       COALESCE("SME", false) as sme,
+                       COALESCE("ecContribution", 0) as ec_contribution
+                FROM organizations
+                WHERE "projectID" = %s
+                ORDER BY
+                    CASE WHEN role = 'coordinator' THEN 0 ELSE 1 END,
+                    name ASC
+            """
+
+            cursor.execute(sql, (project_id,))
+            rows = cursor.fetchall()
+
+            partners = []
+            for row in rows:
+                partners.append(
+                    {
+                        "name": row[0] or "",
+                        "country": row[1] or "",
+                        "role": row[2] or "participant",
+                        "activity_type": row[3] or "",
+                        "sme": row[4] or False,
+                        "ec_contribution": float(row[5]) if row[5] else 0.0,
+                    }
+                )
+
+            cursor.close()
+            return partners
+
+        except Exception as e:
+            logger.error(f"Get project partners error: {e}")
+            return []
+        finally:
+            if conn:
+                self.db_pool.putconn(conn)
+
+    def get_project_by_acronym(self, acronym: str) -> CordisProjectDTO | None:
+        """
+        Get a project by its acronym.
+
+        Args:
+            acronym: Project acronym
+
+        Returns:
+            CordisProjectDTO or None if not found
+        """
+        conn = None
+
+        try:
+            conn = self.db_pool.getconn()
+            cursor = conn.cursor()
+
+            sql = """
+                SELECT
+                    p.id,
+                    p.rcn,
+                    p.title,
+                    p.acronym,
+                    COALESCE(p.objective, '') as objective,
+                    p."startDate",
+                    p."endDate",
+                    p.status,
+                    COALESCE(p."totalCost", 0) as total_cost,
+                    COALESCE(p."ecMaxContribution", 0) as ec_contribution,
+                    p."frameworkProgramme",
+                    p."fundingScheme",
+                    COALESCE(p.topics, '') as topics,
+                    coord.name as coordinator_name,
+                    coord.country as coordinator_country,
+                    (SELECT COUNT(*) FROM organizations WHERE "projectID" = p.id) as participant_count,
+                    (SELECT COUNT(DISTINCT country) FROM organizations WHERE "projectID" = p.id) as country_count,
+                    (SELECT COUNT(*) FROM organizations WHERE "projectID" = p.id AND "SME" = true) as sme_count,
+                    ARRAY(SELECT DISTINCT country FROM organizations WHERE "projectID" = p.id) as participant_countries
+                FROM projects p
+                LEFT JOIN organizations coord ON coord."projectID" = p.id AND coord.role = 'coordinator'
+                WHERE UPPER(p.acronym) = UPPER(%s)
+                ORDER BY
+                    CASE WHEN p.acronym = %s THEN 0 ELSE 1 END,
+                    p."startDate" DESC
+                LIMIT 1
+            """
+
+            cursor.execute(sql, (acronym, acronym))
+            row = cursor.fetchone()
+
+            if not row:
+                cursor.close()
+                return None
+
+            project = CordisProjectDTO(
+                id=row[0] or "",
+                rcn=row[1] or "",
+                title=row[2] or "",
+                acronym=row[3],
+                objective=row[4] or "",
+                start_date=str(row[5]) if row[5] else "",
+                end_date=str(row[6]) if row[6] else "",
+                status=row[7] or "",
+                total_cost=float(row[8]) if row[8] else 0.0,
+                ec_contribution=float(row[9]) if row[9] else 0.0,
+                programme=row[10] or "",
+                funding_scheme=row[11] or "",
+                topics=row[12] or "",
+                coordinator_name=row[13],
+                coordinator_country=row[14],
+                participant_count=row[15] or 0,
+                country_count=row[16] or 0,
+                sme_count=row[17] or 0,
+                participant_countries=row[18] or [],
+                cordis_url=f"https://cordis.europa.eu/project/id/{row[0]}" if row[0] else "",
+                doi_url=f"https://doi.org/10.3030/{row[0]}" if row[0] else "",
+            )
+
+            cursor.close()
+            return project
+
+        except Exception as e:
+            logger.error(f"Get project by acronym error: {e}")
             return None
         finally:
             if conn:

@@ -696,24 +696,30 @@ class V3ResponseFormatter:
         """Format organization-specific project results with richer context."""
         org_name = result.get("organization", "Unknown Organization")
         projects = result.get("projects", [])
-        count = result.get("count", len(projects))
+        # Use true total from get_organization_project_count if available
+        total_count = result.get("total_project_count") or result.get("count", len(projects))
+        coordinator_total = result.get("coordinator_count")
         role_filter = result.get("role_filter")
 
         if not projects:
             return self.format_no_matching_projects(query, organization_name=org_name)
 
         role_desc = f" (as {role_filter})" if role_filter else ""
-        lines = [f"## Projects by {org_name}{role_desc}", f"**Total Projects Found:** {count}\n"]
+        lines = [
+            f"## Projects by {org_name}{role_desc}",
+            f"**Total Projects Found:** {total_count}\n",
+        ]
 
         # Separate by role
         coordinated = [p for p in projects if p.get("role") == "coordinator"]
         participated = [p for p in projects if p.get("role") != "coordinator"]
 
+        coord_display = coordinator_total if coordinator_total is not None else len(coordinated)
         if coordinated:
-            lines.append(f"### 🎯 Coordinated Projects ({len(coordinated)})\n")
+            lines.append(f"### 🎯 Coordinated Projects ({coord_display})\n")
             for p in coordinated[:10]:
                 lines.append(self._format_org_project(p, is_coordinator=True))
-        elif count > 0:
+        elif total_count > 0:
             # No coordinator projects but has participant projects - note this
             lines.append("### 🎯 Coordinated Projects (0)\n")
             lines.append(
@@ -731,13 +737,17 @@ class V3ResponseFormatter:
         total_budget = sum(p.get("budget", 0) or 0 for p in projects)
         funding_schemes = set(p.get("funding_scheme") for p in projects if p.get("funding_scheme"))
 
+        coord_summary = coordinator_total if coordinator_total is not None else len(coordinated)
+        note = result.get("note", "")
+        note_line = f"\n- *Note: {note}*" if note else ""
+
         lines.append(
             f"""
 ### 📊 Summary
-- **Total Projects:** {count}
-- **As Coordinator:** {len(coordinated)}
+- **Total Projects:** {total_count}
+- **As Coordinator:** {coord_summary}
 - **Total Budget Involved:** €{total_budget / 1_000_000:.1f}M
-- **Funding Types:** {", ".join(funding_schemes) if funding_schemes else "N/A"}
+- **Funding Types:** {", ".join(funding_schemes) if funding_schemes else "N/A"}{note_line}
 
 **Next Steps:**
 • Explore specific project details on CORDIS
