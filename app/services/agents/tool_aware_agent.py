@@ -4385,18 +4385,14 @@ digital_europe, life""",
                         all_tool_results[f"{tc.tool_name}_{iteration}_{idx}"] = tc.result
                         tool_results_this_step[tc.tool_name] = tc.result
 
-                # Auto-promote to formatted output if results contain project data
-                # This avoids a 2nd LLM iteration that would summarize/drop projects
-                has_project_data = any(
-                    isinstance(r, dict)
-                    and (
-                        "similar_projects" in r
-                        or "rendered_content" in r
-                        or ("projects" in r and isinstance(r.get("projects"), list))
-                    )
+                # Auto-promote to formatted output ONLY for semantic project searches
+                # or pagination results. Don't promote generic keyword "projects" results
+                # — those may come from org stats, follow-ups, etc. that need LLM synthesis.
+                has_semantic_projects = any(
+                    isinstance(r, dict) and ("similar_projects" in r or "rendered_content" in r)
                     for r in tool_results_this_step.values()
                 )
-                if has_project_data:
+                if has_semantic_projects:
                     formatted = self._synthesize_from_results(query, tool_results_this_step)
                     if formatted and len(formatted) > 200:
                         plan.final_answer = formatted
@@ -4789,17 +4785,13 @@ digital_europe, life""",
                         all_tool_results[f"{tc.tool_name}_{iteration}_{idx}"] = tc.result
                         tool_results_this_step[tc.tool_name] = tc.result
 
-                # Auto-promote to formatted output if results contain project data
-                has_project_data = any(
-                    isinstance(r, dict)
-                    and (
-                        "similar_projects" in r
-                        or "rendered_content" in r
-                        or ("projects" in r and isinstance(r.get("projects"), list))
-                    )
+                # Auto-promote to formatted output ONLY for semantic project searches
+                # or pagination results. Don't promote generic keyword "projects" results.
+                has_semantic_projects = any(
+                    isinstance(r, dict) and ("similar_projects" in r or "rendered_content" in r)
                     for r in tool_results_this_step.values()
                 )
-                if has_project_data:
+                if has_semantic_projects:
                     formatted = self._synthesize_from_results(query, tool_results_this_step)
                     if formatted and len(formatted) > 200:
                         plan.final_answer = formatted
