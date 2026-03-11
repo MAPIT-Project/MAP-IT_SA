@@ -2056,7 +2056,102 @@ Found **{total_found} organizations** with relevant track records:
                         partner_text += "- **FEMP (Spanish Federation of Municipalities)**: http://www.femp.es - Contact for municipal network verification\n"
                     content_pieces.append(partner_text)
 
+            # Extract proposal scoring results (score_proposal_section, score_full_proposal, quick_quality_check)
+            elif (
+                result.get("tool_name")
+                in ("score_proposal_section", "score_full_proposal", "quick_quality_check")
+                or "overall_score" in result
+                or "section_score" in result
+                or "quality_score" in result
+            ):
+                scoring_text = self._format_proposal_scoring_result(result)
+                if scoring_text:
+                    content_pieces.append(scoring_text)
+
+            # Extract budget validation results (validate_budget)
+            elif result.get("tool_name") == "validate_budget" or "compliance_score" in result:
+                validation_text = self._format_budget_validation_result(result)
+                if validation_text:
+                    content_pieces.append(validation_text)
+
+            # Extract Erasmus+ budget calculation results (calculate_erasmus_budget)
+            elif result.get("tool_name") == "calculate_erasmus_budget" or (
+                "total_grant" in result and "unit_costs" in result
+            ):
+                erasmus_budget_text = self._format_erasmus_budget_result(result)
+                if erasmus_budget_text:
+                    content_pieces.append(erasmus_budget_text)
+
+            # Extract Creative Europe budget calculation results (calculate_creative_europe_budget)
+            elif result.get("tool_name") == "calculate_creative_europe_budget" or (
+                "total_budget" in result and "funding_rate" in result and "co_financing" in result
+            ):
+                ce_budget_text = self._format_creative_europe_budget_result(result)
+                if ce_budget_text:
+                    content_pieces.append(ce_budget_text)
+
+            # Extract LIFE template search results
+            elif result.get("metadata", {}).get("tool") == "search_life_templates":
+                template_text = self._format_life_template_search_result(result)
+                if template_text:
+                    content_pieces.append(template_text)
+
+            # Extract Creative Europe template search results
+            elif result.get("metadata", {}).get("tool") == "search_creative_europe_templates":
+                template_text = self._format_creative_europe_template_search_result(result)
+                if template_text:
+                    content_pieces.append(template_text)
+
+            # Extract Digital Europe eligibility results (fallback detection)
+            elif result.get("tool_name") == "check_digital_europe_eligibility" or (
+                "objectives" in result
+                and "digital_europe" in str(result.get("programme", "")).lower()
+            ):
+                eligibility_text = self._format_digital_europe_eligibility_result(result)
+                if eligibility_text:
+                    content_pieces.append(eligibility_text)
+
+            # Extract LIFE eligibility results (fallback detection)
+            elif result.get("tool_name") == "check_life_eligibility" or (
+                "sub_programmes" in result and "life" in str(result.get("programme", "")).lower()
+            ):
+                eligibility_text = self._format_life_eligibility_result(result)
+                if eligibility_text:
+                    content_pieces.append(eligibility_text)
+
         if not content_pieces:
+            # Build a structured summary from result keys
+            fallback_parts = []
+            for name, result in tool_results.items():
+                if isinstance(result, dict):
+                    # Show tool name and key metrics
+                    tool_label = result.get("tool_name", name.split("_")[0])
+                    success = result.get("success", True)
+                    keys = [
+                        k for k in result.keys() if k not in ("tool_name", "metadata", "success")
+                    ]
+                    summary_items = []
+                    for k in keys[:5]:
+                        v = result[k]
+                        if isinstance(v, list):
+                            summary_items.append(f"{k}: {len(v)} items")
+                        elif isinstance(v, dict):
+                            summary_items.append(f"{k}: {len(v)} fields")
+                        elif isinstance(v, int | float):
+                            summary_items.append(f"{k}: {v}")
+                        elif isinstance(v, str) and len(v) < 100:
+                            summary_items.append(f"{k}: {v}")
+                    if summary_items:
+                        fallback_parts.append(
+                            f"**{tool_label}** ({'success' if success else 'partial'}): "
+                            f"{', '.join(summary_items)}"
+                        )
+            if fallback_parts:
+                return (
+                    "Here's what I found:\n\n"
+                    + "\n".join(fallback_parts)
+                    + "\n\nPlease ask a more specific question for detailed analysis."
+                )
             return "I found some information but couldn't extract specific details. Please try a more specific question."
 
         # Combine and deduplicate content
@@ -3056,6 +3151,585 @@ This may be because:
         parts.append(
             "• Review [successful project examples]"
             "(https://erasmus-plus.ec.europa.eu/projects) on the results platform"
+        )
+
+        return "\n".join(parts)
+
+    def _format_proposal_scoring_result(self, result: dict) -> str:
+        """Format proposal scoring results into a readable evaluation report."""
+        tool_name = result.get("tool_name", "")
+        parts = []
+
+        # Full proposal scoring
+        if tool_name == "score_full_proposal" or "overall_score" in result:
+            overall = result.get("overall_score", 0)
+            max_score = result.get("max_score", 15)
+            funding_probability = result.get("funding_probability", "")
+            sections = result.get("sections", result.get("section_scores", []))
+
+            parts.append("## Proposal Evaluation Report")
+            parts.append("")
+            parts.append(f"**Overall Score: {overall}/{max_score}**")
+            if funding_probability:
+                parts.append(f"**Funding Probability: {funding_probability}**")
+            parts.append("")
+
+            # Section breakdown
+            if sections and isinstance(sections, list):
+                parts.append("### Section Scores")
+                parts.append("")
+                for section in sections:
+                    section_name = section.get("name", section.get("section", "Unknown"))
+                    score = section.get("score", 0)
+                    section_max = section.get("max_score", 5)
+                    parts.append(f"**{section_name}**: {score}/{section_max}")
+
+                    s_strengths = section.get("strengths", [])
+                    if s_strengths:
+                        for s in s_strengths[:3]:
+                            parts.append(f"- :white_check_mark: {s}")
+
+                    s_weaknesses = section.get("weaknesses", [])
+                    if s_weaknesses:
+                        for w in s_weaknesses[:3]:
+                            parts.append(f"- :x: {w}")
+                    parts.append("")
+            elif sections and isinstance(sections, dict):
+                parts.append("### Section Scores")
+                parts.append("")
+                for section_name, section_data in sections.items():
+                    if isinstance(section_data, dict):
+                        score = section_data.get("score", 0)
+                        section_max = section_data.get("max_score", 5)
+                        parts.append(f"**{section_name}**: {score}/{section_max}")
+
+                        s_strengths = section_data.get("strengths", [])
+                        if s_strengths:
+                            for s in s_strengths[:3]:
+                                parts.append(f"- :white_check_mark: {s}")
+
+                        s_weaknesses = section_data.get("weaknesses", [])
+                        if s_weaknesses:
+                            for w in s_weaknesses[:3]:
+                                parts.append(f"- :x: {w}")
+                        parts.append("")
+
+            # Overall suggestions
+            suggestions = result.get("suggestions", result.get("improvements", []))
+            if suggestions:
+                parts.append("### Suggestions for Improvement")
+                for sug in suggestions[:5]:
+                    parts.append(f"- {sug}")
+                parts.append("")
+
+        # Single section scoring
+        elif tool_name == "score_proposal_section" or "section_score" in result:
+            section_name = result.get("section_name", result.get("section", "Proposal Section"))
+            score = result.get("section_score", result.get("score", 0))
+            max_score = result.get("max_score", 5)
+
+            parts.append(f"## Proposal Section Evaluation: {section_name}")
+            parts.append("")
+            parts.append(f"**Score: {score}/{max_score}**")
+            parts.append("")
+
+            strengths = result.get("strengths", [])
+            if strengths:
+                parts.append("### Strengths")
+                for s in strengths:
+                    parts.append(f"- {s}")
+                parts.append("")
+
+            weaknesses = result.get("weaknesses", [])
+            if weaknesses:
+                parts.append("### Weaknesses")
+                for w in weaknesses:
+                    parts.append(f"- {w}")
+                parts.append("")
+
+            suggestions = result.get("suggestions", result.get("improvements", []))
+            if suggestions:
+                parts.append("### Suggestions")
+                for sug in suggestions:
+                    parts.append(f"- {sug}")
+                parts.append("")
+
+        # Quick quality check
+        elif tool_name == "quick_quality_check" or "quality_score" in result:
+            quality_score = result.get("quality_score", 0)
+            max_score = result.get("max_score", 100)
+
+            parts.append("## Quick Quality Check")
+            parts.append("")
+            parts.append(f"**Quality Score: {quality_score}/{max_score}**")
+            parts.append("")
+
+            issues = result.get("issues", result.get("warnings", []))
+            if issues:
+                parts.append("### Issues Found")
+                for issue in issues:
+                    parts.append(f"- {issue}")
+                parts.append("")
+
+            suggestions = result.get("suggestions", result.get("recommendations", []))
+            if suggestions:
+                parts.append("### Recommendations")
+                for sug in suggestions:
+                    parts.append(f"- {sug}")
+                parts.append("")
+
+        if not parts:
+            return ""
+
+        parts.append("---")
+        parts.append("")
+        parts.append("**Next Steps:**")
+        parts.append("- Address identified weaknesses before submission")
+        parts.append(
+            "- Review the [Horizon Europe evaluation criteria]"
+            "(https://ec.europa.eu/info/funding-tenders/) for detailed scoring guidance"
+        )
+        parts.append("- Consider having experienced reviewers evaluate your final draft")
+
+        return "\n".join(parts)
+
+    def _format_budget_validation_result(self, result: dict) -> str:
+        """Format budget validation results into readable text."""
+        compliance_score = result.get("compliance_score", 0)
+        issues = result.get("issues", [])
+        recommendations = result.get("recommendations", [])
+        budget_summary = result.get("budget_summary", {})
+
+        parts = ["## Budget Validation Report"]
+        parts.append("")
+        parts.append(f"**Compliance Score: {compliance_score}%**")
+        parts.append("")
+
+        if budget_summary:
+            total = budget_summary.get("total_budget", budget_summary.get("total_cost", 0))
+            eu_contribution = budget_summary.get("eu_contribution", 0)
+            if total:
+                parts.append(f"- **Total Budget:** EUR {total:,.0f}")
+            if eu_contribution:
+                parts.append(f"- **EU Contribution:** EUR {eu_contribution:,.0f}")
+            parts.append("")
+
+        if issues:
+            parts.append("### Issues Found")
+            for issue in issues:
+                if isinstance(issue, dict):
+                    severity = issue.get("severity", "warning")
+                    message = issue.get("message", issue.get("description", str(issue)))
+                    icon = ":red_circle:" if severity == "error" else ":warning:"
+                    parts.append(f"- {icon} {message}")
+                else:
+                    parts.append(f"- :warning: {issue}")
+            parts.append("")
+
+        if recommendations:
+            parts.append("### Recommendations")
+            for rec in recommendations:
+                if isinstance(rec, dict):
+                    parts.append(f"- {rec.get('message', rec.get('description', str(rec)))}")
+                else:
+                    parts.append(f"- {rec}")
+            parts.append("")
+
+        parts.append("---")
+        parts.append("")
+        parts.append("**Next Steps:**")
+        parts.append("- Address all compliance issues before submission")
+        parts.append(
+            "- Review [Horizon Europe financial rules]"
+            "(https://ec.europa.eu/info/funding-tenders/) for budget guidance"
+        )
+        parts.append("- Ensure indirect cost calculations follow the 25% flat rate")
+
+        return "\n".join(parts)
+
+    def _format_erasmus_budget_result(self, result: dict) -> str:
+        """Format Erasmus+ budget calculation results into readable text."""
+        total_grant = result.get("total_grant", 0)
+        unit_costs = result.get("unit_costs", {})
+        travel_bands = result.get("travel_bands", result.get("travel", {}))
+        activities = result.get("activities", result.get("activity_breakdown", []))
+        parameters = result.get("parameters", {})
+
+        parts = ["## Erasmus+ Budget Calculation"]
+        parts.append("")
+
+        # Parameters summary
+        action = parameters.get("action", parameters.get("key_action", ""))
+        if action:
+            parts.append(f"**Action:** {action}")
+        participants = parameters.get("participants", parameters.get("num_participants", 0))
+        if participants:
+            parts.append(f"**Participants:** {participants}")
+        duration = parameters.get("duration", parameters.get("duration_days", 0))
+        if duration:
+            parts.append(f"**Duration:** {duration} days")
+        parts.append("")
+
+        # Total grant
+        parts.append(f"### Total Grant: EUR {total_grant:,.0f}")
+        parts.append("")
+
+        # Unit costs table
+        if unit_costs and isinstance(unit_costs, dict):
+            parts.append("### Unit Costs Breakdown")
+            parts.append("")
+            parts.append("| Cost Category | Amount |")
+            parts.append("|---------------|--------|")
+            for category, amount in unit_costs.items():
+                if isinstance(amount, int | float):
+                    parts.append(f"| {category.replace('_', ' ').title()} | EUR {amount:,.0f} |")
+                elif isinstance(amount, dict):
+                    amt = amount.get("amount", amount.get("total", 0))
+                    parts.append(f"| {category.replace('_', ' ').title()} | EUR {amt:,.0f} |")
+            parts.append("")
+        elif unit_costs and isinstance(unit_costs, list):
+            parts.append("### Unit Costs Breakdown")
+            parts.append("")
+            parts.append("| Cost Category | Amount |")
+            parts.append("|---------------|--------|")
+            for item in unit_costs:
+                if isinstance(item, dict):
+                    category = item.get("category", item.get("type", ""))
+                    amount = item.get("amount", item.get("total", 0))
+                    parts.append(f"| {category.replace('_', ' ').title()} | EUR {amount:,.0f} |")
+            parts.append("")
+
+        # Travel bands
+        if travel_bands and isinstance(travel_bands, dict):
+            parts.append("### Travel Costs")
+            for band, amount in travel_bands.items():
+                if isinstance(amount, int | float):
+                    parts.append(f"- **{band.replace('_', ' ').title()}:** EUR {amount:,.0f}")
+                elif isinstance(amount, dict):
+                    amt = amount.get("amount", amount.get("rate", 0))
+                    parts.append(f"- **{band.replace('_', ' ').title()}:** EUR {amt:,.0f}")
+            parts.append("")
+        elif travel_bands and isinstance(travel_bands, list):
+            parts.append("### Travel Costs")
+            for band in travel_bands:
+                if isinstance(band, dict):
+                    distance = band.get("distance_band", band.get("band", ""))
+                    amount = band.get("amount", band.get("rate", 0))
+                    parts.append(f"- **{distance}:** EUR {amount:,.0f}")
+            parts.append("")
+
+        # Activity breakdown
+        if activities and isinstance(activities, list):
+            parts.append("### Activity Breakdown")
+            for i, activity in enumerate(activities, 1):
+                if isinstance(activity, dict):
+                    name = activity.get("name", activity.get("activity_type", f"Activity {i}"))
+                    amount = activity.get("amount", activity.get("total", 0))
+                    parts.append(f"- **{name}:** EUR {amount:,.0f}")
+            parts.append("")
+
+        parts.append("---")
+        parts.append("")
+        parts.append("**Next Steps:**")
+        parts.append(
+            "- Review the [Erasmus+ Programme Guide 2026]"
+            "(https://erasmus-plus.ec.europa.eu/programme-guide/erasmusplus-programme-guide) "
+            "for detailed funding rules"
+        )
+        parts.append(
+            "- Contact your [National Agency]"
+            "(https://erasmus-plus.ec.europa.eu/contacts/national-agencies) for budget guidance"
+        )
+
+        return "\n".join(parts)
+
+    def _format_creative_europe_budget_result(self, result: dict) -> str:
+        """Format Creative Europe budget calculation results into readable text."""
+        total_budget = result.get("total_budget", 0)
+        funding_rate = result.get("funding_rate", "")
+        co_financing = result.get("co_financing", 0)
+        eu_contribution = result.get("eu_contribution", result.get("eu_grant", 0))
+        breakdown = result.get("breakdown", result.get("budget_breakdown", {}))
+        parameters = result.get("parameters", {})
+
+        parts = ["## Creative Europe Budget Calculation"]
+        parts.append("")
+
+        # Parameters
+        strand = parameters.get("strand", "")
+        action_type = parameters.get("action_type", "")
+        scale = parameters.get("scale", parameters.get("project_scale", ""))
+        if strand:
+            parts.append(f"**Strand:** {strand}")
+        if action_type:
+            parts.append(f"**Action Type:** {action_type}")
+        if scale:
+            parts.append(f"**Project Scale:** {scale}")
+        parts.append("")
+
+        # Budget summary
+        parts.append("### Budget Summary")
+        parts.append(f"- **Total Budget:** EUR {total_budget:,.0f}")
+        if funding_rate:
+            rate_str = (
+                f"{funding_rate}%" if isinstance(funding_rate, int | float) else str(funding_rate)
+            )
+            parts.append(f"- **EU Funding Rate:** {rate_str}")
+        if eu_contribution:
+            parts.append(f"- **EU Contribution:** EUR {eu_contribution:,.0f}")
+        if co_financing:
+            parts.append(f"- **Co-financing Required:** EUR {co_financing:,.0f}")
+        parts.append("")
+
+        # Breakdown
+        if breakdown and isinstance(breakdown, dict):
+            parts.append("### Budget Breakdown")
+            for category, amount in breakdown.items():
+                if isinstance(amount, int | float):
+                    parts.append(f"- **{category.replace('_', ' ').title()}:** EUR {amount:,.0f}")
+                elif isinstance(amount, dict):
+                    amt = amount.get("amount", amount.get("total", 0))
+                    pct = amount.get("percentage", "")
+                    pct_str = f" ({pct}%)" if pct else ""
+                    parts.append(
+                        f"- **{category.replace('_', ' ').title()}:** EUR {amt:,.0f}{pct_str}"
+                    )
+            parts.append("")
+        elif breakdown and isinstance(breakdown, list):
+            parts.append("### Budget Breakdown")
+            for item in breakdown:
+                if isinstance(item, dict):
+                    category = item.get("category", item.get("type", ""))
+                    amount = item.get("amount", item.get("total", 0))
+                    parts.append(f"- **{category.replace('_', ' ').title()}:** EUR {amount:,.0f}")
+            parts.append("")
+
+        parts.append("---")
+        parts.append("")
+        parts.append("**Next Steps:**")
+        parts.append(
+            "- Review the [Creative Europe Work Programmes]"
+            "(https://culture.ec.europa.eu/creative-europe) for current funding rules"
+        )
+        parts.append(
+            "- Consult the [CulturEU Funding Guide]"
+            "(https://culture.ec.europa.eu/funding/cultureu-funding-guide) "
+            "for application guidance"
+        )
+        parts.append(
+            "- Check open calls on the [EU Funding & Tenders Portal]"
+            "(https://ec.europa.eu/info/funding-tenders/opportunities/portal/"
+            "?programmePeriod=2021-2027&programCcm2Id=44181033)"
+        )
+
+        return "\n".join(parts)
+
+    def _format_life_template_search_result(self, result: dict) -> str:
+        """Format LIFE Programme template search results into readable text.
+
+        This method formats results from search_life_templates tool,
+        presenting LIFE Programme information including sub-programme
+        details, eligibility criteria, and funding rules.
+        """
+        if not result.get("success"):
+            return ""
+
+        results = result.get("results", [])
+        if not results:
+            return ""
+
+        _query = result.get("query", "")  # noqa: F841 - available for future use
+        detected_subprogramme = result.get(
+            "detected_subprogramme", result.get("detected_strand", "")
+        )
+        total_found = result.get("total_found", len(results))
+
+        # Build the formatted output
+        parts = []
+
+        # Header based on detected sub-programme
+        subprog_headers = {
+            "NAT": "## LIFE Programme: Nature and Biodiversity",
+            "ENV": "## LIFE Programme: Circular Economy and Quality of Life",
+            "CCA": "## LIFE Programme: Climate Change Mitigation and Adaptation",
+            "CET": "## LIFE Programme: Clean Energy Transition",
+        }
+        header = subprog_headers.get(detected_subprogramme, "## LIFE Programme Information")
+        parts.append(header)
+        parts.append("")
+
+        # Add sub-programme context if detected
+        subprog_descriptions = {
+            "NAT": (
+                "The LIFE Programme supports **nature and biodiversity** conservation "
+                "through Natura 2000 network implementation, species protection, and "
+                "ecosystem restoration projects with up to 75% EU co-financing."
+            ),
+            "ENV": (
+                "The LIFE Programme supports **circular economy and quality of life** "
+                "through waste management, resource efficiency, water quality, and "
+                "environmental governance projects with 60% EU co-financing."
+            ),
+            "CCA": (
+                "The LIFE Programme supports **climate change mitigation and adaptation** "
+                "through greenhouse gas reduction, climate resilience, and sustainable "
+                "land use projects with 60% EU co-financing."
+            ),
+            "CET": (
+                "The LIFE Programme supports the **clean energy transition** through "
+                "energy efficiency, renewable energy, and market reform projects "
+                "with up to 95% EU co-financing."
+            ),
+        }
+        if detected_subprogramme and detected_subprogramme in subprog_descriptions:
+            parts.append(f"**Overview:** {subprog_descriptions[detected_subprogramme]}")
+            parts.append("")
+
+        # Add relevant content from search results
+        parts.append(f"### Key Information (from {total_found} relevant sources)")
+        parts.append("")
+
+        for i, item in enumerate(results[:5], 1):
+            content = item.get("content", "")
+            section = item.get("section", "general")
+            section_desc = item.get("section_description", "")
+
+            if content:
+                # Clean and format content
+                content = content.strip()
+                content = re.sub(r"\[Page\s*\d+\]", "", content)
+                content = re.sub(r"\s{2,}", " ", content)
+                if len(content) > 800:
+                    content = content[:800] + "..."
+
+                section_label = section_desc if section_desc else section.replace("_", " ").title()
+                parts.append(f"**{i}. {section_label}**")
+                parts.append(content)
+                parts.append("")
+
+        # Add actionable next steps
+        parts.append("---")
+        parts.append("")
+        parts.append("**Next Steps:**")
+        parts.append(
+            "- Review the [LIFE Multi-Annual Work Programme]"
+            "(https://cinea.ec.europa.eu/programmes/life/life-work-programmes_en) "
+            "for current priorities"
+        )
+        parts.append(
+            "- Check open calls on the [EU Funding & Tenders Portal]"
+            "(https://ec.europa.eu/info/funding-tenders/opportunities/portal/"
+            "?programmePeriod=2021-2027&programCcm2Id=43252476)"
+        )
+        parts.append(
+            "- Contact [CINEA](https://cinea.ec.europa.eu/programmes/life_en) "
+            "for guidance and support"
+        )
+        parts.append(
+            "- Consult your [National Contact Point]"
+            "(https://cinea.ec.europa.eu/programmes/life/life-national-contact-points_en) "
+            "for local advice"
+        )
+
+        return "\n".join(parts)
+
+    def _format_creative_europe_template_search_result(self, result: dict) -> str:
+        """Format Creative Europe template search results into readable text.
+
+        This method formats results from search_creative_europe_templates tool,
+        presenting Creative Europe programme information including strand details,
+        eligibility criteria, and funding rules.
+        """
+        if not result.get("success"):
+            return ""
+
+        results = result.get("results", [])
+        if not results:
+            return ""
+
+        _query = result.get("query", "")  # noqa: F841 - available for future use
+        detected_strand = result.get("detected_strand", "")
+        total_found = result.get("total_found", len(results))
+
+        # Build the formatted output
+        parts = []
+
+        # Header based on detected strand
+        strand_headers = {
+            "CULTURE": "## Creative Europe: Culture Strand",
+            "MEDIA": "## Creative Europe: MEDIA Strand",
+            "CROSS-SECTORAL": "## Creative Europe: Cross-Sectoral Strand",
+        }
+        header = strand_headers.get(detected_strand, "## Creative Europe Programme Information")
+        parts.append(header)
+        parts.append("")
+
+        # Add strand context if detected
+        strand_descriptions = {
+            "CULTURE": (
+                "The Creative Europe CULTURE strand supports **European Cooperation Projects**, "
+                "literary translation, networks, and platforms to promote cultural diversity "
+                "and the competitiveness of the cultural and creative sectors."
+            ),
+            "MEDIA": (
+                "The Creative Europe MEDIA strand supports the **audiovisual sector** through "
+                "development, distribution, training, festivals, cinema networks, and "
+                "audience development activities."
+            ),
+            "CROSS-SECTORAL": (
+                "The Creative Europe Cross-Sectoral strand supports **Creative Innovation Labs**, "
+                "news media partnerships, media literacy, and the Music Moves Europe initiative "
+                "to foster cross-sector collaboration."
+            ),
+        }
+        if detected_strand and detected_strand in strand_descriptions:
+            parts.append(f"**Overview:** {strand_descriptions[detected_strand]}")
+            parts.append("")
+
+        # Add relevant content from search results
+        parts.append(f"### Key Information (from {total_found} relevant sources)")
+        parts.append("")
+
+        for i, item in enumerate(results[:5], 1):
+            content = item.get("content", "")
+            section = item.get("section", "general")
+            section_desc = item.get("section_description", "")
+
+            if content:
+                # Clean and format content
+                content = content.strip()
+                content = re.sub(r"\[Page\s*\d+\]", "", content)
+                content = re.sub(r"\s{2,}", " ", content)
+                if len(content) > 800:
+                    content = content[:800] + "..."
+
+                section_label = section_desc if section_desc else section.replace("_", " ").title()
+                parts.append(f"**{i}. {section_label}**")
+                parts.append(content)
+                parts.append("")
+
+        # Add actionable next steps
+        parts.append("---")
+        parts.append("")
+        parts.append("**Next Steps:**")
+        parts.append(
+            "- Review the [Creative Europe Work Programmes]"
+            "(https://culture.ec.europa.eu/creative-europe) for current priorities"
+        )
+        parts.append(
+            "- Consult the [CulturEU Funding Guide]"
+            "(https://culture.ec.europa.eu/funding/cultureu-funding-guide) "
+            "for application guidance"
+        )
+        parts.append(
+            "- Check open calls on the [EU Funding & Tenders Portal]"
+            "(https://ec.europa.eu/info/funding-tenders/opportunities/portal/"
+            "?programmePeriod=2021-2027&programCcm2Id=44181033)"
+        )
+        parts.append(
+            "- Contact the [Creative Europe Desks]"
+            "(https://culture.ec.europa.eu/creative-europe/creative-europe-desks) "
+            "in your country for support"
         )
 
         return "\n".join(parts)
@@ -4065,6 +4739,124 @@ This may be because:
                 parts.append("• Consider starting as a partner before taking a coordinator role")
 
             return "\n".join(parts)
+
+        # Handle proposal scoring results (compact summary)
+        if (
+            tool_name in ("score_proposal_section", "score_full_proposal", "quick_quality_check")
+            or "overall_score" in result
+            or "section_score" in result
+            or "quality_score" in result
+        ):
+            if "overall_score" in result:
+                score = result.get("overall_score", 0)
+                max_s = result.get("max_score", 15)
+                sections = result.get("sections", result.get("section_scores", []))
+                n_sections = len(sections) if isinstance(sections, list | dict) else 0
+                funding_prob = result.get("funding_probability", "N/A")
+                return (
+                    f"Full Proposal Score: {score}/{max_s}, "
+                    f"Sections: {n_sections}, "
+                    f"Funding Probability: {funding_prob}"
+                )
+            elif "section_score" in result:
+                score = result.get("section_score", result.get("score", 0))
+                max_s = result.get("max_score", 5)
+                strengths = len(result.get("strengths", []))
+                weaknesses = len(result.get("weaknesses", []))
+                suggestions = len(result.get("suggestions", result.get("improvements", [])))
+                return (
+                    f"Score: {score}/{max_s}, "
+                    f"Strengths: {strengths}, "
+                    f"Weaknesses: {weaknesses}, "
+                    f"Suggestions: {suggestions}"
+                )
+            else:
+                quality = result.get("quality_score", 0)
+                max_s = result.get("max_score", 100)
+                issues = len(result.get("issues", result.get("warnings", [])))
+                suggestions = len(result.get("suggestions", result.get("recommendations", [])))
+                return (
+                    f"Quality Score: {quality}/{max_s}, "
+                    f"Issues: {issues}, "
+                    f"Suggestions: {suggestions}"
+                )
+
+        # Handle budget validation results (compact summary)
+        if tool_name == "validate_budget" or "compliance_score" in result:
+            compliance = result.get("compliance_score", 0)
+            issues = len(result.get("issues", []))
+            recs = len(result.get("recommendations", []))
+            return f"Compliance: {compliance}%, Issues: {issues} found, Recommendations: {recs}"
+
+        # Handle Erasmus+ budget results (compact summary)
+        if tool_name == "calculate_erasmus_budget" or (
+            "total_grant" in result and "unit_costs" in result
+        ):
+            total = result.get("total_grant", 0)
+            unit_costs = result.get("unit_costs", {})
+            n_activities = len(result.get("activities", result.get("activity_breakdown", [])))
+            n_travel = len(result.get("travel_bands", result.get("travel", {})))
+            n_unit = len(unit_costs) if isinstance(unit_costs, dict | list) else 0
+            return (
+                f"Total Grant: EUR {total:,.0f}, "
+                f"Activities: {n_activities} types, "
+                f"Unit costs: {n_unit}, "
+                f"Travel bands: {n_travel}"
+            )
+
+        # Handle Creative Europe budget results (compact summary)
+        if tool_name == "calculate_creative_europe_budget" or (
+            "total_budget" in result and "funding_rate" in result and "co_financing" in result
+        ):
+            total = result.get("total_budget", 0)
+            rate = result.get("funding_rate", "N/A")
+            co_fin = result.get("co_financing", 0)
+            rate_str = f"{rate}%" if isinstance(rate, int | float) else str(rate)
+            return (
+                f"Total: EUR {total:,.0f}, "
+                f"Funding Rate: {rate_str}, "
+                f"Co-financing: EUR {co_fin:,.0f}"
+            )
+
+        # Handle LIFE template search results (compact summary)
+        if result.get("metadata", {}).get("tool") == "search_life_templates":
+            n_results = len(result.get("results", []))
+            query = result.get("query", "LIFE programme")
+            return f"Found {n_results} relevant documents for [{query}]"
+
+        # Handle Creative Europe template search results (compact summary)
+        if result.get("metadata", {}).get("tool") == "search_creative_europe_templates":
+            n_results = len(result.get("results", []))
+            query = result.get("query", "Creative Europe")
+            return f"Found {n_results} relevant documents for [{query}]"
+
+        # Handle Digital Europe eligibility results (compact summary)
+        if tool_name == "check_digital_europe_eligibility" or (
+            "objectives" in result and "digital_europe" in str(result.get("programme", "")).lower()
+        ):
+            eligible = result.get("total_eligible", 0)
+            if "eligible_objectives" in result:
+                eligible = len(result.get("eligible_objectives", []))
+            is_eligible = eligible > 0
+            return (
+                f"Programme: Digital Europe, "
+                f"Eligible: {'Yes' if is_eligible else 'No'}, "
+                f"Matched: {eligible} objectives"
+            )
+
+        # Handle LIFE eligibility results (compact summary)
+        if tool_name == "check_life_eligibility" or (
+            "sub_programmes" in result and "life" in str(result.get("programme", "")).lower()
+        ):
+            eligible = result.get("total_eligible", 0)
+            if "eligible_subprogrammes" in result:
+                eligible = len(result.get("eligible_subprogrammes", []))
+            is_eligible = eligible > 0
+            return (
+                f"Programme: LIFE, "
+                f"Eligible: {'Yes' if is_eligible else 'No'}, "
+                f"Matched: {eligible} sub-programmes"
+            )
 
         # Handle error messages
         if "error" in result:

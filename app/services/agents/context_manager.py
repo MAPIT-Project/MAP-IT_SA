@@ -25,9 +25,7 @@ class ContextLimits:
     # Maximum tokens for various components (approximate, using char/4 ratio)
     max_context_chars: int = 100000  # ~25k tokens
     max_tool_result_chars: int = 8000  # Per tool result
-    max_observation_chars: int = (
-        5000  # Per reasoning step (increased for cross-analysis with partner lists)
-    )
+    max_observation_chars: int = 8000  # Per reasoning step — allows rich tool results for synthesis
     max_document_chars: int = 1000  # Per document in synthesis
     max_documents_per_result: int = 10  # Max docs to include
     max_calls_per_result: int = 15  # Max calls to include
@@ -40,7 +38,7 @@ class ContextLimits:
         return cls(
             max_context_chars=int(os.getenv("MAX_CONTEXT_CHARS", "100000")),
             max_tool_result_chars=int(os.getenv("MAX_TOOL_RESULT_CHARS", "8000")),
-            max_observation_chars=int(os.getenv("MAX_OBSERVATION_CHARS", "5000")),
+            max_observation_chars=int(os.getenv("MAX_OBSERVATION_CHARS", "8000")),
             max_document_chars=int(os.getenv("MAX_DOCUMENT_CHARS", "1000")),
         )
 
@@ -78,8 +76,150 @@ class ContextWindowManager:
         return self.truncate_text(result_str, self.limits.max_tool_result_chars)
 
     def truncate_observation(self, observation: str) -> str:
-        """Truncate an observation to fit within limits."""
-        return self.truncate_text(observation, self.limits.max_observation_chars)
+        """Truncate an observation to fit within limits, using smart truncation."""
+        return self.smart_truncate_observation(observation, self.limits.max_observation_chars)
+
+    def smart_truncate_observation(self, observation: str, max_chars: int = 0) -> str:
+        """Truncate observation intelligently, preserving structure.
+
+        Detects content type and preserves:
+        - Header/aggregate metrics
+        - First N complete items
+        - "...and N more" suffix
+        Falls back to simple truncation for unknown formats.
+        """
+        if not observation:
+            return ""
+        max_chars = max_chars or self.limits.max_observation_chars
+        if len(observation) <= max_chars:
+            return observation
+
+        lines = observation.split("\n")
+
+        # Detect structured list format (numbered items like "1. NAME (CC, TYPE): ...")
+        # Common in partner discovery, project lists, etc.
+        numbered_pattern = any(
+            line.strip().startswith(f"{i}.") for line in lines[:5] for i in range(1, 6)
+        )
+
+        if numbered_pattern or self._has_structured_items(lines):
+            return self._truncate_structured(lines, max_chars)
+
+        # Detect markdown sections (## headers, **bold** metrics)
+        has_sections = any(line.strip().startswith(("##", "**")) for line in lines[:10])
+        if has_sections:
+            return self._truncate_sections(lines, max_chars)
+
+        # Fallback to simple truncation
+        return self.truncate_text(observation, max_chars)
+
+    def _has_structured_items(self, lines: list[str]) -> bool:
+        """Check if lines contain structured numbered/bulleted items."""
+        item_count = sum(
+            1
+            for line in lines
+            if line.strip()
+            and (
+                line.strip()[0].isdigit()
+                and ". " in line[:5]
+                or line.strip().startswith("- **")
+                or line.strip().startswith("| ")
+            )
+        )
+        return item_count >= 3
+
+    def _truncate_structured(self, lines: list[str], max_chars: int) -> str:
+        """Truncate structured list, keeping header + first N items + summary."""
+        result_lines = []
+        current_size = 0
+        # Reserve space for "...and N more" suffix (min 50, max 100)
+        reserve = min(100, max(50, max_chars // 20))
+        effective_max = max_chars - reserve
+
+        # Phase 1: Always include header lines (non-numbered, before first item)
+        header_end = 0
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped and (
+                (stripped[0].isdigit() and ". " in stripped[:5])
+                or stripped.startswith("- **")
+                or stripped.startswith("| ")
+            ):
+                header_end = i
+                break
+        else:
+            header_end = len(lines)
+
+        for line in lines[:header_end]:
+            if current_size + len(line) + 1 > effective_max:
+                break
+            result_lines.append(line)
+            current_size += len(line) + 1
+
+        # Phase 2: Include as many complete items as possible
+        items_included = 0
+        total_items = 0
+        i = header_end
+        while i < len(lines):
+            line = lines[i]
+            stripped = line.strip()
+
+            # Count items (numbered lines or bold-prefixed lines)
+            is_item_start = (
+                stripped and stripped[0].isdigit() and ". " in stripped[:5]
+            ) or stripped.startswith("- **")
+
+            if is_item_start:
+                total_items += 1
+
+            # Collect this item (item start + any continuation lines)
+            item_lines = [line]
+            j = i + 1
+            while j < len(lines):
+                next_stripped = lines[j].strip()
+                next_is_item = (
+                    next_stripped and next_stripped[0].isdigit() and ". " in next_stripped[:5]
+                ) or next_stripped.startswith("- **")
+                if next_is_item or not next_stripped:
+                    break
+                item_lines.append(lines[j])
+                j += 1
+
+            item_text = "\n".join(item_lines)
+            if current_size + len(item_text) + 1 > effective_max:
+                # Can't fit more items
+                remaining = total_items
+                # Count remaining items
+                for k in range(j, len(lines)):
+                    sk = lines[k].strip()
+                    if (sk and sk[0].isdigit() and ". " in sk[:5]) or sk.startswith("- **"):
+                        remaining += 1
+                if remaining > 0:
+                    result_lines.append(f"\n...and {remaining} more items (truncated)")
+                break
+
+            result_lines.extend(item_lines)
+            current_size += len(item_text) + 1
+            items_included += 1
+            i = j
+
+        return "\n".join(result_lines)
+
+    def _truncate_sections(self, lines: list[str], max_chars: int) -> str:
+        """Truncate content with markdown sections, preserving headers and key metrics."""
+        result_lines = []
+        current_size = 0
+        reserve = 80
+        effective_max = max_chars - reserve
+
+        for line in lines:
+            if current_size + len(line) + 1 > effective_max:
+                result_lines.append("\n...(truncated)")
+                break
+            result_lines.append(line)
+            current_size += len(line) + 1
+
+        return "\n".join(result_lines)
 
     def truncate_document(self, content: str) -> str:
         """Truncate document content to fit within limits."""

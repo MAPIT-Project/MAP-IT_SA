@@ -1,6 +1,6 @@
 """Prompt constants for ToolAwareAgent reasoning."""
 
-__all__ = ["BUILT_IN_KNOWLEDGE", "REASONING_PROMPT"]
+__all__ = ["BUILT_IN_KNOWLEDGE", "REASONING_PROMPT", "KNOWLEDGE_SECTIONS"]
 
 # Built-in knowledge for common questions where documents may be incomplete
 BUILT_IN_KNOWLEDGE = """
@@ -723,6 +723,142 @@ When users ask about funding strategy, multi-year planning, or application seque
 • Use [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search) to find experienced consortium partners
 """
 
+# Section-based knowledge for selective injection
+# Keys map to content sections within BUILT_IN_KNOWLEDGE
+KNOWLEDGE_SECTIONS = {
+    "core": """## Quick Reference: Horizon Europe Facts
+
+### Official Resources (ALWAYS include when explaining programme structure)
+When answering questions about Horizon Europe structure, ALWAYS include these actionable links at the end:
+
+🎯 **Getting Started with Horizon Europe:**
+• Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)
+• Review the [Work Programmes](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/reference-documents;programCode=HORIZON) for your cluster
+• Check eligibility via [How to Participate](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/how-to-participate/1)
+• Find partners using [Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)
+• Browse [Call Calendar](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/calls-calendar)
+
+### Consortium Requirements
+- **Standard (RIA/IA/CSA)**: 3 independent entities from 3 different EU/AC countries
+- **ERC**: Single PI (monobeneficiary)
+- **MSCA PF**: Single fellow + host
+- **EIC Accelerator**: Single SME or small group
+""",
+    "eligibility": """### Organisation Type Eligibility
+| Organisation Type | Eligible? | Funding Rate (RIA) | Funding Rate (IA) | Special Notes |
+|-------------------|-----------|-------------------|-------------------|---------------|
+| **Universities/HEIs** | Yes | 100% | 100% | Must have GEP |
+| **Research Institutes** | Yes | 100% | 100% | Must have GEP |
+| **SMEs** | Yes | 100% | 70% | EIC Accelerator available |
+| **Large Companies** | Yes | 100% | 70% | Cannot lead some calls |
+| **NGOs** | Yes | 100% | 100% (non-profit) | Often needed for dissemination |
+| **Public Bodies** | Yes | 100% | 100% | Must have GEP |
+| **International Orgs** | Case-by-case | Varies | Varies | Check specific call |
+""",
+    "page_limits": """### Page Limits for Proposals (Part B - Technical Description)
+| Action Type | Standard Page Limit | Notes |
+|-------------|---------------------|-------|
+| **RIA/IA (single-stage)** | **45 pages** | Sections 1-3 combined |
+| **RIA/IA (two-stage, full)** | **45 pages** | After passing stage 1 |
+| **RIA/IA (two-stage, outline)** | **10 pages** | Stage 1 only |
+| **CSA** | **30 pages** | Shorter scope |
+| **ERC grants** | **Variable** | Check specific call |
+| **MSCA** | **10-15 pages** | Depends on action |
+| **EIC Accelerator** | **Variable** | Short proposal + full |
+
+*Page limits are strictly enforced. Excess pages will be blanked and not evaluated.*
+""",
+    "action_types": """### Action Types Summary
+| Type | TRL Range | Funding Rate | Focus |
+|------|-----------|--------------|-------|
+| **RIA** | TRL 2-5 | 100% | Research, new knowledge |
+| **IA** | TRL 5-8 | 70%/100% | Demonstration, piloting |
+| **CSA** | N/A | 100% | Coordination, networking |
+
+### Typical Consortium Sizes (Based on Funded Project Data)
+| Action Type | Avg Partners | Typical Range | Avg Countries | Key Characteristics |
+|-------------|--------------|---------------|---------------|---------------------|
+| **RIA** | 10-12 | 6-16 | 6-8 | Research focus, strong academic presence, TRL 1-5 |
+| **IA** | 14-16 | 10-20 | 8-10 | Demo/scale-up, more industry partners (35-45%), TRL 5-8 |
+| **CSA** | 6-9 | 3-12 | 4-6 | Coordination/networking, smaller focused teams, policy focus |
+
+### Budget Limits / Expected EU Contribution per Project
+| Action Type | Typical EU Contribution Range | Notes |
+|-------------|------------------------------|-------|
+| **RIA (standard)** | €3-8 million | Varies by topic complexity |
+| **IA (standard)** | €5-15 million | Large-scale demonstrations |
+| **CSA** | €1-3 million | Coordination activities |
+| **ERC Starting** | Up to €1.5 million | 5 years |
+| **ERC Consolidator** | Up to €2 million | 5 years |
+| **ERC Advanced** | Up to €2.5 million | 5 years |
+| **EIC Accelerator** | Up to €2.5M grant + €15M equity | Blended finance |
+""",
+    "clusters": """### Horizon Europe Clusters and EU Missions - Complete Overview
+
+#### The 6 Thematic Clusters
+| Cluster | Name | Focus Areas | Budget (2021-2027) |
+|---------|------|-------------|-------------------|
+| **Cluster 1** | Health | Disease prevention, treatment, healthcare systems | ~€8.2 billion |
+| **Cluster 2** | Culture, Creativity & Inclusive Society | Democracy, governance, cultural heritage | ~€2.3 billion |
+| **Cluster 3** | Civil Security for Society | Cybersecurity, disaster resilience, border security | ~€1.6 billion |
+| **Cluster 4** | Digital, Industry & Space | AI, robotics, advanced manufacturing, quantum | ~€15.3 billion |
+| **Cluster 5** | Climate, Energy & Mobility | Clean energy, hydrogen, sustainable transport | ~€15.1 billion |
+| **Cluster 6** | Food, Bioeconomy, Natural Resources | Sustainable food, biodiversity, circular economy | ~€9 billion |
+
+#### The 5 EU Missions
+| Mission | Target |
+|---------|--------|
+| **Cancer** | Improve lives of 3+ million people |
+| **Climate Adaptation** | 150+ regions climate-resilient by 2030 |
+| **Ocean & Waters** | Restore ocean/water health by 2030 |
+| **Cities** | 100 cities climate-neutral by 2030 |
+| **Soil** | 100 living labs for healthy soils by 2030 |
+""",
+    "third_countries": """### Third Country Eligibility and Participation
+| Category | Countries | Participation |
+|----------|-----------|---------------|
+| **EU Member States (27)** | AT, BE, BG, CY, CZ, DE, DK, EE, EL, ES, FI, FR, HR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK | Full eligibility |
+| **Associated Countries** | CH*, IL*, IS, NO, UK*, AL, BA, XK, ME, MK, RS, TR, GE, MD, UA | Full eligibility (check status) |
+| **Third Countries** | Japan, USA, China, etc. | Limited, restrictions apply |
+
+**Best Pathways for Third Country Researchers:**
+- **MSCA-PF**: Best option — full EU funding, move to EU host
+- **ERC Grants**: Work at EU institution
+- **Collaborative Projects**: Usually self-funded, partner only
+""",
+    "strategic": """### Getting Started with Proposal Writing
+1. **Find a relevant call** on the EU Funding & Tenders Portal
+2. **Understand the call**: Read Work Programme topic — scope, outcomes, criteria
+3. **Build your consortium**: 3+ partners from 3+ different EU/AC countries
+4. **Write the proposal**: Excellence, Impact, Implementation sections
+5. **Use search tools**: Find similar funded projects to learn from
+
+### Evaluation Criteria
+| Section | Threshold | Weight |
+|---------|-----------|--------|
+| Excellence | 4/5 | ~1/3 |
+| Impact | 4/5 | ~1/3 |
+| Implementation | 3/5 | ~1/3 |
+| **Overall** | **10/15** | - |
+
+### RIA Project Details
+- **Duration**: 36-48 months typical, up to 60 months
+- **Budget**: €3-10 million, 100% funding rate
+- **Payment**: Pre-financing 40-50%, interim at 18 months, final after review
+- **Indirect costs**: 25% flat rate on direct costs minus subcontracting
+""",
+    "msca": """### Marie Skłodowska-Curie Actions (MSCA)
+MSCA is part of Pillar I (Excellent Science), budget €6.6 billion (2021-2027).
+
+| Action | Budget | Duration | Funding |
+|--------|--------|----------|---------|
+| **MSCA-PF** | €200-300K/fellow | 12-24 months | 100% |
+| **MSCA-DN** | €2-4M/network | 48 months | 100% |
+| **MSCA-SE** | €0.5-1.5M | 48 months | 100% |
+| **MSCA-COFUND** | €10M max | 60 months | 100% |
+""",
+}
+
 
 # System prompt for the reasoning LLM
 REASONING_PROMPT = """You are an intelligent research assistant for EU funding (Horizon Europe, EIC, ERC, etc.).
@@ -1082,6 +1218,33 @@ Respond ONLY with JSON (no other text):
 
 **Summary**: 3 out of 15 organizations appear in both consortia...
 ```
+
+## When to Conclude (CRITICAL)
+
+**CONCLUDE IMMEDIATELY (action: "conclude")** when:
+- A tool returned structured data that directly answers the query (e.g., budget calculation, timeline, statistics)
+- 5+ relevant search results were found and no comparison/cross-reference is needed
+- The query asks for a single tool output (budget, timeline, eligibility check, call details)
+- You can answer fully from BUILT-IN KNOWLEDGE above (eligibility, action types, page limits)
+- A self-sufficient tool succeeded: generate_timeline, calculate_budget, calculate_erasmus_budget, calculate_creative_europe_budget, check_erasmus_eligibility, check_creative_europe_eligibility, check_life_eligibility, check_digital_europe_eligibility, check_eu4health_eligibility, score_proposal_section, score_full_proposal, validate_budget
+
+**CONTINUE (needs_more_info: true)** only when:
+- 0-2 results found AND the query clearly needs more data
+- User asked a comparison requiring results from a DIFFERENT uncalled tool
+- A tool returned an error and you have an alternative approach
+- Multi-tool cross-analysis is explicitly needed (comparing two project partner lists, etc.)
+
+**NEVER continue when:**
+- Good data already exists and just needs formatting into a clear answer
+- A single tool call already answered the question completely
+- 3+ iterations have already been completed (conclude with what you have)
+- You are tempted to call search_documents "just to be thorough" after getting good results
+
+**Anti-patterns to avoid:**
+- Calling search_documents after calculate_budget already returned a complete budget
+- Calling get_budget_benchmark after generate_timeline already succeeded
+- Running a second search with slightly different keywords when first search returned 5+ results
+- Setting needs_more_info=true when the tool result has all the data needed for a response
 
 ## Response Guidelines
 

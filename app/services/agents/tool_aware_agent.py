@@ -34,8 +34,8 @@ from .query_preprocessing import (  # noqa: F401
     preprocess_non_english_query,
 )
 
-# Prompt constants (BUILT_IN_KNOWLEDGE, REASONING_PROMPT)
-from .prompts import BUILT_IN_KNOWLEDGE, REASONING_PROMPT
+# Prompt constants
+from .prompts import KNOWLEDGE_SECTIONS, REASONING_PROMPT
 
 # Mixins extracted for maintainability
 from .conclusion_builders import ConclusionBuildersMixin
@@ -376,17 +376,23 @@ class ToolAwareAgent(
         # Auto-promote to formatted output ONLY for semantic project searches
         # or pagination results. Don't promote generic keyword "projects" results
         # — those may come from org stats, follow-ups, etc. that need LLM synthesis.
-        has_semantic_projects = any(
-            isinstance(r, dict) and ("similar_projects" in r or "rendered_content" in r)
+        has_auto_promote = any(
+            isinstance(r, dict)
+            and (
+                "similar_projects" in r
+                or "rendered_content" in r
+                or ("work_packages" in r and "deliverables" in r and "milestones" in r)
+            )
             for r in tool_results_this_step.values()
         )
-        if has_semantic_projects:
+        if has_auto_promote:
             formatted = self._synthesize_from_results(query, tool_results_this_step)
             if formatted and len(formatted) > 200:
                 plan.final_answer = formatted
                 plan.confidence = 0.90
                 step.observation = (
-                    f"Executed {len(step.tool_calls)} tool(s) — " f"auto-formatted project results"
+                    f"Executed {len(step.tool_calls)} tool(s) — "
+                    f"auto-formatted structured results"
                 )
                 step.next_action_needed = False
                 plan.reasoning_steps.append(step)
@@ -399,11 +405,31 @@ class ToolAwareAgent(
         # so the LLM can cross-analyze combined results (e.g., compare partner lists)
         successful_calls = [tc for tc in step.tool_calls if tc.success]
         if len(successful_calls) >= 2 and not step.next_action_needed:
-            logger.info(
-                f"⚡ Forcing cross-analysis iteration: {len(successful_calls)} tools "
-                f"returned results — LLM needs to synthesize combined data"
-            )
-            step.next_action_needed = True
+            # Only force cross-analysis when self-sufficient tools didn't succeed
+            # Timeline, similar projects, etc. are complete on their own
+            tool_names = {tc.tool_name for tc in successful_calls}
+            self_sufficient_tools = {
+                "generate_timeline",
+                "find_similar_projects",
+                "get_similar_funded_projects",
+                "calculate_budget",
+                "calculate_erasmus_budget",
+                "calculate_creative_europe_budget",
+                "score_proposal_section",
+                "score_full_proposal",
+                "validate_budget",
+            }
+            if not (tool_names & self_sufficient_tools):
+                logger.info(
+                    f"⚡ Forcing cross-analysis iteration: {len(successful_calls)} tools "
+                    f"returned results — LLM needs to synthesize combined data"
+                )
+                step.next_action_needed = True
+            else:
+                logger.info(
+                    f"✅ Skipping forced cross-analysis: self-sufficient tool(s) "
+                    f"{tool_names & self_sufficient_tools} succeeded"
+                )
 
         return False  # continue the loop
 
@@ -1108,6 +1134,121 @@ class ToolAwareAgent(
             return len(result)
         return None
 
+    def _select_knowledge_sections(self, query: str, context: str = "") -> str:
+        """Select relevant BUILT_IN_KNOWLEDGE sections based on query keywords.
+
+        Reduces prompt size from ~12k tokens to ~2-4k by only injecting
+        knowledge sections relevant to the current query.
+        """
+        query_lower = (query + " " + (context or "")).lower()
+
+        # Always include core section
+        selected = ["core"]
+
+        # Keyword-to-section mapping
+        section_triggers = {
+            "eligibility": [
+                "eligible",
+                "eligibility",
+                "can participate",
+                "who can apply",
+                "organisation type",
+                "organization type",
+                "funding rate",
+            ],
+            "page_limits": [
+                "page limit",
+                "how many pages",
+                "proposal length",
+                "part b",
+            ],
+            "action_types": [
+                "ria",
+                " ia ",
+                "innovation action",
+                "csa",
+                "action type",
+                "consortium size",
+                "typical budget",
+                "budget limit",
+                "trl",
+                "funding rate",
+            ],
+            "clusters": [
+                "cluster",
+                "mission",
+                "pillar",
+                "thematic",
+                "cluster 1",
+                "cluster 2",
+                "cluster 3",
+                "cluster 4",
+                "cluster 5",
+                "cluster 6",
+                "health cluster",
+                "digital cluster",
+            ],
+            "third_countries": [
+                "third country",
+                "non-eu",
+                "japan",
+                "usa",
+                "china",
+                "south korea",
+                "australia",
+                "canada",
+                "brazil",
+                "india",
+                "associated country",
+                "switzerland",
+            ],
+            "strategic": [
+                "how to start",
+                "getting started",
+                "proposal writing",
+                "evaluation criteria",
+                "excellence",
+                "impact",
+                "implementation",
+                "proposal structure",
+                "ria project",
+                "payment",
+                "pre-financing",
+            ],
+            "msca": [
+                "msca",
+                "marie curie",
+                "postdoctoral",
+                "doctoral network",
+                "staff exchange",
+                "cofund",
+                "fellowship",
+            ],
+        }
+
+        for section, keywords in section_triggers.items():
+            if any(kw in query_lower for kw in keywords):
+                selected.append(section)
+
+        # If no specific sections matched, include action_types + strategic as safe defaults
+        if len(selected) == 1:  # only "core"
+            selected.extend(["action_types", "strategic"])
+
+        # Build the combined knowledge text
+        parts = []
+        for section in selected:
+            if section in KNOWLEDGE_SECTIONS:
+                parts.append(KNOWLEDGE_SECTIONS[section])
+
+        combined = "\n\n".join(parts)
+
+        logger.info(
+            f"📚 Knowledge sections selected: {selected} "
+            f"({len(combined)} chars, ~{len(combined)//4} tokens)"
+        )
+
+        return combined
+
     async def _reason_next_step(
         self,
         query: str,
@@ -1167,9 +1308,12 @@ class ToolAwareAgent(
         if tool_hint:
             enhanced_context = f"{enhanced_context}\n\n**TOOL HINT**: {tool_hint}"
 
+        # Select relevant knowledge sections to reduce prompt size
+        selected_knowledge = self._select_knowledge_sections(query, context)
+
         # Build prompt
         prompt = REASONING_PROMPT.format(
-            built_in_knowledge=BUILT_IN_KNOWLEDGE,
+            built_in_knowledge=selected_knowledge,
             tools_description=self._get_tools_description(),
             query=query,
             context=enhanced_context,
@@ -1306,10 +1450,33 @@ class ToolAwareAgent(
             }
 
         if tool_results:
-            # Have results - synthesize a proper answer
-            # Extract and synthesize content from results
-            synthesized_content = self._synthesize_from_results(query, tool_results)
+            # Try LLM-assisted synthesis first (better quality than mechanical)
+            llm_conclusion = None
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # We're in sync context called from async — can't await
+                    # Fall through to mechanical synthesis
+                    pass
+                else:
+                    llm_conclusion = loop.run_until_complete(
+                        self._llm_synthesize_results(query, tool_results)
+                    )
+            except Exception as e:
+                logger.debug(f"LLM fallback synthesis skipped (sync context): {e}")
 
+            if llm_conclusion:
+                logger.info("✅ LLM fallback synthesis succeeded")
+                return {
+                    "thought": "LLM synthesized answer from tool results",
+                    "action": "conclude",
+                    "conclusion": llm_conclusion,
+                    "confidence": 0.8,
+                    "needs_more_info": False,
+                }
+
+            # Fall through to mechanical synthesis
+            synthesized_content = self._synthesize_from_results(query, tool_results)
             return {
                 "thought": "Have gathered information, synthesizing answer",
                 "action": "conclude",
@@ -1325,6 +1492,64 @@ class ToolAwareAgent(
             "confidence": 0.3,
             "needs_more_info": False,
         }
+
+    async def _llm_synthesize_results(self, query: str, tool_results: dict[str, Any]) -> str | None:
+        """Lightweight LLM call to synthesize tool results into a clear answer.
+
+        Used as fallback when the main reasoning LLM fails (JSON parse error,
+        timeout, etc.) but tool results are available.
+        Returns synthesized text or None if LLM call fails.
+        """
+        if not self.llm:
+            return None
+
+        # Build compact summaries of each tool result
+        result_summaries = []
+        for name, result in tool_results.items():
+            summary = self._format_tool_result_summary(
+                name.split("_")[0] if "_" in name else name, result
+            )
+            # Cap each summary to prevent prompt bloat
+            if len(summary) > 2000:
+                summary = summary[:2000] + "..."
+            result_summaries.append(summary)
+
+        if not result_summaries:
+            return None
+
+        combined_results = "\n\n".join(result_summaries)
+        # Cap total results
+        if len(combined_results) > 6000:
+            combined_results = combined_results[:6000] + "\n...(truncated)"
+
+        prompt = f"""You are an EU funding research assistant. Based on the tool results below, write a clear, helpful answer to the user's question.
+
+**User Question:** {query}
+
+**Tool Results:**
+{combined_results}
+
+**Instructions:**
+- Write a direct, well-structured answer using the data above
+- Use markdown formatting (headers, bullet points, tables where appropriate)
+- Include specific numbers, names, and dates from the results
+- End with a "🎯 **Next Steps:**" section with 3-4 actionable items
+- Do NOT say "based on the tool results" — just answer naturally
+- Keep the answer focused and concise (300-800 words)
+"""
+
+        try:
+            response = await asyncio.wait_for(
+                asyncio.to_thread(self.llm.generate_content, prompt),
+                timeout=10,
+            )
+            text = response.text.strip()
+            if text and len(text) > 100:
+                return text
+            return None
+        except Exception as e:
+            logger.warning(f"LLM fallback synthesis failed: {e}")
+            return None
 
     # ── "Show more projects" pagination support ──
 
