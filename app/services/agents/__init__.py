@@ -38,7 +38,8 @@ from .proposal_aware_agent import ProposalAwareAgent
 from .reflector import ReflectionResult, Reflector
 from .replanner import Replanner
 from .result_evaluator import EvaluationResult, ResultEvaluator
-from .tool_aware_agent import Tool, ToolAwareAgent, ToolCall, ToolCategory
+from .tool_aware_agent import ToolAwareAgent
+from .tool_registry import AgentPlan, ReasoningStep, Tool, ToolCall, ToolCategory, ToolRegistryMixin
 
 __all__ = [
     "AgentContext",
@@ -53,5 +54,8 @@ __all__ = [
     "Tool",
     "ToolCall",
     "ToolCategory",
+    "ToolRegistryMixin",
+    "AgentPlan",
+    "ReasoningStep",
     "ProposalAwareAgent",
 ]

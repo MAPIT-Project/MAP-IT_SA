@@ -8,7 +8,9 @@ from .budget_benchmark import BudgetBenchmarkTool, get_budget_benchmark_execute
 from .budget_calculator import BudgetCalculatorTool, calculate_budget_execute
 from .budget_validator import BudgetValidatorTool, validate_budget_execute
 from .call_history import CallHistoryTool, analyze_call_history_execute
+from .call_search import get_call_details_execute, search_funding_calls_execute
 from .consortium_patterns import ConsortiumPatternsTool, get_consortium_patterns_execute
+from .country_statistics import get_country_statistics_execute
 from .creative_europe_budget_calculator import (
     CreativeEuropeBudgetCalculator,
     calculate_creative_europe_budget_execute,
@@ -33,6 +35,7 @@ from .digital_europe_template_search import (
     DigitalEuropeTemplateSearchTool,
     search_digital_europe_templates_execute,
 )
+from .document_search import search_documents_execute
 from .erasmus_budget_calculator import ErasmusBudgetCalculator, calculate_erasmus_budget_execute
 
 # Erasmus+ specific tools
@@ -45,6 +48,7 @@ from .eu4health_template_search import (
     EU4HealthTemplateSearchTool,
     search_eu4health_templates_execute,
 )
+from .imminent_calls import search_imminent_calls_with_warning_execute
 
 # LIFE Programme specific tools
 from .life_eligibility import LIFEEligibilityTool, check_life_eligibility_execute
@@ -55,7 +59,24 @@ from .multi_programme_search import (
     get_programme_recommendations_execute,
     search_all_programmes_execute,
 )
+
+# Organization tools
+from .organization_tools import (
+    find_organization_projects_execute,
+    get_collaboration_network_execute,
+    get_organization_stats_execute,
+)
 from .partner_discovery import PartnerDiscoveryTool, find_experienced_partners_execute
+from .programme_statistics import compare_programmes_execute, get_programme_statistics_execute
+from .project_details import get_project_details_execute, get_project_partners_execute
+
+# Project discovery tools
+from .project_discovery import (
+    find_semantically_similar_execute,
+    find_similar_projects_execute,
+    search_by_cluster_execute,
+)
+from .project_search_executor import search_projects_execute
 from .proposal_quality_scorer import (
     ProposalQualityScorerTool,
     quick_quality_check_execute,
@@ -122,4 +143,29 @@ __all__ = [
     "check_life_eligibility_execute",
     "LIFETemplateSearchTool",
     "search_life_templates_execute",
+    # Programme statistics tools
+    "get_programme_statistics_execute",
+    "compare_programmes_execute",
+    # Country statistics tools
+    "get_country_statistics_execute",
+    # Document search tools
+    "search_documents_execute",
+    # Call search tools
+    "search_funding_calls_execute",
+    "get_call_details_execute",
+    # Project search tools
+    "search_projects_execute",
+    # Project details tools
+    "get_project_details_execute",
+    "get_project_partners_execute",
+    # Organization tools
+    "get_organization_stats_execute",
+    "find_organization_projects_execute",
+    "get_collaboration_network_execute",
+    # Project discovery tools
+    "find_similar_projects_execute",
+    "find_semantically_similar_execute",
+    "search_by_cluster_execute",
+    # Imminent calls tools
+    "search_imminent_calls_with_warning_execute",
 ]
