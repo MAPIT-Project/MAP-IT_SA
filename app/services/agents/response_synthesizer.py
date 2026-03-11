@@ -706,6 +706,14 @@ Per Partner Distribution:
 
                 content_pieces.append("\n".join(benchmark_parts))
 
+            # Extract consortium patterns results (get_consortium_patterns tool)
+            elif result.get("tool_name") == "get_consortium_patterns" or (
+                "organization_type_distribution" in result and "consortium_size" in result
+            ):
+                consortium_text = self._format_consortium_patterns_result(result)
+                if consortium_text:
+                    content_pieces.append(consortium_text)
+
             # Extract call details - ENHANCED with full description
             elif result.get("call_id") and result.get("title"):
                 call_parts = []
@@ -2708,6 +2716,207 @@ This may be because:
         parts.append(
             "• Contact [HaDEA](https://hadea.ec.europa.eu/programmes/eu4health_en) "
             "for guidance and support"
+        )
+
+        return "\n".join(parts)
+
+    def _format_consortium_patterns_result(self, result: dict) -> str:
+        """Format consortium patterns results into a rich, readable response."""
+        query_params = result.get("query_params", {})
+        projects_analyzed = result.get("projects_analyzed", 0)
+        consortium = result.get("consortium_size", {})
+        org_dist = result.get("organization_type_distribution", {})
+        country_patterns = result.get("country_patterns", {})
+        coordinator_profile = result.get("coordinator_profile", {})
+        recommendations = result.get("recommendations", {})
+        sample_consortia = result.get("sample_consortia", [])
+        successful_templates = result.get("successful_templates", [])
+        coordinator_analysis = result.get("coordinator_analysis", {})
+
+        # Build title from query params
+        action_type = query_params.get("action_type", "")
+        cluster = query_params.get("cluster", "")
+        keywords = query_params.get("topic_keywords", "")
+        title_parts = []
+        if action_type:
+            title_parts.append(action_type)
+        if cluster:
+            title_parts.append(f"Cluster {cluster.replace('CLUSTER-', '')}")
+        if keywords and not title_parts:
+            title_parts.append(keywords[:50])
+        title = " ".join(title_parts) if title_parts else "Horizon Europe"
+
+        parts = [f"## Consortium Patterns: {title} Projects"]
+        parts.append(f"\n**Based on {projects_analyzed:,} funded projects**\n")
+
+        # Consortium size
+        if consortium:
+            avg = consortium.get("average", 0)
+            median = consortium.get("median", 0)
+            min_size = consortium.get("min", 0)
+            max_size = consortium.get("max", 0)
+            recommended = consortium.get("recommended", "")
+
+            parts.append("### Consortium Size")
+            parts.append(f"- **Average:** {avg:.1f} partners")
+            parts.append(f"- **Median:** {median:.0f} partners")
+            if min_size and max_size:
+                parts.append(f"- **Range:** {min_size} - {max_size} partners")
+            if recommended:
+                parts.append(f"- **Recommended:** {recommended}")
+            parts.append("")
+
+        # Geographic diversity
+        geo = country_patterns.get("geographic_diversity", {})
+        if geo:
+            avg_countries = geo.get("avg_countries", 0)
+            if avg_countries:
+                parts.append(f"- **Average Countries per Project:** {avg_countries:.1f}")
+                parts.append("")
+
+        # Organization type distribution
+        if org_dist:
+            org_type_names = {
+                "HES": "Higher Education (Universities)",
+                "REC": "Research Organizations",
+                "PRC": "Private Companies",
+                "SME": "Small & Medium Enterprises",
+                "PUB": "Public Bodies",
+                "OTH": "Other Organizations",
+            }
+            parts.append("### Organization Type Distribution\n")
+            parts.append("| Type | Share | Avg per Project |")
+            parts.append("|------|-------|-----------------|")
+            for org_type, data in sorted(
+                org_dist.items(), key=lambda x: x[1].get("percentage", 0), reverse=True
+            ):
+                if isinstance(data, dict):
+                    pct = data.get("percentage", 0)
+                    avg_count = data.get("avg_per_project", "")
+                    type_name = org_type_names.get(org_type, org_type)
+                    avg_str = f"{avg_count:.1f}" if isinstance(avg_count, int | float) else "-"
+                    parts.append(f"| {type_name} | {pct:.0f}% | {avg_str} |")
+            parts.append("")
+
+        # Top participating countries
+        top_countries = country_patterns.get("top_participating", [])
+        if top_countries:
+            parts.append("### Top Participating Countries\n")
+            parts.append("| Country | Projects | As Coordinator |")
+            parts.append("|---------|----------|----------------|")
+            for c in top_countries[:10]:
+                country = c.get("country", "N/A")
+                count = c.get("count", c.get("projects", 0))
+                coord = c.get("as_coordinator", c.get("coordinator_count", "-"))
+                parts.append(f"| {country} | {count:,} | {coord} |")
+            parts.append("")
+
+        # Coordinator profile
+        if coordinator_profile:
+            parts.append("### Typical Coordinator Profile")
+            top_coord_types = coordinator_profile.get("top_types", [])
+            top_coord_countries = coordinator_profile.get("top_countries", [])
+            if top_coord_types:
+                types_str = ", ".join(
+                    f"{t.get('type', '?')} ({t.get('percentage', 0):.0f}%)"
+                    for t in top_coord_types[:3]
+                )
+                parts.append(f"- **Most Common Types:** {types_str}")
+            if top_coord_countries:
+                countries_str = ", ".join(
+                    f"{c.get('country', '?')} ({c.get('count', 0)})"
+                    for c in top_coord_countries[:5]
+                )
+                parts.append(f"- **Top Coordinator Countries:** {countries_str}")
+            parts.append("")
+
+        # Coordinator analysis (from graph data)
+        if coordinator_analysis:
+            top_coordinators = coordinator_analysis.get("top_coordinators", [])
+            if top_coordinators:
+                parts.append("### Most Active Coordinators\n")
+                for i, coord in enumerate(top_coordinators[:5], 1):
+                    name = coord.get("name", coord.get("organization", "Unknown"))
+                    count = coord.get("projects_coordinated", coord.get("count", 0))
+                    country = coord.get("country", "")
+                    country_str = f" ({country})" if country else ""
+                    parts.append(f"{i}. **{name}**{country_str}: {count} projects coordinated")
+                parts.append("")
+
+        # Successful consortium templates
+        if successful_templates:
+            parts.append("### Example Successful Consortia\n")
+            for i, template in enumerate(successful_templates[:3], 1):
+                acronym = template.get("acronym", template.get("project", "N/A"))
+                title_t = template.get("title", "")
+                partner_count = template.get("partner_count", template.get("partners", 0))
+                country_count = template.get("country_count", template.get("countries", 0))
+                budget = template.get("budget", template.get("ec_contribution", 0))
+                budget_str = f"€{budget / 1_000_000:.1f}M" if budget else ""
+                parts.append(f"**{i}. {acronym}**" + (f": {title_t}" if title_t else ""))
+                detail_items = []
+                if partner_count:
+                    detail_items.append(f"{partner_count} partners")
+                if country_count:
+                    detail_items.append(f"{country_count} countries")
+                if budget_str:
+                    detail_items.append(budget_str)
+                if detail_items:
+                    parts.append(f"- {' | '.join(detail_items)}")
+
+                # Show org type composition if available
+                composition = template.get("org_types", template.get("composition", {}))
+                if composition and isinstance(composition, dict):
+                    comp_parts = [f"{k}: {v}" for k, v in composition.items() if v]
+                    if comp_parts:
+                        parts.append(f"- Composition: {', '.join(comp_parts[:4])}")
+                parts.append("")
+
+        # Sample consortia (from SQL)
+        elif sample_consortia:
+            parts.append("### Example Funded Consortia\n")
+            for i, sample in enumerate(sample_consortia[:3], 1):
+                acronym = sample.get("acronym", "N/A")
+                partner_count = sample.get("partner_count", sample.get("partners", 0))
+                budget = sample.get("budget", sample.get("ec_contribution", 0))
+                budget_str = f"€{budget / 1_000_000:.1f}M" if budget else ""
+                parts.append(
+                    f"**{i}. {acronym}**: {partner_count} partners"
+                    + (f", {budget_str}" if budget_str else "")
+                )
+            parts.append("")
+
+        # Recommendations
+        if recommendations:
+            parts.append("### Recommendations\n")
+            if isinstance(recommendations, dict):
+                ideal = recommendations.get("ideal_composition", [])
+                if ideal:
+                    for item in ideal[:4]:
+                        parts.append(f"- {item}")
+                suggested_size = recommendations.get("suggested_consortium_size", "")
+                if suggested_size:
+                    parts.append(f"- **Suggested Size:** {suggested_size}")
+                key_advice = recommendations.get("key_advice", recommendations.get("tips", []))
+                if isinstance(key_advice, list):
+                    for tip in key_advice[:3]:
+                        parts.append(f"- {tip}")
+                elif isinstance(key_advice, str) and key_advice:
+                    parts.append(f"- {key_advice}")
+            elif isinstance(recommendations, list):
+                for rec in recommendations[:5]:
+                    parts.append(f"- {rec}")
+            parts.append("")
+
+        # Next steps
+        parts.append("---\n")
+        parts.append("**Next Steps:**")
+        parts.append("- Review similar funded projects on [CORDIS](https://cordis.europa.eu/)")
+        parts.append(
+            "- Find partners on the [EU Partner Search](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/how-to-participate/partner-search)"
+        )
+        parts.append(
+            "- Check open calls on the [EU Funding Portal](https://ec.europa.eu/info/funding-tenders/)"
         )
 
         return "\n".join(parts)

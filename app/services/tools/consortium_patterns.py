@@ -930,7 +930,11 @@ class ConsortiumPatternsTool:
             "country_advice": "",
             "coordinator_advice": "",
             "confidence": (
-                "high" if project_count >= 20 else "medium" if project_count >= 5 else "low"
+                "high"
+                if isinstance(project_count, int) and project_count >= 20
+                else "medium"
+                if isinstance(project_count, int) and project_count >= 5
+                else "low"
             ),
             "notes": [],
         }
@@ -987,7 +991,7 @@ class ConsortiumPatternsTool:
                     "CSA projects are typically smaller with policy/coordination focus"
                 )
 
-        if project_count < 10:
+        if isinstance(project_count, int) and project_count < 10:
             recommendations["notes"].append(
                 f"Based on {project_count} projects - consider broadening criteria for more reliable patterns"
             )
