@@ -23,24 +23,50 @@ class ContextLimits:
     """Configuration for context window limits."""
 
     # Maximum tokens for various components (approximate, using char/4 ratio)
-    max_context_chars: int = 100000  # ~25k tokens
-    max_tool_result_chars: int = 8000  # Per tool result
-    max_observation_chars: int = 8000  # Per reasoning step — allows rich tool results for synthesis
+    max_context_chars: int = 400000  # ~100k tokens — Gemini models have 1M+ token contexts
+    max_tool_result_chars: int = (
+        30000  # Per tool result — allow richer tool results for cross-analysis
+    )
+    max_observation_chars: int = (
+        20000  # Per reasoning step — allows rich tool results for synthesis
+    )
     max_document_chars: int = 1000  # Per document in synthesis
     max_documents_per_result: int = 10  # Max docs to include
     max_calls_per_result: int = 15  # Max calls to include
     max_projects_per_result: int = 15  # Max projects to include
-    reserved_for_response: int = 4000  # Reserve for output
+    reserved_for_response: int = 8000  # Reserve for output — more room for synthesis
 
     @classmethod
     def from_env(cls) -> "ContextLimits":
         """Load limits from environment variables with defaults."""
         return cls(
-            max_context_chars=int(os.getenv("MAX_CONTEXT_CHARS", "100000")),
-            max_tool_result_chars=int(os.getenv("MAX_TOOL_RESULT_CHARS", "8000")),
-            max_observation_chars=int(os.getenv("MAX_OBSERVATION_CHARS", "8000")),
+            max_context_chars=int(os.getenv("MAX_CONTEXT_CHARS", "400000")),
+            max_tool_result_chars=int(os.getenv("MAX_TOOL_RESULT_CHARS", "30000")),
+            max_observation_chars=int(os.getenv("MAX_OBSERVATION_CHARS", "20000")),
             max_document_chars=int(os.getenv("MAX_DOCUMENT_CHARS", "1000")),
         )
+
+    @classmethod
+    def for_model(cls, model_name: str = "") -> "ContextLimits":
+        """Get context limits appropriate for the given model."""
+        model_lower = model_name.lower()
+        if "pro" in model_lower:
+            # Pro models have larger context windows
+            return cls(
+                max_context_chars=600000,
+                max_tool_result_chars=40000,
+                max_observation_chars=30000,
+                reserved_for_response=10000,
+            )
+        elif "flash" in model_lower:
+            return cls(
+                max_context_chars=400000,
+                max_tool_result_chars=30000,
+                max_observation_chars=20000,
+                reserved_for_response=8000,
+            )
+        # Default limits
+        return cls.from_env()
 
 
 class ContextWindowManager:
@@ -283,3 +309,8 @@ class ContextWindowManager:
 
 # Module-level singleton
 _context_manager = ContextWindowManager(ContextLimits.from_env())
+logger.info(
+    f"Context limits: {_context_manager.limits.max_context_chars} chars, "
+    f"{_context_manager.limits.max_tool_result_chars}/tool, "
+    f"{_context_manager.limits.max_observation_chars}/obs"
+)

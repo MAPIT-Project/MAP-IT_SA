@@ -192,6 +192,136 @@ class ToolAwareAgent(
             logger.warning(f"Quality analysis failed: {e}")
             return None
 
+    def _generate_contextual_intro(self, query: str, tool_results: dict[str, Any]) -> str | None:
+        """Generate a brief contextual introduction for auto-promoted results.
+
+        Uses a lightweight LLM call (fast model, ~100 tokens) to write a 1-2 sentence
+        intro that connects the query to the results, adding personalization that
+        mechanical formatting can't provide.
+        """
+        if not self.llm_flash:
+            return None
+
+        # Build a compact summary of what was found
+        summary_parts = []
+        for _name, result in tool_results.items():
+            if isinstance(result, dict):
+                if "similar_projects" in result:
+                    count = len(result.get("similar_projects", []))
+                    summary_parts.append(f"{count} similar projects found")
+                elif "work_packages" in result:
+                    wp_count = len(result.get("work_packages", []))
+                    summary_parts.append(f"timeline with {wp_count} work packages generated")
+                elif "rendered_content" in result:
+                    summary_parts.append("paginated results ready")
+
+        if not summary_parts:
+            return None
+
+        prompt = (
+            f"Write ONE sentence (max 30 words) introducing these results to the user. "
+            f"User asked: \"{query[:200]}\". Results: {', '.join(summary_parts)}. "
+            f"Be direct and helpful. No markdown. No greeting."
+        )
+
+        try:
+            import asyncio
+
+            response = asyncio.get_event_loop().run_in_executor(
+                None, self.llm_flash.generate_content, prompt
+            )
+            # Since we're likely in async context, try to get result quickly
+            # If it takes too long, skip the intro
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # Can't await in sync context — skip intro
+                return None
+            text = loop.run_until_complete(asyncio.wait_for(response, timeout=3))
+            intro = text.text.strip() if hasattr(text, "text") else str(text).strip()
+            if intro and 10 < len(intro) < 200:
+                return intro
+            return None
+        except Exception:
+            return None
+
+    @staticmethod
+    def _extract_structured_memory(context: str) -> dict[str, Any]:
+        """Extract structured conversation memory from context string.
+
+        Parses the conversation context to identify key user attributes
+        that should inform tool parameter selection and response personalization.
+        """
+        memory: dict[str, Any] = {
+            "user_profile": {},
+            "entities_mentioned": [],
+            "previous_tools_used": [],
+        }
+
+        if not context:
+            return memory
+
+        context_lower = context.lower()
+
+        # Extract organization type
+        org_patterns = {
+            "university": [
+                "university",
+                "universities",
+                "academic",
+                "higher education institution",
+            ],
+            "SME": ["sme", "small company", "startup", "small enterprise", "small business"],
+            "research_institute": [
+                "research institute",
+                "research center",
+                "research centre",
+                "rec",
+            ],
+            "NGO": ["ngo", "non-profit", "nonprofit", "civil society"],
+            "public_body": ["public body", "government", "municipality", "ministry"],
+            "hospital": ["hospital", "clinical", "medical center"],
+            "industry": ["industry", "corporation", "large company", "multinational"],
+        }
+        for org_type, patterns in org_patterns.items():
+            if any(p in context_lower for p in patterns):
+                memory["user_profile"]["org_type"] = org_type
+                break
+
+        # Extract country mentions
+        import re
+
+        country_pattern = re.compile(
+            r"\b(Germany|France|Spain|Italy|Netherlands|Belgium|Portugal|Greece|"
+            r"Poland|Sweden|Denmark|Finland|Austria|Ireland|Czech Republic|Romania|"
+            r"Hungary|Croatia|Bulgaria|Slovenia|Slovakia|Lithuania|Latvia|Estonia|"
+            r"Luxembourg|Malta|Cyprus|Norway|Switzerland|Turkey|UK|United Kingdom|"
+            r"Japan|USA|United States|China|South Korea|Australia|Canada|Brazil|India)\b",
+            re.IGNORECASE,
+        )
+        countries = list(set(m.group(0) for m in country_pattern.finditer(context)))
+        if countries:
+            memory["user_profile"]["countries"] = countries
+
+        # Extract research areas
+        area_patterns = {
+            "health": ["health", "medical", "clinical", "pharmaceutical", "cancer", "disease"],
+            "climate": ["climate", "energy", "hydrogen", "renewable", "sustainable"],
+            "digital": ["digital", "ai", "artificial intelligence", "data", "cyber", "iot"],
+            "food": ["food", "agriculture", "bioeconomy", "biodiversity"],
+            "security": ["security", "defence", "defense", "border"],
+            "culture": ["culture", "creative", "heritage", "media"],
+        }
+        for area, patterns in area_patterns.items():
+            if any(p in context_lower for p in patterns):
+                memory["user_profile"].setdefault("research_areas", []).append(area)
+
+        # Extract mentioned entity IDs (call IDs, project acronyms)
+        call_ids = re.findall(r"(HORIZON-[A-Z0-9-]+)", context)
+        project_ids = re.findall(r"(?:project\s+)?(\d{6,})", context)
+        memory["entities_mentioned"] = list(set(call_ids + project_ids))
+
+        return memory
+
     def _init_llm(self):
         """Initialize LLMs for reasoning with smart model routing.
 
@@ -356,6 +486,84 @@ class ToolAwareAgent(
                 logger.warning(f"Speculative execution failed to start: {e}")
         return speculative_tasks
 
+    # Tools that produce complete, self-contained output needing no LLM synthesis
+    SELF_SUFFICIENT_TOOLS = {
+        "generate_timeline",
+        "find_similar_projects",
+        "get_similar_funded_projects",
+        "calculate_budget",
+        "calculate_erasmus_budget",
+        "calculate_creative_europe_budget",
+        "score_proposal_section",
+        "score_full_proposal",
+        "validate_budget",
+    }
+
+    # Tools whose results can be auto-promoted to formatted output
+    AUTO_PROMOTE_KEYS = {"similar_projects", "rendered_content"}
+    AUTO_PROMOTE_COMBO_KEYS = {"work_packages", "deliverables", "milestones"}
+
+    def _should_auto_promote(self, tool_results: dict) -> bool:
+        """Check if tool results should bypass LLM synthesis and use mechanical formatting."""
+        for r in tool_results.values():
+            if not isinstance(r, dict):
+                continue
+            if any(k in r for k in self.AUTO_PROMOTE_KEYS):
+                return True
+            if all(k in r for k in self.AUTO_PROMOTE_COMBO_KEYS):
+                return True
+        return False
+
+    def _needs_cross_analysis(self, step: ReasoningStep, complexity: str) -> bool:
+        """Determine if multi-tool results need LLM cross-analysis.
+
+        Smart post-processing: only force another iteration when results are
+        genuinely complementary and the query type warrants synthesis.
+        """
+        successful_calls = [tc for tc in step.tool_calls if tc.success]
+        if len(successful_calls) < 2:
+            return False
+
+        tool_names = {tc.tool_name for tc in successful_calls}
+
+        # Self-sufficient tools never need cross-analysis
+        if tool_names & self.SELF_SUFFICIENT_TOOLS:
+            logger.info(
+                f"✅ Skipping cross-analysis: self-sufficient tool(s) "
+                f"{tool_names & self.SELF_SUFFICIENT_TOOLS} succeeded"
+            )
+            return False
+
+        # Only force cross-analysis for comparison/analysis/multi_source queries
+        if complexity in ("comparison", "analysis", "multi_source"):
+            logger.info(
+                f"⚡ Cross-analysis needed: {len(successful_calls)} tools "
+                f"returned results for {complexity} query"
+            )
+            return True
+
+        # For simple queries with multiple tools, check if results are complementary
+        # (different data types that benefit from synthesis)
+        result_types = set()
+        for tc in successful_calls:
+            if isinstance(tc.result, dict):
+                if "calls" in tc.result:
+                    result_types.add("calls")
+                elif "projects" in tc.result:
+                    result_types.add("projects")
+                elif "documents" in tc.result:
+                    result_types.add("documents")
+                elif "statistics" in tc.result or "success_rate" in tc.result:
+                    result_types.add("statistics")
+                else:
+                    result_types.add("other")
+
+        if len(result_types) >= 2:
+            logger.info(f"⚡ Cross-analysis needed: complementary result types {result_types}")
+            return True
+
+        return False
+
     def _handle_call_tools_action(
         self,
         step: ReasoningStep,
@@ -373,22 +581,16 @@ class ToolAwareAgent(
                 all_tool_results[f"{tc.tool_name}_{iteration}_{idx}"] = tc.result
                 tool_results_this_step[tc.tool_name] = tc.result
 
-        # Auto-promote to formatted output ONLY for semantic project searches
-        # or pagination results. Don't promote generic keyword "projects" results
-        # — those may come from org stats, follow-ups, etc. that need LLM synthesis.
-        has_auto_promote = any(
-            isinstance(r, dict)
-            and (
-                "similar_projects" in r
-                or "rendered_content" in r
-                or ("work_packages" in r and "deliverables" in r and "milestones" in r)
-            )
-            for r in tool_results_this_step.values()
-        )
-        if has_auto_promote:
+        # Auto-promote structured results that don't need LLM synthesis
+        if self._should_auto_promote(tool_results_this_step):
             formatted = self._synthesize_from_results(query, tool_results_this_step)
             if formatted and len(formatted) > 200:
-                plan.final_answer = formatted
+                # Add contextual intro via lightweight LLM call
+                intro = self._generate_contextual_intro(query, tool_results_this_step)
+                if intro:
+                    plan.final_answer = intro + "\n\n" + formatted
+                else:
+                    plan.final_answer = formatted
                 plan.confidence = 0.90
                 step.observation = (
                     f"Executed {len(step.tool_calls)} tool(s) — "
@@ -401,35 +603,10 @@ class ToolAwareAgent(
         step.observation = self._summarize_tool_results(step.tool_calls)
         step.next_action_needed = reasoning_result.get("needs_more_info", True)
 
-        # Force another iteration when multiple tools were called successfully
-        # so the LLM can cross-analyze combined results (e.g., compare partner lists)
-        successful_calls = [tc for tc in step.tool_calls if tc.success]
-        if len(successful_calls) >= 2 and not step.next_action_needed:
-            # Only force cross-analysis when self-sufficient tools didn't succeed
-            # Timeline, similar projects, etc. are complete on their own
-            tool_names = {tc.tool_name for tc in successful_calls}
-            self_sufficient_tools = {
-                "generate_timeline",
-                "find_similar_projects",
-                "get_similar_funded_projects",
-                "calculate_budget",
-                "calculate_erasmus_budget",
-                "calculate_creative_europe_budget",
-                "score_proposal_section",
-                "score_full_proposal",
-                "validate_budget",
-            }
-            if not (tool_names & self_sufficient_tools):
-                logger.info(
-                    f"⚡ Forcing cross-analysis iteration: {len(successful_calls)} tools "
-                    f"returned results — LLM needs to synthesize combined data"
-                )
-                step.next_action_needed = True
-            else:
-                logger.info(
-                    f"✅ Skipping forced cross-analysis: self-sufficient tool(s) "
-                    f"{tool_names & self_sufficient_tools} succeeded"
-                )
+        # Smart post-processing: only force cross-analysis when genuinely needed
+        complexity = getattr(self, "_current_complexity", "simple")
+        if not step.next_action_needed and self._needs_cross_analysis(step, complexity):
+            step.next_action_needed = True
 
         return False  # continue the loop
 
@@ -588,6 +765,260 @@ class ToolAwareAgent(
 
         return result
 
+    # ── Unified ReAct Loop ──
+
+    async def _handle_step_action(
+        self,
+        step: ReasoningStep,
+        reasoning_result: dict,
+        all_tool_results: dict,
+        plan: AgentPlan,
+        query: str,
+        iteration: int,
+    ) -> bool:
+        """Handle a single reasoning step's action. Returns True if loop should break."""
+        if step.action == "call_tools":
+            tool_calls = reasoning_result.get("tool_calls", [])
+            step.tool_calls = await self._execute_tool_calls(tool_calls)
+            tool_results_this_step = {}
+
+            should_break = self._handle_call_tools_action(
+                step,
+                reasoning_result,
+                all_tool_results,
+                tool_results_this_step,
+                plan,
+                query,
+                iteration,
+            )
+            return should_break
+
+        elif step.action == "analyze_results":
+            step.observation = reasoning_result.get("analysis", "")
+            step.next_action_needed = reasoning_result.get("needs_more_info", False)
+
+        elif step.action == "conclude":
+            plan.final_answer = reasoning_result.get("conclusion", "")
+            plan.confidence = reasoning_result.get("confidence", 0.8)
+            step.next_action_needed = False
+
+        elif step.action == "generate_guidance":
+            plan.final_answer = reasoning_result.get("response", "")
+            plan.confidence = 0.9
+            step.observation = (
+                f"Generated {reasoning_result.get('guidance_type', 'guidance')} guidance"
+            )
+            step.next_action_needed = False
+
+        elif step.action == "call_tools_and_format":
+            tool_calls = reasoning_result.get("tool_calls", [])
+            step.tool_calls = await self._execute_tool_calls(tool_calls)
+            self._handle_format_action(step, all_tool_results, plan, query, iteration)
+
+        elif step.action == "call_tools_with_niche_guidance":
+            tool_calls = reasoning_result.get("tool_calls", [])
+            step.tool_calls = await self._execute_tool_calls(tool_calls)
+            self._handle_niche_guidance_action(
+                step,
+                reasoning_result,
+                all_tool_results,
+                plan,
+                query,
+                iteration,
+            )
+
+        elif step.action == "search_imminent_calls_with_warning":
+            imminent_calls_result = await self._search_imminent_calls_with_warning(query)
+            plan.final_answer = imminent_calls_result
+            plan.confidence = 0.85
+            step.observation = "Searched for imminent deadline calls with feasibility assessment"
+            step.next_action_needed = False
+
+        return False  # continue the loop
+
+    async def _execute_react_loop(
+        self,
+        query: str,
+        context: str,
+        plan: AgentPlan,
+        event_callback=None,
+    ) -> tuple[int, dict]:
+        """Core ReAct loop shared between streaming and non-streaming paths.
+
+        Args:
+            query: Processed user query
+            context: Enriched context (may include structured memory)
+            plan: AgentPlan to populate with reasoning steps
+            event_callback: Optional async callable for streaming events.
+                Signature: async def callback(event: dict) -> None
+
+        Returns:
+            Tuple of (iteration_count, all_tool_results)
+        """
+        iteration = 0
+        all_tool_results = {}
+
+        while iteration < self.max_iterations:
+            iteration += 1
+            logger.info(f"🔄 Reasoning iteration {iteration}/{self.max_iterations}")
+
+            # Get next action from LLM
+            reasoning_result = await self._reason_next_step(
+                query=query,
+                context=context,
+                previous_steps=plan.reasoning_steps,
+                tool_results=all_tool_results,
+            )
+
+            if not reasoning_result:
+                logger.warning("Reasoning step failed, using fallback")
+                break
+
+            # Create reasoning step
+            step = ReasoningStep(
+                step_number=iteration,
+                thought=reasoning_result.get("thought", ""),
+                action=reasoning_result.get("action", "conclude"),
+            )
+
+            # Emit thinking event for streaming
+            if event_callback:
+                await event_callback(
+                    {
+                        "type": "agent_thinking",
+                        "iteration": iteration,
+                        "thought": step.thought,
+                        "action": step.action,
+                    }
+                )
+
+            # Emit tool_call events before execution (streaming)
+            if event_callback and step.action in (
+                "call_tools",
+                "call_tools_and_format",
+                "call_tools_with_niche_guidance",
+            ):
+                for tc in reasoning_result.get("tool_calls", []):
+                    await event_callback(
+                        {
+                            "type": "tool_call",
+                            "iteration": iteration,
+                            "tool_name": tc.get("tool", ""),
+                            "parameters": tc.get("parameters", {}),
+                            "reasoning": tc.get("reasoning", ""),
+                        }
+                    )
+
+            # Handle the action
+            should_break = await self._handle_step_action(
+                step,
+                reasoning_result,
+                all_tool_results,
+                plan,
+                query,
+                iteration,
+            )
+
+            # Emit tool_result events after execution (streaming)
+            if event_callback and step.tool_calls:
+                for tc in step.tool_calls:
+                    result_count = self._count_results(tc.result) if tc.success else 0
+                    await event_callback(
+                        {
+                            "type": "tool_result",
+                            "iteration": iteration,
+                            "tool_name": tc.tool_name,
+                            "success": tc.success,
+                            "result_count": result_count,
+                            "result_summary": str(tc.result)[:300] if tc.result else "No results",
+                            "execution_time_ms": tc.execution_time_ms,
+                        }
+                    )
+
+            plan.reasoning_steps.append(step)
+
+            if should_break or not step.next_action_needed:
+                logger.info(f"✅ Agent concluded after {iteration} iteration(s)")
+                break
+
+        return iteration, all_tool_results
+
+    async def _quality_retry_if_needed(
+        self,
+        plan: AgentPlan,
+        all_tool_results: dict,
+        query: str,
+        context: str,
+        iteration: int,
+    ) -> int:
+        """Check response quality and retry if score is too low.
+
+        Returns updated iteration count.
+        """
+        if not self.quality_analyzer or not plan.final_answer:
+            return iteration
+
+        if iteration >= self.max_iterations:
+            return iteration
+
+        answer = plan.final_answer
+        quality = self._analyze_response_quality(
+            query=query, answer=answer, tool_results=all_tool_results
+        )
+
+        if not quality:
+            return iteration
+
+        score = quality.get("score", 100)
+        category = quality.get("category", "complete")
+
+        # Only retry for clearly bad responses
+        if score >= 50 or category not in ("deflection", "empty"):
+            return iteration
+
+        logger.warning(
+            f"⚠️ Quality retry triggered: score={score}, category={category}, "
+            f"missing={quality.get('missing_elements', [])}"
+        )
+
+        # Attempt one more iteration with guidance about what's missing
+        missing = quality.get("missing_elements", [])
+        missing_hint = f"Previous answer was insufficient (score: {score}/100). "
+        if missing:
+            missing_hint += f"Missing elements: {', '.join(missing[:5])}. "
+        missing_hint += "Try a different tool or approach."
+
+        # Add the quality hint to context for the retry
+        retry_context = f"{context}\n\n**QUALITY RETRY**: {missing_hint}"
+
+        reasoning_result = await self._reason_next_step(
+            query=query,
+            context=retry_context,
+            previous_steps=plan.reasoning_steps,
+            tool_results=all_tool_results,
+        )
+
+        if reasoning_result:
+            iteration += 1
+            step = ReasoningStep(
+                step_number=iteration,
+                thought=f"Quality retry: {reasoning_result.get('thought', '')}",
+                action=reasoning_result.get("action", "conclude"),
+            )
+
+            await self._handle_step_action(
+                step,
+                reasoning_result,
+                all_tool_results,
+                plan,
+                query,
+                iteration,
+            )
+            plan.reasoning_steps.append(step)
+            logger.info(f"🔄 Quality retry completed (iteration {iteration})")
+
+        return iteration
+
     async def process_query(
         self,
         query: str,
@@ -626,106 +1057,32 @@ class ToolAwareAgent(
             self._preprocess_query(query, context)
         )
 
+        # Extract structured memory from conversation context
+        structured_memory = self._extract_structured_memory(context)
+        if structured_memory.get("user_profile"):
+            logger.info(f"👤 User profile extracted: {structured_memory['user_profile']}")
+
         # Initialize plan and select model
         plan = self._init_plan_and_model(query)
 
         # Start speculative execution
         await self._start_speculation(query, context)
 
-        # ReAct loop
-        iteration = 0
-        all_tool_results = {}
+        # Execute unified ReAct loop
+        iteration, all_tool_results = await self._execute_react_loop(
+            query=query,
+            context=context,
+            plan=plan,
+        )
 
-        while iteration < self.max_iterations:
-            iteration += 1
-            logger.info(f"🔄 Reasoning iteration {iteration}/{self.max_iterations}")
-
-            # Get next action from LLM
-            reasoning_result = await self._reason_next_step(
-                query=query,
-                context=context,
-                previous_steps=plan.reasoning_steps,
-                tool_results=all_tool_results,
-            )
-
-            if not reasoning_result:
-                logger.warning("Reasoning step failed, using fallback")
-                break
-
-            # Create reasoning step
-            step = ReasoningStep(
-                step_number=iteration,
-                thought=reasoning_result.get("thought", ""),
-                action=reasoning_result.get("action", "conclude"),
-            )
-
-            # Handle different actions
-            if step.action == "call_tools":
-                tool_calls = reasoning_result.get("tool_calls", [])
-                step.tool_calls = await self._execute_tool_calls(tool_calls)
-                tool_results_this_step = {}
-
-                should_break = self._handle_call_tools_action(
-                    step,
-                    reasoning_result,
-                    all_tool_results,
-                    tool_results_this_step,
-                    plan,
-                    query,
-                    iteration,
-                )
-                if should_break:
-                    break
-
-            elif step.action == "analyze_results":
-                step.observation = reasoning_result.get("analysis", "")
-                step.next_action_needed = reasoning_result.get("needs_more_info", False)
-
-            elif step.action == "conclude":
-                plan.final_answer = reasoning_result.get("conclusion", "")
-                plan.confidence = reasoning_result.get("confidence", 0.8)
-                step.next_action_needed = False
-
-            elif step.action == "generate_guidance":
-                guidance_response = reasoning_result.get("response", "")
-                plan.final_answer = guidance_response
-                plan.confidence = 0.9
-                step.observation = (
-                    f"Generated {reasoning_result.get('guidance_type', 'guidance')} guidance"
-                )
-                step.next_action_needed = False
-
-            elif step.action == "call_tools_and_format":
-                tool_calls = reasoning_result.get("tool_calls", [])
-                step.tool_calls = await self._execute_tool_calls(tool_calls)
-                self._handle_format_action(step, all_tool_results, plan, query, iteration)
-
-            elif step.action == "call_tools_with_niche_guidance":
-                tool_calls = reasoning_result.get("tool_calls", [])
-                step.tool_calls = await self._execute_tool_calls(tool_calls)
-                self._handle_niche_guidance_action(
-                    step,
-                    reasoning_result,
-                    all_tool_results,
-                    plan,
-                    query,
-                    iteration,
-                )
-
-            elif step.action == "search_imminent_calls_with_warning":
-                imminent_calls_result = await self._search_imminent_calls_with_warning(query)
-                plan.final_answer = imminent_calls_result
-                plan.confidence = 0.85
-                step.observation = (
-                    "Searched for imminent deadline calls with feasibility assessment"
-                )
-                step.next_action_needed = False
-
-            plan.reasoning_steps.append(step)
-
-            if not step.next_action_needed:
-                logger.info(f"✅ Agent concluded after {iteration} iteration(s)")
-                break
+        # Quality-driven retry: if response is poor, try one more iteration
+        iteration = await self._quality_retry_if_needed(
+            plan,
+            all_tool_results,
+            query,
+            context,
+            iteration,
+        )
 
         # Finalize
         total_time = (datetime.now() - start_time).total_seconds() * 1000
@@ -753,20 +1110,14 @@ class ToolAwareAgent(
         """
         Process a query and yield events in real-time as reasoning happens.
 
+        Uses the same unified ReAct loop as process_query, with an event callback
+        for streaming tool/thinking events to the client.
+
         Yields events like:
         - {'type': 'agent_thinking', 'iteration': 1, 'thought': '...'}
         - {'type': 'tool_call', 'tool_name': '...', 'parameters': {...}}
         - {'type': 'tool_result', 'tool_name': '...', 'result_summary': '...', 'result_count': 5}
         - {'type': 'agent_complete', 'result': {...}}
-
-        Args:
-            query: User's question
-            context: Additional context (conversation history)
-            conversation_history: Previous messages
-            conversation_id: Conversation ID for pagination caching
-
-        Yields:
-            Dict events as processing happens
         """
         start_time = datetime.now()
         self._current_query = query
@@ -788,195 +1139,58 @@ class ToolAwareAgent(
             self._preprocess_query(query, context)
         )
 
+        # Extract structured memory from conversation context
+        structured_memory = self._extract_structured_memory(context)
+        if structured_memory.get("user_profile"):
+            logger.info(f"👤 User profile extracted: {structured_memory['user_profile']}")
+
         # Initialize plan and select model
         plan = self._init_plan_and_model(query)
 
         # Start speculative execution
         await self._start_speculation(query, context)
 
-        # ReAct loop with streaming
-        iteration = 0
-        all_tool_results = {}
+        # Collect streaming events via queue
+        event_queue: asyncio.Queue = asyncio.Queue()
 
-        while iteration < self.max_iterations:
-            iteration += 1
-            logger.info(f"🔄 [Streaming] Reasoning iteration {iteration}/{self.max_iterations}")
+        async def stream_callback(event: dict):
+            """Buffer events for the generator to yield."""
+            await event_queue.put(event)
 
-            # Get next action from LLM
-            reasoning_result = await self._reason_next_step(
+        # Run the unified ReAct loop with streaming callback
+        # We need to interleave loop execution with event yielding
+        loop_task = asyncio.create_task(
+            self._execute_react_loop(
                 query=query,
                 context=context,
-                previous_steps=plan.reasoning_steps,
-                tool_results=all_tool_results,
+                plan=plan,
+                event_callback=stream_callback,
             )
+        )
 
-            if not reasoning_result:
-                logger.warning("Reasoning step failed, using fallback")
-                break
+        # Yield events as they arrive, until the loop completes
+        while not loop_task.done():
+            try:
+                event = await asyncio.wait_for(event_queue.get(), timeout=0.1)
+                yield event
+            except TimeoutError:
+                continue
 
-            # Create reasoning step
-            step = ReasoningStep(
-                step_number=iteration,
-                thought=reasoning_result.get("thought", ""),
-                action=reasoning_result.get("action", "conclude"),
-            )
-            logger.info(f"🧠 [Streaming] Action: {step.action}, thought: {step.thought[:100]}")
+        # Get loop results
+        iteration, all_tool_results = loop_task.result()
 
-            # YIELD: Agent thinking event immediately
-            yield {
-                "type": "agent_thinking",
-                "iteration": iteration,
-                "thought": step.thought,
-                "action": step.action,
-            }
+        # Drain any remaining events
+        while not event_queue.empty():
+            yield event_queue.get_nowait()
 
-            # Handle different actions
-            if step.action == "call_tools":
-                tool_calls = reasoning_result.get("tool_calls", [])
-
-                # YIELD: Tool call events before execution
-                for tc in tool_calls:
-                    tool_name = tc.get("tool", "")
-                    parameters = tc.get("parameters", {})
-                    yield {
-                        "type": "tool_call",
-                        "iteration": iteration,
-                        "tool_name": tool_name,
-                        "parameters": parameters,
-                        "reasoning": tc.get("reasoning", ""),
-                    }
-
-                # Execute tool calls
-                step.tool_calls = await self._execute_tool_calls(tool_calls)
-
-                # YIELD: Tool result events after execution
-                tool_results_this_step = {}
-                for idx, tc in enumerate(step.tool_calls):
-                    result_count = self._count_results(tc.result) if tc.success else 0
-                    yield {
-                        "type": "tool_result",
-                        "iteration": iteration,
-                        "tool_name": tc.tool_name,
-                        "success": tc.success,
-                        "result_count": result_count,
-                        "result_summary": str(tc.result)[:300] if tc.result else "No results",
-                        "execution_time_ms": tc.execution_time_ms,
-                    }
-
-                    if tc.success:
-                        all_tool_results[f"{tc.tool_name}_{iteration}_{idx}"] = tc.result
-                        tool_results_this_step[tc.tool_name] = tc.result
-
-                # Auto-promote to formatted output ONLY for semantic project searches
-                has_semantic_projects = any(
-                    isinstance(r, dict) and ("similar_projects" in r or "rendered_content" in r)
-                    for r in tool_results_this_step.values()
-                )
-                if has_semantic_projects:
-                    formatted = self._synthesize_from_results(query, tool_results_this_step)
-                    if formatted and len(formatted) > 200:
-                        plan.final_answer = formatted
-                        plan.confidence = 0.90
-                        step.observation = (
-                            f"Executed {len(step.tool_calls)} tool(s) — "
-                            f"auto-formatted project results"
-                        )
-                        step.next_action_needed = False
-                        plan.reasoning_steps.append(step)
-                        break
-
-                step.observation = self._summarize_tool_results(step.tool_calls)
-                step.next_action_needed = reasoning_result.get("needs_more_info", True)
-
-                # Force another iteration when multiple tools were called successfully
-                successful_calls = [tc for tc in step.tool_calls if tc.success]
-                if len(successful_calls) >= 2 and not step.next_action_needed:
-                    logger.info(
-                        f"⚡ [Streaming] Forcing cross-analysis iteration: "
-                        f"{len(successful_calls)} tools returned results — "
-                        f"LLM needs to synthesize combined data"
-                    )
-                    step.next_action_needed = True
-
-            elif step.action == "analyze_results":
-                step.observation = reasoning_result.get("analysis", "")
-                step.next_action_needed = reasoning_result.get("needs_more_info", False)
-
-            elif step.action == "conclude":
-                plan.final_answer = reasoning_result.get("conclusion", "")
-                plan.confidence = reasoning_result.get("confidence", 0.8)
-                step.next_action_needed = False
-
-            elif step.action == "generate_guidance":
-                guidance_response = reasoning_result.get("response", "")
-                plan.final_answer = guidance_response
-                plan.confidence = 0.9
-                step.observation = (
-                    f"Generated {reasoning_result.get('guidance_type', 'guidance')} guidance"
-                )
-                step.next_action_needed = False
-
-            elif step.action == "call_tools_and_format":
-                tool_calls = reasoning_result.get("tool_calls", [])
-                step.tool_calls = await self._execute_tool_calls(tool_calls)
-
-                # Yield tool events for streaming
-                for tc in step.tool_calls:
-                    yield {
-                        "type": "tool_call",
-                        "tool_name": tc.tool_name,
-                        "parameters": tc.parameters,
-                    }
-                    yield {
-                        "type": "tool_result",
-                        "tool_name": tc.tool_name,
-                        "success": tc.success,
-                        "result_summary": str(tc.result)[:200] if tc.result else "",
-                    }
-
-                self._handle_format_action(step, all_tool_results, plan, query, iteration)
-
-            elif step.action == "call_tools_with_niche_guidance":
-                tool_calls = reasoning_result.get("tool_calls", [])
-                step.tool_calls = await self._execute_tool_calls(tool_calls)
-
-                # Yield tool events for streaming
-                for tc in step.tool_calls:
-                    yield {
-                        "type": "tool_call",
-                        "tool_name": tc.tool_name,
-                        "parameters": tc.parameters,
-                    }
-                    yield {
-                        "type": "tool_result",
-                        "tool_name": tc.tool_name,
-                        "success": tc.success,
-                        "result_summary": str(tc.result)[:200] if tc.result else "",
-                    }
-
-                self._handle_niche_guidance_action(
-                    step,
-                    reasoning_result,
-                    all_tool_results,
-                    plan,
-                    query,
-                    iteration,
-                )
-
-            elif step.action == "search_imminent_calls_with_warning":
-                imminent_calls_result = await self._search_imminent_calls_with_warning(query)
-                plan.final_answer = imminent_calls_result
-                plan.confidence = 0.85
-                step.observation = (
-                    "Searched for imminent deadline calls with feasibility assessment"
-                )
-                step.next_action_needed = False
-
-            plan.reasoning_steps.append(step)
-
-            if not step.next_action_needed:
-                logger.info(f"✅ [Streaming] Agent concluded after {iteration} iteration(s)")
-                break
+        # Quality-driven retry (same as non-streaming)
+        iteration = await self._quality_retry_if_needed(
+            plan,
+            all_tool_results,
+            query,
+            context,
+            iteration,
+        )
 
         # Finalize
         total_time = (datetime.now() - start_time).total_seconds() * 1000
@@ -1334,7 +1548,9 @@ class ToolAwareAgent(
                     )
                 except TimeoutError:
                     logger.warning(f"⏰ LLM call timed out after {llm_timeout}s, using fallback")
-                    return self._fallback_reasoning(query, previous_steps, tool_results, context)
+                    return await self._fallback_reasoning(
+                        query, previous_steps, tool_results, context
+                    )
 
                 # Parse JSON from response
                 response_text = response.text
@@ -1362,7 +1578,9 @@ class ToolAwareAgent(
 
                 if not json_str:
                     logger.warning("Could not extract JSON from LLM response, using fallback")
-                    return self._fallback_reasoning(query, previous_steps, tool_results, context)
+                    return await self._fallback_reasoning(
+                        query, previous_steps, tool_results, context
+                    )
 
                 try:
                     return json.loads(json_str)
@@ -1372,14 +1590,16 @@ class ToolAwareAgent(
                     if fixed_json:
                         return fixed_json
                     logger.warning(f"JSON decode failed: {je}, using fallback")
-                    return self._fallback_reasoning(query, previous_steps, tool_results, context)
+                    return await self._fallback_reasoning(
+                        query, previous_steps, tool_results, context
+                    )
             else:
                 # Fallback reasoning
-                return self._fallback_reasoning(query, previous_steps, tool_results, context)
+                return await self._fallback_reasoning(query, previous_steps, tool_results, context)
 
         except Exception as e:
             logger.error(f"Reasoning step failed: {e}")
-            return self._fallback_reasoning(query, previous_steps, tool_results, context)
+            return await self._fallback_reasoning(query, previous_steps, tool_results, context)
 
     def _fix_malformed_json(self, json_str: str) -> dict[str, Any] | None:
         """Attempt to fix common JSON formatting issues from LLM responses."""
@@ -1419,14 +1639,14 @@ class ToolAwareAgent(
     # Guidance generation methods provided by GuidanceGeneratorsMixin
     # Conclusion builders provided by ConclusionBuildersMixin
 
-    def _fallback_reasoning(
+    async def _fallback_reasoning(
         self,
         query: str,
         previous_steps: list[ReasoningStep],
         tool_results: dict[str, Any],
         context: str = "",
     ) -> dict[str, Any]:
-        """Fallback reasoning when LLM fails."""
+        """Fallback reasoning when LLM fails. Now async to allow LLM synthesis."""
 
         if not previous_steps:
             # First, try to detect specific query types for better tool selection
@@ -1442,7 +1662,7 @@ class ToolAwareAgent(
                 "tool_calls": [
                     {
                         "tool": "search_documents",
-                        "parameters": {"query": query, "max_results": 15},  # Increased from 5
+                        "parameters": {"query": query, "max_results": 15},
                         "reasoning": "Initial search for relevant information",
                     }
                 ],
@@ -1451,19 +1671,7 @@ class ToolAwareAgent(
 
         if tool_results:
             # Try LLM-assisted synthesis first (better quality than mechanical)
-            llm_conclusion = None
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # We're in sync context called from async — can't await
-                    # Fall through to mechanical synthesis
-                    pass
-                else:
-                    llm_conclusion = loop.run_until_complete(
-                        self._llm_synthesize_results(query, tool_results)
-                    )
-            except Exception as e:
-                logger.debug(f"LLM fallback synthesis skipped (sync context): {e}")
+            llm_conclusion = await self._llm_synthesize_results(query, tool_results)
 
             if llm_conclusion:
                 logger.info("✅ LLM fallback synthesis succeeded")
