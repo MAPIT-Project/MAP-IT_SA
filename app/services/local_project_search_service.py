@@ -461,7 +461,16 @@ class LocalProjectSearchService:
         sort_by: str | None = None,
     ) -> dict[str, Any]:
         """
-        Search for projects using all available local sources.
+        Search for projects using optimized retrieve-rerank-enrich pipeline.
+
+        Architecture:
+          Stage 1 - RETRIEVE: PostgreSQL keyword + vector semantic search (parallel)
+          Stage 2 - FUSE: Reciprocal Rank Fusion combines both retrieval signals
+          Stage 3 - RERANK: Cross-encoder neural reranking for precision
+          Stage 4 - ENRICH: Neo4j graph adds cluster/topic/coordinator metadata
+
+        Neo4j is NOT used for text search (PostgreSQL already does that better).
+        Neo4j is used for what it excels at: graph-based metadata enrichment.
 
         Args:
             query: Natural language search query
@@ -473,8 +482,9 @@ class LocalProjectSearchService:
                 - status: str (e.g., "SIGNED", "CLOSED")
                 - funding_scheme: str (e.g., "RIA", "ERC")
             limit: Maximum results to return
-            include_graph: Whether to include Neo4j graph search
+            include_graph: Whether to enrich results with Neo4j graph metadata
             include_semantic: Whether to include vector semantic search
+            sort_by: Sort order ('relevance', 'ec_contribution', 'total_cost', 'start_date')
 
         Returns:
             Dict with projects, metadata, and statistics
@@ -487,55 +497,43 @@ class LocalProjectSearchService:
         logger.info(f"   Parsed filters: {parsed_filters}")
         logger.info(f"   Search terms: {search_terms}")
 
-        # 2. Run searches in parallel
+        # 2. RETRIEVE: Run PostgreSQL keyword + vector search in parallel
         all_results = {}
         sources_used = []
 
-        # PostgreSQL search (primary)
+        # Build retrieval tasks to run in parallel
+        retrieval_tasks = []
+
+        # PostgreSQL full-text search (primary retrieval)
         if self._postgres_repo:
-            try:
-                postgres_results = await self._search_postgres(
-                    search_terms, parsed_filters, limit * 2, sort_by=sort_by
+            retrieval_tasks.append(
+                self._run_postgres_search(
+                    search_terms, parsed_filters, limit * 2, sort_by, all_results, sources_used
                 )
-                all_results["postgresql"] = postgres_results
-                sources_used.append("postgresql")
-                logger.info(f"   PostgreSQL returned {len(postgres_results)} projects")
-            except Exception as e:
-                logger.error(f"   PostgreSQL search failed: {e}")
+            )
 
-        # Neo4j graph search (for relationship-based results)
-        if include_graph and self._graph_service:
-            try:
-                graph_results = await self._search_graph(search_terms, parsed_filters, limit)
-                all_results["neo4j"] = graph_results
-                sources_used.append("neo4j")
-                logger.info(f"   Neo4j returned {len(graph_results)} projects")
-            except Exception as e:
-                logger.warning(f"   Neo4j search failed: {e}")
-
-        # Vector semantic search (for semantic similarity)
+        # Vector semantic search (secondary retrieval — finds conceptually similar projects)
         if include_semantic and self._has_project_embeddings():
-            try:
-                vector_results = await self._search_vector(query, parsed_filters, limit)
-                all_results["vector"] = vector_results
-                sources_used.append("vector")
-                logger.info(f"   Vector search returned {len(vector_results)} projects")
-            except Exception as e:
-                logger.warning(f"   Vector search failed: {e}")
+            retrieval_tasks.append(
+                self._run_vector_search(query, parsed_filters, limit, all_results, sources_used)
+            )
 
-        # 3. Fuse results if we have multiple sources
+        # Execute retrieval in parallel
+        if retrieval_tasks:
+            await asyncio.gather(*retrieval_tasks)
+
+        # 3. FUSE: Combine results from multiple retrieval sources
         if len(all_results) > 1:
             fused_results = self._reciprocal_rank_fusion(all_results)
         elif all_results:
-            # Single source - just use those results
             fused_results = list(all_results.values())[0]
         else:
             fused_results = []
 
-        # 4. Deduplicate by project_id
+        # 4. Deduplicate by project_id (merges fields from duplicate entries)
         unique_results = self._deduplicate(fused_results)
 
-        # 4b. Cross-encoder reranking (only for relevance sorting, top-N candidates)
+        # 5. RERANK: Cross-encoder neural reranking for precision (relevance sort only)
         if not sort_by or sort_by == "relevance":
             unique_results = await self._rerank_with_cross_encoder(query, unique_results, limit)
         else:
@@ -552,13 +550,17 @@ class LocalProjectSearchService:
                 logger.info(f"   Re-sorting {len(unique_results)} results by {sort_by}")
                 unique_results.sort(key=key_fn, reverse=True)
 
-        # 5. Take top N
+        # 6. Take top N
         final_results = unique_results[:limit]
 
-        # 6. Enrich coordinator data for results from Neo4j/Vector sources
+        # 7. ENRICH: Add coordinator + graph metadata to final results
         final_results = self._enrich_coordinator_data(final_results)
 
-        # 7. Format response
+        if include_graph and self._graph_service:
+            final_results = await self._enrich_with_graph(final_results)
+            sources_used.append("neo4j")
+
+        # 8. Format response
         elapsed = time.time() - start_time
 
         return {
@@ -573,14 +575,113 @@ class LocalProjectSearchService:
             "processing_time_ms": int(elapsed * 1000),
             "data_source": "local_multi_source",
             "search_quality": {
-                "neo4j_fulltext": self._has_neo4j_fulltext_index()
-                if self._graph_service
-                else False,
                 "vector_search": "vector" in sources_used,
                 "cross_encoder_reranked": not sort_by or sort_by == "relevance",
-                "fusion_method": "rrf" if len(sources_used) > 1 else "single_source",
+                "graph_enriched": "neo4j" in sources_used,
+                "fusion_method": "rrf" if len(all_results) > 1 else "single_source",
             },
         }
+
+    async def _run_postgres_search(
+        self,
+        search_terms: list[str],
+        parsed_filters: dict[str, Any],
+        limit: int,
+        sort_by: str | None,
+        all_results: dict,
+        sources_used: list,
+    ) -> None:
+        """Run PostgreSQL search and collect results (for parallel execution)."""
+        try:
+            postgres_results = await self._search_postgres(
+                search_terms, parsed_filters, limit, sort_by=sort_by
+            )
+            all_results["postgresql"] = postgres_results
+            sources_used.append("postgresql")
+            logger.info(f"   PostgreSQL returned {len(postgres_results)} projects")
+        except Exception as e:
+            logger.error(f"   PostgreSQL search failed: {e}")
+
+    async def _run_vector_search(
+        self,
+        query: str,
+        parsed_filters: dict[str, Any],
+        limit: int,
+        all_results: dict,
+        sources_used: list,
+    ) -> None:
+        """Run vector semantic search and collect results (for parallel execution)."""
+        try:
+            vector_results = await self._search_vector(query, parsed_filters, limit)
+            all_results["vector"] = vector_results
+            sources_used.append("vector")
+            logger.info(f"   Vector search returned {len(vector_results)} projects")
+        except Exception as e:
+            logger.warning(f"   Vector search failed: {e}")
+
+    async def _enrich_with_graph(self, projects: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """
+        Enrich final results with Neo4j graph metadata (cluster, topics).
+
+        Only runs on the final top-N results, not the full candidate set.
+        This is what Neo4j excels at: graph traversal for relationship data.
+        """
+        if not self._graph_service or not projects:
+            return projects
+
+        project_ids = [str(p.get("id")) for p in projects if p.get("id")]
+        if not project_ids:
+            return projects
+
+        try:
+            # Batch fetch cluster/topic data for all final results
+            placeholders = ", ".join([f"'{pid}'" for pid in project_ids])
+            cypher = f"""
+                MATCH (p:Project)
+                WHERE p.id IN [{placeholders}]
+                OPTIONAL MATCH (p)-[:TARGETS]->(c:Cluster)
+                OPTIONAL MATCH (p)-[:FUNDED_UNDER]->(t:Topic)
+                RETURN p.id as id,
+                       COLLECT(DISTINCT c.name)[0] as clusterName,
+                       COLLECT(DISTINCT c.code)[0] as clusterCode,
+                       COLLECT(DISTINCT t.code) as topicCodes
+            """
+
+            results = self._graph_service.db.execute_query(cypher)
+
+            # Build lookup map
+            graph_data = {}
+            for r in results:
+                pid = str(r.get("id"))
+                topic_codes = r.get("topicCodes") or []
+                graph_data[pid] = {
+                    "cluster_name": r.get("clusterName"),
+                    "cluster_code": r.get("clusterCode"),
+                    "topic_codes": [t for t in topic_codes if t],
+                }
+
+            # Enrich projects
+            enriched = 0
+            for p in projects:
+                pid = str(p.get("id"))
+                if pid in graph_data:
+                    gd = graph_data[pid]
+                    if gd["cluster_name"]:
+                        p["cluster_name"] = gd["cluster_name"]
+                    if gd["cluster_code"]:
+                        p["cluster_code"] = gd["cluster_code"]
+                    if gd["topic_codes"] and not p.get("topics"):
+                        p["topics"] = ", ".join(gd["topic_codes"])
+                    enriched += 1
+
+            logger.info(
+                f"   Neo4j enriched {enriched}/{len(projects)} projects with cluster/topic data"
+            )
+
+        except Exception as e:
+            logger.warning(f"   Neo4j graph enrichment failed (non-critical): {e}")
+
+        return projects
 
     async def find_similar_projects(
         self, project_id: str, similarity_type: str = "topic", limit: int = 10
@@ -1567,6 +1668,12 @@ class LocalProjectSearchService:
                 "sme_count": project.get("sme_count", 0),
                 "countries": project.get("participant_countries", []),
             },
+            "cluster": {
+                "name": project.get("cluster_name"),
+                "code": project.get("cluster_code"),
+            }
+            if project.get("cluster_name") or project.get("cluster_code")
+            else None,
             "relevance_score": project.get("_rrf_score", project.get("relevance_score", 0)),
             "similarity_score": project.get("similarity_score"),
             "sources": project.get("_sources", [project.get("_source", "unknown")]),
