@@ -12,11 +12,11 @@ Agentic Manager
 
 Main orchestrator for intelligent query processing.
 
-ARCHITECTURE (v2.2):
+ARCHITECTURE (V3):
 - ALWAYS uses ToolAwareAgent (ReAct pattern) for best results
 - Multi-tool reasoning ensures thorough answers from multiple sources
 - Self-correcting with evaluation and reflection
-- Falls back to simple loop only if ToolAwareAgent is unavailable
+- ToolAwareAgent is a hard requirement (no fallback)
 
 The ToolAwareAgent is smart enough to:
 - Finish quickly for simple queries (1-2 iterations)
