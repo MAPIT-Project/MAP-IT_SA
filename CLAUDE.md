@@ -270,12 +270,6 @@ pytest --cov=app tests/
 - `DELETE /api/v3/conversation/{id}/context` - Clear conversation memory
 - `GET /api/v3/conversation/health` - Health check
 
-**Legacy V2 Endpoints:**
-- `POST /api/query` - Main question answering endpoint (Enhanced RAG)
-- `POST /api/query/stream` - Streaming SSE endpoint
-- `POST /api/query/async` - Start async query
-- `GET /api/query/status/{task_id}` - Check async query status
-
 **Feedback API Endpoints:**
 - `POST /api/feedback` - Submit user feedback (rating, comments, tool feedback)
 - `GET /api/feedback/summary` - Get aggregated feedback metrics
@@ -785,9 +779,9 @@ The system supports multiple LLM providers:
 - Provider selection via `ai_provider` parameter or `DEFAULT_AI_PROVIDER` env var
 
 ### Streaming vs Async Processing
-- **Streaming**: Real-time SSE responses via `/api/query/stream`
+- **Streaming**: Real-time SSE responses via `/api/v3/conversation/{id}/message/stream`
 - **Async**: Background processing via Celery workers with task status polling
-- **Synchronous**: Direct responses via `/api/query`
+- **Synchronous**: Direct responses via `/api/v3/conversation/{id}/message`
 
 ### Professional Context Management
 - Domain-specific knowledge injection for Horizon Europe queries
@@ -914,21 +908,6 @@ When using the V3 streaming endpoint (`/api/v3/conversation/{id}/message/stream`
 - `token` - Streaming response text
 - `complete` - Final metadata with `architecture="simplified_v3"`
 - `error` - Error information
-
-### Legacy Streaming Response Format
-When using the legacy endpoint (`/api/query/stream`), progress updates are sent as SSE:
-```json
-{"type": "status", "stage": "processing", "message": "Processing..."}
-{"type": "progress", "stage": "intent_detected", "message": "AI analyzed intent: faq"}
-{"type": "progress", "stage": "agentic_search", "message": "AI is using self-correcting search..."}
-{"type": "progress", "stage": "agentic_executing", "message": "Searching data sources..."}
-{"type": "progress", "stage": "agentic_search", "message": "Found 8 results", "count": 8}
-{"type": "progress", "stage": "agentic_evaluating", "message": "Found good results!"}
-{"type": "status", "stage": "generating_response", "message": "Generating response..."}
-{"type": "token", "content": "Based on the Horizon Europe regulation..."}
-{"type": "token", "content": "..."}
-{"type": "complete", "metadata": {"confidence": "high", "iterations": 1}}
-```
 
 ## Conversation Stability Architecture
 

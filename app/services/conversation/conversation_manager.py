@@ -82,7 +82,7 @@ class ConversationManager:
             self.atomic_storage = get_atomic_storage(self.db_pool, self.memory_service)
             logger.info("✅ Atomic message storage initialized")
 
-            # V2 intelligent retrieval removed - V3 uses ToolAwareAgent
+            # Intelligent retrieval removed - V3 uses ToolAwareAgent
             self.intelligent_retrieval = None
 
             # RAG components
@@ -96,13 +96,13 @@ class ConversationManager:
                 openrouter_api_key=os.getenv("OPENROUTER_API_KEY"),
             )
 
-            # V2 tool orchestration removed - V3 uses ToolAwareAgent with its own tools
+            # Tool orchestration removed - V3 uses ToolAwareAgent with its own tools
             self.tool_orchestrator = None
 
             # Response formatting
             self.unified_formatter = UnifiedResponseFormatter()
 
-            # V2 AI intent service removed - V3 uses ToolAwareAgent
+            # AI intent service removed - V3 uses ToolAwareAgent
             self.ai_intent_service = None
 
             # Unified intent classifier (handles ALL 5 intent types)
@@ -174,7 +174,7 @@ class ConversationManager:
                 self.criteria_matcher = EvaluationCriteriaMatcher()
                 self.budget_assistant = BudgetAssistant(self.db_pool)
                 self.compliance_checker = ComplianceChecker(self.call_doc_service, self.db_pool)
-                # V2 quality improver disabled - relied on removed ai_intent_service
+                # Quality improver disabled - relied on removed ai_intent_service
                 self.quality_improver = None
                 logger.info("✅ Proposal writing services initialized")
             else:
@@ -194,408 +194,6 @@ class ConversationManager:
         except Exception as e:
             logger.warning(f"⚠️ ConversationManager initialization error: {e}")
             raise
-
-    async def process_message(
-        self, conversation_id: int, user_message: str, user_id: int, streaming: bool = False
-    ) -> dict[str, Any]:
-        """
-        Process a user message through the AI-only 4-phase pipeline.
-
-        AI-ONLY ARCHITECTURE:
-        Phase 1: Store user message in memory
-        Phase 2: AI-only intent analysis and tool planning (single AI call)
-        Phase 3: Execute tools if planned
-        Phase 4: Generate response
-
-        Benefits of AI-only approach:
-        - Single AI call handles all intent analysis and tool planning
-        - No complex rule-based fallbacks or keyword matching
-        - More reliable and consistent behavior
-        - Simplified architecture with fewer moving parts
-
-        Args:
-            conversation_id: Conversation identifier
-            user_message: User's message
-            user_id: User identifier
-            streaming: Whether to stream the response
-
-        Returns:
-            Complete response with metadata
-        """
-        start_time = datetime.now()
-
-        # For streaming, return generator immediately so status updates stream in real-time
-        if streaming:
-            return self._generate_streaming_response_with_processing(
-                conversation_id=conversation_id,
-                user_message=user_message,
-                user_id=user_id,
-                start_time=start_time,
-            )
-
-        # For non-streaming, do all processing first
-        try:
-            # Phase 1: Process user message (store in memory for context continuity)
-            user_message_id = random.randint(1000, 9999)
-
-            # Store user message in memory service for conversation context
-            self.memory_service.add_conversation_turn(
-                conversation_id=conversation_id,
-                role="user",
-                content=user_message,
-                message_id=user_message_id,
-            )
-
-            # Phase 1.5: UNIFIED INTENT CLASSIFICATION (handles ALL 5 intents)
-            recent_messages = self._get_recent_messages_simple(conversation_id, limit=5)
-            logger.info(f"📋 Retrieved {len(recent_messages)} recent messages for context")
-            for msg in recent_messages:
-                logger.info(f"   - {msg.get('sender')}: {msg.get('text', '')[:80]}")
-
-            unified_intent = await self.unified_classifier.classify_intent(
-                user_message=user_message,
-                conversation_id=conversation_id,
-                recent_messages=recent_messages,
-            )
-
-            logger.info(
-                f"🎯 UNIFIED INTENT: {unified_intent.primary_intent} "
-                f"(confidence: {unified_intent.confidence:.2f})"
-            )
-            logger.info(f"   Reasoning: {unified_intent.reasoning[:100]}...")
-            if unified_intent.call_id:
-                logger.info(f"   Call ID: {unified_intent.call_id}")
-
-            # Build conversation context string for response generation
-            conversation_context_str = self._build_conversation_context_string(recent_messages)
-
-            # Route based on unified intent classification
-
-            # 0. FOLLOW-UP - Resolve references and route through normal agentic pipeline
-            if unified_intent.primary_intent == "follow_up":
-                logger.info("=" * 60)
-                logger.info("🔄 FOLLOW-UP DETECTED")
-                logger.info(f"   Type: {unified_intent.follow_up_type}")
-                logger.info(f"   Original message: {user_message}")
-                logger.info("=" * 60)
-
-                # Resolve the follow-up question by expanding references using conversation context
-                resolved_query = self._resolve_follow_up_references(
-                    user_message=user_message,
-                    conversation_context=conversation_context_str,
-                    follow_up_type=unified_intent.follow_up_type,
-                )
-
-                logger.info(f"🔄 Resolved follow-up query: '{resolved_query}'")
-
-                # Now route the resolved query through the normal agentic pipeline
-                # Re-classify the resolved query to determine proper routing
-                resolved_intent = await self.unified_classifier.classify_intent(
-                    user_message=resolved_query,
-                    conversation_id=conversation_id,
-                    recent_messages=recent_messages,
-                )
-
-                logger.info("=" * 60)
-                logger.info("🎯 RESOLVED INTENT")
-                logger.info(f"   Intent: {resolved_intent.primary_intent}")
-                logger.info(f"   Confidence: {resolved_intent.confidence:.2f}")
-                logger.info(f"   Tool plan: {resolved_intent.tool_plan}")
-                logger.info("=" * 60)
-
-                # Use the resolved intent for routing, but keep conversation context
-                unified_intent = resolved_intent
-                user_message = resolved_query  # Use resolved query for downstream processing
-
-                # IMPORTANT: Update tool_plan parameters to use the resolved query
-                # The tool_plan was generated with the original message, we need to fix it
-                if unified_intent.tool_plan:
-                    for tool in unified_intent.tool_plan:
-                        if isinstance(tool, dict) and "parameters" in tool:
-                            if "query" in tool["parameters"]:
-                                tool["parameters"]["query"] = resolved_query
-                                logger.info(f"🔄 Updated tool plan query to: '{resolved_query}'")
-
-                # Fall through to normal routing below (don't return early)
-
-            # 1. PROPOSAL WRITING
-            if unified_intent.primary_intent == "proposal_writing" and self.draft_generator:
-                logger.info(
-                    f"✍️ ROUTING TO: Proposal Writing (action: {unified_intent.proposal_action})"
-                )
-                proposal_mode = {
-                    "action": unified_intent.proposal_action or "draft_section",
-                    "call_id": unified_intent.call_id,
-                    "section_id": unified_intent.section_id,
-                }
-                return await self._handle_proposal_writing(
-                    conversation_id=conversation_id,
-                    user_message=user_message,
-                    user_id=user_id,
-                    proposal_mode=proposal_mode,
-                )
-
-            # 2. CALL-SPECIFIC QUESTIONS
-            call_document_results = None
-            if (
-                unified_intent.primary_intent == "call_specific"
-                and unified_intent.call_id
-                and self.call_doc_service
-            ):
-                call_id = unified_intent.call_id
-                logger.info(f"📞 ROUTING TO: Call-Specific (call: {call_id})")
-
-                try:
-                    # SMART SEARCH STRATEGY for call documents
-                    import re
-
-                    clean_question = re.sub(
-                        r"HORIZON-[A-Z0-9-]+", "", user_message, flags=re.IGNORECASE
-                    ).strip()
-                    search_query = clean_question
-                    question_lower = clean_question.lower()
-
-                    # Geographic eligibility questions
-                    if any(
-                        phrase in question_lower
-                        for phrase in [
-                            "can i apply from",
-                            "can we apply from",
-                            "eligible countries",
-                            "country eligibility",
-                            "from ",
-                            "netherlands",
-                            "germany",
-                            "france",
-                        ]
-                    ):
-                        search_query = (
-                            "eligibility EU member states associated countries "
-                            "third countries legal entities established participation"
-                        )
-                        logger.info("🎯 Geographic eligibility question detected")
-                    # Budget/funding questions
-                    elif any(
-                        word in question_lower
-                        for word in ["budget", "funding", "grant size", "how much"]
-                    ):
-                        search_query = "budget funding contribution EUR million grant"
-                    # Deadline questions
-                    elif any(
-                        word in question_lower for word in ["deadline", "when", "submission date"]
-                    ):
-                        search_query = "deadline submission date stage opening"
-
-                    logger.info(f"📚 Call document search query: '{search_query}'")
-
-                    # Retrieve call documents
-                    call_document_results = await self._retrieve_call_documents(
-                        call_id, user_message, keywords=[search_query] if search_query else []
-                    )
-                    if call_document_results:
-                        logger.info(
-                            f"✅ Retrieved {len(call_document_results)} call-specific chunks"
-                        )
-                except Exception as e:
-                    logger.error(f"❌ Error retrieving call documents: {e}")
-
-            # Phase 2: Execute tools based on unified intent - NO OLD AI INTENT SERVICE!
-            logger.info(f"🎯 Using unified intent: {unified_intent.primary_intent}")
-
-            tool_results = None
-            retrieval_results = []
-
-            # Route based on unified intent
-            if call_document_results:
-                # Call-specific: Use loaded documents directly
-                logger.info("📚 Call-specific: Using loaded documents")
-                retrieval_results = call_document_results
-
-            elif unified_intent.primary_intent in ["search_projects", "search_calls"]:
-                # Search: Execute tools from unified classifier's tool plan
-                logger.info(f"🔍 {unified_intent.primary_intent}: Executing tools")
-
-                if unified_intent.tool_plan:
-                    # Convert dict tool plans to ToolCall objects (with validation)
-                    raw_tool_plan = (
-                        unified_intent.tool_plan
-                        if isinstance(unified_intent.tool_plan, list)
-                        else []
-                    )
-
-                    tool_calls = []
-                    for idx, tp in enumerate(raw_tool_plan):
-                        if isinstance(tp, dict):
-                            tool_name = tp.get("tool_name")
-                            if tool_name:  # Only add if tool_name is valid
-                                tool_calls.append(
-                                    ToolCall(
-                                        tool_name=tool_name,
-                                        parameters=tp.get("parameters", {}),
-                                        execution_order=tp.get("execution_order", idx),
-                                        depends_on=tp.get("depends_on"),
-                                    )
-                                )
-                            else:
-                                logger.warning(
-                                    f"Skipping tool plan item with missing tool_name: {tp}"
-                                )
-                        elif hasattr(tp, "tool_name") and tp.tool_name:  # Already a ToolCall
-                            tool_calls.append(tp)
-                        else:
-                            logger.warning(f"Skipping invalid tool plan item: {type(tp)}")
-
-                    if tool_calls:
-                        tool_results = await self.tool_orchestrator.execute_plan(
-                            tool_calls,
-                            conversation_id,
-                            unified_intent.project_keywords or unified_intent.call_keywords or [],
-                        )
-                    else:
-                        logger.warning("No valid tool calls to execute")
-                    logger.info("✅ Tool execution complete")
-
-                    # Convert tool results to retrieval format
-                    if tool_results:
-                        retrieval_results = self._convert_tool_results_to_retrieval(tool_results)
-
-            elif unified_intent.primary_intent == "faq":
-                # FAQ: Use DataIntelligenceService for smart graph + vector search
-                logger.info("🧠 FAQ: Using Data Intelligence Service (Planner LLM)")
-
-                if self._data_intelligence_available:
-                    try:
-                        di_result = await self.data_intelligence.search(
-                            query=user_message, context="", max_results=10, rerank=True
-                        )
-
-                        if di_result.success:
-                            # Convert to retrieval format
-                            retrieval_results = []
-
-                            # Add graph results
-                            for r in di_result.graph_results:
-                                retrieval_results.append(
-                                    {
-                                        "content": str(r),
-                                        "source": "neo4j_graph",
-                                        "score": 1.0,
-                                        "metadata": {"type": "structured_data"},
-                                    }
-                                )
-
-                            # Add vector results
-                            for r in di_result.vector_results:
-                                retrieval_results.append(
-                                    {
-                                        "content": r.get("content", str(r)),
-                                        "source": r.get("source", "vector"),
-                                        "score": r.get("rerank_score", r.get("score", 0.5)),
-                                        "metadata": r,
-                                    }
-                                )
-
-                            # Add answer context at the front
-                            if di_result.answer_context:
-                                retrieval_results.insert(
-                                    0,
-                                    {
-                                        "content": di_result.answer_context,
-                                        "source": "data_intelligence",
-                                        "score": 1.0,
-                                        "metadata": {
-                                            "intent": di_result.intent_type,
-                                            "confidence": di_result.confidence,
-                                        },
-                                    },
-                                )
-
-                            logger.info(
-                                f"✅ DataIntelligenceService: {len(retrieval_results)} results"
-                            )
-                        else:
-                            retrieval_results = await self._retrieve_information(
-                                conversation_id=conversation_id, query=user_message, context=""
-                            )
-                    except Exception as e:
-                        logger.error(f"❌ DataIntelligenceService error: {e}")
-                        retrieval_results = await self._retrieve_information(
-                            conversation_id=conversation_id, query=user_message, context=""
-                        )
-                else:
-                    retrieval_results = await self._retrieve_information(
-                        conversation_id=conversation_id, query=user_message, context=""
-                    )
-                    logger.info(f"✅ Retrieved {len(retrieval_results)} chunks")
-
-            # Create intent_analysis format for compatibility
-            intent_analysis = {
-                "intent_type": unified_intent.primary_intent,
-                "confidence": unified_intent.confidence,
-                "reasoning": unified_intent.reasoning,
-                "extracted_keywords": unified_intent.project_keywords
-                or unified_intent.call_keywords
-                or [],
-            }
-
-            # Phase 4: Generate response
-            logger.info(
-                f"📝 RESPONSE GENERATION: tool_results={tool_results is not None}, "
-                f"retrieval_results={len(retrieval_results)}"
-            )
-
-            if tool_results:
-                logger.info(f"🔧 TOOL RESULTS SUMMARY: {len(tool_results)} tools executed")
-                for tool_name, tool_result in tool_results.items():
-                    logger.info(
-                        f"   Tool {tool_name}: success={tool_result.success}, "
-                        f"has_result={tool_result.result is not None}"
-                    )
-
-            # Non-streaming response
-            if True:
-                logger.info("📄 Starting non-streaming response generation")
-                response = await self._generate_response(
-                    conversation_id=conversation_id,
-                    query=user_message,
-                    context=conversation_context_str,  # Pass conversation context
-                    retrieval_results=retrieval_results,
-                    tool_results=tool_results,
-                    intent_analysis=intent_analysis,
-                    start_time=start_time,
-                )
-
-                # LOG THE FINAL RESPONSE
-                logger.info(
-                    f"📤 FINAL RESPONSE: {response.get('response', 'No response')[:500]}..."
-                )
-                logger.info(
-                    f"📊 RESPONSE METADATA: "
-                    f"tools_executed={response.get('tools_executed', False)}, "
-                    f"confidence={response.get('confidence', 0.0)}"
-                )
-
-                # Store assistant response in memory for conversation continuity
-                assistant_response_text = response.get("response", "")
-                if assistant_response_text:
-                    self.memory_service.add_conversation_turn(
-                        conversation_id=conversation_id,
-                        role="assistant",
-                        content=assistant_response_text[
-                            :8000
-                        ],  # Limit for memory (keep generous for project tables)
-                        message_id=random.randint(10000, 99999),
-                    )
-                    logger.info(
-                        f"💾 Stored assistant response in memory "
-                        f"({len(assistant_response_text)} chars)"
-                    )
-
-                return response
-
-        except Exception as e:
-            logger.error(f"Error processing message: {e}")
-            return self._create_error_response(str(e))
 
     async def process_message_v3(
         self, conversation_id: int, user_message: str, user_id: int, streaming: bool = False
@@ -620,13 +218,12 @@ class ConversationManager:
         """
         start_time = datetime.now()
 
+        # ToolAwareAgent is a hard requirement for V3 architecture
         if not self._tool_aware_agent_available:
-            logger.warning("ToolAwareAgent not available, falling back to v2")
-            return await self.process_message(
-                conversation_id=conversation_id,
-                user_message=user_message,
-                user_id=user_id,
-                streaming=streaming,
+            raise RuntimeError(
+                "ToolAwareAgent is not available. "
+                "V3 architecture requires ToolAwareAgent to function. "
+                "Please ensure the agent system is properly initialized."
             )
 
         # For streaming, return an async generator that holds the lock
@@ -1986,7 +1583,7 @@ This metadata was extracted from the EU Portal API (official call conditions).""
                     "grounded": True if retrieval_results else False,
                 }
 
-            # V2 endpoint: No database storage - just add to memory for conversation context
+            # Memory-only storage (no database)
             # Generate a fake message ID for compatibility
             assistant_message_id = random.randint(1000, 9999)
 
@@ -2776,7 +2373,7 @@ This metadata was extracted from the EU Portal API (official call conditions).""
                 "projects_discussed": [],
             }
 
-            # V2 endpoint: No database storage - just add to memory for conversation context
+            # Memory-only storage (no database)
             try:
                 # Generate a fake message ID for compatibility
                 assistant_message_id = random.randint(1000, 9999)
@@ -3680,7 +3277,7 @@ Be helpful and conversational."""
 
         V3 architecture uses ToolAwareAgent with dedicated tools instead.
         """
-        # V2 HorizonEuropeRAG removed - V3 uses ToolAwareAgent
+        # HorizonEuropeRAG removed - V3 uses ToolAwareAgent
         self.existing_rag = None
         return HybridSearchPipeline(
             vector_store=MockVectorStore(),
@@ -4960,11 +4557,11 @@ Good luck with your submission! 🍀
     ) -> list[dict[str, str]]:
         """Get recent messages for context (simple version for unified classifier).
 
-        Tries database first, then falls back to memory service for v2 endpoint compatibility.
+        Tries database first, then falls back to memory service for compatibility.
         """
         messages = []
 
-        # Try database first (v1 endpoint uses database)
+        # Try database first (preferred storage)
         if self.db_pool:
             conn = self.db_pool.getconn()
             cursor = conn.cursor()
@@ -4990,7 +4587,7 @@ Good luck with your submission! 🍀
             finally:
                 self.db_pool.putconn(conn)
 
-        # If no messages from database, try memory service (v2 endpoint uses memory)
+        # If no messages from database, try memory service (fallback)
         if not messages and hasattr(self, "memory_service") and self.memory_service:
             try:
                 recent_turns = self.memory_service.stm.get_recent_turns(conversation_id, n=limit)
@@ -5158,7 +4755,7 @@ async def test_conversation_manager():
         logger.info("Testing conversation manager...")
 
         # First message
-        response1 = await manager.process_message(
+        response1 = await manager.process_message_v3(
             conversation_id=conv_id,
             user_message="What is Horizon Europe?",
             user_id=1,
@@ -5168,7 +4765,7 @@ async def test_conversation_manager():
         logger.info(f"Response 1: {response1.get('response', 'No response')[:100]}...")
 
         # Follow-up message
-        response2 = await manager.process_message(
+        response2 = await manager.process_message_v3(
             conversation_id=conv_id,
             user_message="Tell me more about its budget",
             user_id=1,
@@ -5209,7 +4806,7 @@ async def test_project_search_improvements():
         for i, message in enumerate(test_messages, 1):
             logger.info(f"\n📝 Test {i}: '{message}'")
 
-            response = await manager.process_message(
+            response = await manager.process_message_v3(
                 conversation_id=conv_id, user_message=message, user_id=1, streaming=False
             )
 
@@ -5255,7 +4852,7 @@ async def test_single_project_message():
 
         logger.info(f"\n📝 Test message: '{message}'")
 
-        response = await manager.process_message(
+        response = await manager.process_message_v3(
             conversation_id=conv_id, user_message=message, user_id=1, streaming=False
         )
 
