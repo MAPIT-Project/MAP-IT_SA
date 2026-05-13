@@ -1,13 +1,14 @@
-# MAP-IT: Intelligent EU Funding Research Assistant
+# MAP-IT: Multi-Programme EU Funding Research Assistant
 
-A production-grade Retrieval-Augmented Generation (RAG) system for querying European research projects from the CORDIS database. The system implements sophisticated multi-source intelligent search, agentic AI capabilities, and comprehensive tooling for Horizon Europe research project queries.
+A production-grade Retrieval-Augmented Generation (RAG) system for querying European Union funding programmes. The system implements sophisticated multi-source intelligent search, agentic AI capabilities, and comprehensive tooling for **6 EU funding programmes**: Horizon Europe, Erasmus+, Creative Europe, EU4Health, Digital Europe, and LIFE.
 
 ## Features
 
+- **Multi-Programme Support**: Coverage of 6 EU funding programmes with specialized tools
 - **Multi-Source Search**: Combines graph search (Neo4j), vector search (pgvector), and full-text search
 - **Agentic AI System**: Self-correcting tool orchestrator with ReAct pattern reasoning
-- **20 Specialized Tools**: Statistics, comparisons, project discovery, proposal support
-- **Semantic Search**: AI-powered project similarity using 768-dim embeddings (13,850+ projects)
+- **42 Specialized Tools**: Statistics, comparisons, project discovery, eligibility checks, proposal support
+- **Semantic Search**: AI-powered project similarity using 3072-dim embeddings (13,850+ projects)
 - **Real-time Streaming**: SSE-based responses with progress updates
 - **Conversation Memory**: Short-term and long-term context management
 
@@ -70,17 +71,16 @@ The API will be available at `http://localhost:8000`.
 | `OPENROUTER_API_KEY` | OpenRouter API key (alternative provider) | No |
 | `DATABASE_URL` | PostgreSQL connection string | Yes |
 | `SUPABASE_URL` | Supabase project URL | Yes |
-| `SUPABASE_ANON_KEY` | Supabase anonymous key | Yes |
-| `SUPABASE_SERVICE_KEY` | Supabase service key | Yes |
+| `SUPABASE_KEY` | Supabase service key | Yes |
 | `NEO4J_URI` | Neo4j bolt URI | Yes |
 | `NEO4J_USER` | Neo4j username | Yes |
 | `NEO4J_PASSWORD` | Neo4j password | Yes |
 | `REDIS_URL` | Redis connection URL | Yes |
-| `GOOGLE_EMBEDDING_API_KEY` | Google Embedding API key | No |
+| `GOOGLE_EMBEDDING_API_KEY` | Google Embedding API key | Yes |
 
 ## API Endpoints
 
-### V3 API (Recommended)
+### V3 Conversation API (Recommended)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -90,14 +90,14 @@ The API will be available at `http://localhost:8000`.
 | `/api/v3/conversation/{id}/context` | DELETE | Clear conversation memory |
 | `/api/v3/conversation/health` | GET | Health check |
 
-### Legacy V2 API
+### V4 Proposal Session API
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/query` | POST | Main question answering |
-| `/api/query/stream` | POST | Streaming SSE endpoint |
-| `/api/query/async` | POST | Start async query |
-| `/api/query/status/{task_id}` | GET | Check async query status |
+| `/api/proposal/session` | POST | Create proposal writing session |
+| `/api/proposal/session/{id}/stream` | POST | Streaming proposal assistance |
+| `/api/proposal/session/{id}/state` | GET | Get session state |
+| `/api/proposal/session/{id}/export` | GET | Export proposal draft |
 
 ### Feedback API
 
@@ -126,7 +126,7 @@ The API will be available at `http://localhost:8000`.
 │  4. REPEAT: If more info needed, think again and call more tools           │
 │  5. CONCLUDE: Synthesize final answer from all gathered data               │
 │                                                                             │
-│  • 20 tools available • Up to 5 reasoning iterations • Plan caching        │
+│  • 42 tools available • Up to 5 reasoning iterations • Plan caching        │
 └──────────────────────────────────┬──────────────────────────────────────────┘
                                    │
                                    ▼
@@ -136,47 +136,70 @@ The API will be available at `http://localhost:8000`.
 │  │   Neo4j     │  │  Supabase   │  │   CORDIS    │  │   EU Portal API     │ │
 │  │   Graph     │  │  pgvector   │  │  Projects   │  │   (enrichment)      │ │
 │  │             │  │             │  │ + Vectors   │  │                     │ │
-│  │ Statistics  │  │ Documents   │  │ 13,865+     │  │ Live call data      │ │
+│  │ Statistics  │  │ Documents   │  │ 13,850+     │  │ Live call data      │ │
 │  │ Patterns    │  │ Embeddings  │  │ projects    │  │                     │ │
+│  │             │  │             │  │ 3072-dim    │  │                     │ │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Available Tools (20)
+### Available Tools (42)
 
-**Statistics Tools:**
-- `get_programme_statistics` - Success rates, funding amounts for a programme
-- `get_country_statistics` - Participation stats for a country
-
-**Comparison Tools:**
-- `compare_programmes` - Compare two programmes side-by-side
-
-**Document Tools:**
+**Horizon Europe Tools:**
+- `get_programme_statistics` - Success rates, funding amounts
+- `get_country_statistics` - Participation stats by country
+- `analyze_geographic_diversification` - Country group analysis
+- `compare_programmes` - Compare programmes side-by-side
 - `search_documents` - Search official EU documents
-
-**Call Tools:**
 - `search_funding_calls` - Find open/upcoming calls
 - `get_call_details` - Get details for a specific call
-
-**Project Tools:**
-- `search_projects` - Search CORDIS for funded projects
-- `get_project_details` - Get details for a project
-- `find_similar_projects` - Find similar projects by topic/consortium/cluster
-- `find_semantically_similar_projects` - AI-powered semantic similarity search
-- `find_organization_projects` - Find all projects for an organization
-- `get_collaboration_network` - Get organization collaboration networks
-- `search_by_cluster` - Find projects in a research cluster
-
-**Proposal Support Tools:**
-- `get_budget_benchmark` - Budget statistics from similar funded projects
+- `search_projects` - Search CORDIS funded projects (LOCAL-FIRST)
+- `get_project_details` - Get project details with partners
+- `get_project_partners` - Get full partner list
+- `get_organization_stats` - Organization aggregate statistics
+- `find_similar_projects` - Find similar by topic/consortium
+- `find_semantically_similar_projects` - AI-powered semantic search
+- `find_organization_projects` - All projects for an organization
+- `get_collaboration_network` - Organization partnerships
+- `search_by_cluster` - Find projects by research cluster
+- `get_budget_benchmark` - Budget statistics from funded projects
 - `get_consortium_patterns` - Consortium composition analysis
-- `find_experienced_partners` - Find organizations with relevant experience
-- `get_similar_funded_projects` - Semantic similarity for proposal research
-- `analyze_call_history` - Historical funding pattern analysis
-
-**Proposal Planning Tools:**
+- `find_experienced_partners` - Find experienced organizations
+- `get_similar_funded_projects` - Semantic similarity for research
+- `analyze_call_history` - Historical funding patterns
 - `calculate_budget` - Generate detailed budget breakdowns
 - `generate_timeline` - Create project timelines with work packages
+- `score_proposal_section` - Evaluate proposal section quality
+- `score_full_proposal` - Evaluate complete proposal
+- `quick_quality_check` - Quick quality assessment
+- `validate_budget` - Validate budget against EU rules
+- `show_cached_projects` - Show recently viewed projects
+
+**Erasmus+ Tools:**
+- `check_erasmus_eligibility` - Check eligibility by action/sector
+- `calculate_erasmus_budget` - Calculate Erasmus+ budgets
+- `search_erasmus_templates` - Search Programme Guide
+
+**Creative Europe Tools:**
+- `check_creative_europe_eligibility` - Check eligibility by strand/action
+- `calculate_creative_europe_budget` - Calculate Creative Europe budgets
+- `search_creative_europe_templates` - Search CulturEU Guide
+
+**EU4Health Tools:**
+- `check_eu4health_eligibility` - Check eligibility by action/org type
+- `search_eu4health_templates` - Search EU4Health documents
+
+**Digital Europe Tools:**
+- `check_digital_europe_eligibility` - Check eligibility across 6 objectives
+
+**LIFE Tools:**
+- `check_life_eligibility` - Check eligibility across 4 sub-programmes
+- `search_life_templates` - Search LIFE Programme documents
+
+**Cross-Programme Tools:**
+- `search_all_programmes` - Search across all 6 programmes
+- `recommend_programmes` - Recommend best programmes for project
+- `get_programme_info` - Get detailed programme information
 
 ## Development
 
@@ -214,8 +237,9 @@ The `docker-compose.yml` defines:
 make test
 
 # Run specific test files
-pytest tests/test_integration_v2.py
-pytest tests/test_intent_detection_only.py
+pytest tests/test_integration_v3.py
+pytest tests/test_conversation_scenarios.py
+pytest tests/quality/test_scenario_001_search_open_calls_basic.py
 
 # Run with coverage
 pytest --cov=app tests/
@@ -235,8 +259,8 @@ The project uses:
 MAP-IT_SA/
 ├── app/
 │   ├── api/                    # API routes
-│   │   ├── routes.py           # Legacy V2 routes
-│   │   ├── conversation_routes_v3.py  # V3 API
+│   │   ├── conversation_routes_v3.py  # V3 Conversation API
+│   │   ├── proposal_session_routes.py # V4 Proposal Session API
 │   │   └── feedback_routes.py  # Feedback endpoints
 │   ├── services/
 │   │   ├── agents/             # Agentic AI components
@@ -248,10 +272,11 @@ MAP-IT_SA/
 │   │   ├── data_intelligence/  # Graph search, query planning
 │   │   ├── embedding/          # Incremental embedding updates
 │   │   ├── feedback/           # User feedback collection
-│   │   ├── memory/             # Conversation memory
-│   │   ├── rag/                # RAG components
+│   │   ├── conversation/       # Conversation management
+│   │   ├── memory/             # Short/long-term memory
+│   │   ├── proposal_writing/   # AI proposal assistance
 │   │   ├── response/           # Response formatting
-│   │   └── tools/              # Tool implementations
+│   │   └── tools/              # Tool implementations (42 tools)
 │   ├── core/                   # Configuration, dependencies
 │   ├── models/                 # Pydantic schemas
 │   └── main.py                 # FastAPI entry point
@@ -260,9 +285,17 @@ MAP-IT_SA/
 │   ├── shared_documents/       # Horizon Europe documents
 │   └── manual_uploads/         # User-uploaded documents
 ├── docs/                       # Documentation
+│   ├── prd/                    # Product Requirements Documents
+│   └── implementation/         # Implementation history
+├── docs_tracked/               # Comprehensive documentation (single source of truth)
+│   ├── SYSTEM_ARCHITECTURE.md  # Complete system architecture
+│   ├── FRONTEND_STREAMING_V3_SPEC.md  # V3 streaming API
+│   ├── CONVERSATION_STABILITY_ARCHITECTURE.md  # Race condition prevention
+│   └── MANUAL_TEST_SCENARIOS.md  # Testing procedures
 ├── migration/                  # Database migrations
-├── scripts/                    # Helper scripts
+├── scripts/                    # Helper scripts (43 files)
 ├── tests/                      # Test files
+├── k8s/                        # Kubernetes manifests
 ├── docker-compose.yml          # Docker configuration
 ├── Makefile                    # Development commands
 ├── requirements.txt            # Production dependencies
@@ -271,12 +304,20 @@ MAP-IT_SA/
 
 ## Key Capabilities
 
-### FAQ Answering
-Answer questions about eligibility, rules, and requirements for EU funding programmes.
+### Multi-Programme Search
+Search for funding opportunities across all 6 EU programmes in a single query.
 
 ```
-User: "Can Switzerland participate in Horizon Europe?"
-Response: "Yes, Switzerland can participate as an Associated Country..."
+User: "Find funding opportunities for renewable energy research"
+Response: Lists calls from Horizon Europe, LIFE, and Digital Europe
+```
+
+### Eligibility Checking
+Check organization eligibility for specific programme actions and sectors.
+
+```
+User: "Is my SME eligible for Erasmus+ KA2 partnerships?"
+Response: Detailed eligibility assessment with requirements
 ```
 
 ### Call Search
@@ -288,7 +329,7 @@ Response: Lists calls with type icons, deadlines, budgets, and apply links
 ```
 
 ### Project Search
-Search 13,865+ funded CORDIS projects using full-text, graph, and semantic search.
+Search 13,850+ funded CORDIS projects using full-text, graph, and semantic search.
 
 ```
 User: "Show me AI healthcare projects from Germany"
@@ -311,14 +352,22 @@ User: "What's the typical budget for a Climate RIA?"
 Response: Budget statistics (mean, median, min, max) from funded projects
 ```
 
+### Proposal Writing
+AI-powered proposal drafting with section-by-section assistance.
+
+```
+User: "Help me write a Horizon Europe proposal for AI in healthcare"
+Response: Structured proposal with excellence, impact, and implementation sections
+```
+
 ## Data Sources
 
 | Source | Purpose | Data |
 |--------|---------|------|
-| **Neo4j** | Statistics, patterns, relationships | Success rates, consortium patterns, org networks |
-| **Supabase (pgvector)** | Document search | Regulations, work programmes, guidance docs |
-| **CORDIS PostgreSQL** | Project data | 13,865+ funded projects with embeddings |
-| **EU Portal API** | Live enrichment | Call details, deadlines, status updates |
+| **Neo4j** | Statistics, patterns, relationships | Success rates, consortium patterns, org networks for all 6 programmes |
+| **Supabase (pgvector)** | Document search | Regulations, work programmes, guidance docs for 6 programmes |
+| **CORDIS PostgreSQL** | Project data | 13,850+ funded projects with 3072-dim embeddings |
+| **EU Portal API** | Live enrichment | Call details, deadlines, status updates for all programmes |
 
 ## Streaming Response Format
 
@@ -355,9 +404,9 @@ ToolAwareAgent(
 
 | Setting | Value |
 |---------|-------|
-| Model | Google text-embedding-004 |
-| Dimensions | 768 |
-| Index | IVFFlat (100 lists) |
+| Model | Google gemini-embedding-001 |
+| Dimensions | 3072 |
+| Index | Exact search (no index - exceeds HNSW/IVFFlat limits) |
 
 ## Performance Optimizations
 
@@ -365,14 +414,21 @@ ToolAwareAgent(
 - **Speculative Execution**: Pre-executes likely tools based on query patterns
 - **Parallel Tool Calls**: Independent tool calls run simultaneously
 - **RRF Fusion**: Reciprocal Rank Fusion combines multi-source results
+- **Hybrid Architecture**: Graph+SQL with weighted result fusion
 
 ## Documentation
 
-Detailed documentation is available in the `docs/` directory:
-- `SYSTEM_ARCHITECTURE.md` - Full architecture documentation
-- `STREAMING_API_GUIDE_FOR_FRONTEND.md` - Frontend integration guide
-- `DATABASE_SCHEMA_DOCUMENTATION.md` - Database schema details
-- `technical_specification.md` - Technical specifications
+Comprehensive documentation is available in `docs_tracked/` (single source of truth):
+
+| Document | Description |
+|----------|-------------|
+| `SYSTEM_ARCHITECTURE.md` | Complete system architecture with all 42 tools |
+| `FRONTEND_STREAMING_V3_SPEC.md` | V3 streaming API and frontend integration |
+| `CONVERSATION_STABILITY_ARCHITECTURE.md` | Race condition prevention and context management |
+| `MANUAL_TEST_SCENARIOS.md` | Testing procedures and scenarios |
+| `IMPROVEMENT_ROADMAP.md` | Future improvements and planned features |
+
+For developer quick reference, see `CLAUDE.md`.
 
 ## Contributing
 
