@@ -7,6 +7,7 @@ from typing import Any
 
 import google.generativeai as genai
 
+from ...core.config import settings
 from .long_term_memory import ConversationFact, ConversationSummary, EntityCard
 from .short_term_memory import ConversationTurn
 
@@ -61,7 +62,7 @@ class RollingSummarizer:
                 raise ValueError("OPENROUTER_API_KEY is required for OpenRouter provider")
 
             self.openai_client = openai.OpenAI(
-                api_key=api_key, base_url="https://openrouter.ai/api/v1"
+                api_key=api_key, base_url=settings.openrouter_base_url
             )
             self.model = None
         else:

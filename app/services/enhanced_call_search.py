@@ -19,6 +19,8 @@ from typing import Any
 
 import requests
 
+from ..core.config import settings
+
 # Import the AI query parser
 try:
     from .ai_query_parser import AIQueryParser  # noqa: F401
@@ -63,12 +65,12 @@ class EnhancedCallSearchService:
     def __init__(self):
         """Initialize the enhanced search service."""
         self.tags_api_url = "https://client-centricity.io/tags/query"
-        self.search_api_url = "https://api.tech.ec.europa.eu/search-api/prod/rest/search"
-        self.facet_api_url = "https://api.tech.ec.europa.eu/search-api/prod/rest/facet"
+        self.search_api_url = settings.eu_portal_base_url
+        self.facet_api_url = settings.eu_portal_facet_url
 
         # Cache for tag queries to avoid repeated API calls
         self._tag_cache = {}
-        self._cache_ttl = 3600  # 1 hour
+        self._cache_ttl = settings.enhanced_call_search_cache_ttl
 
         # Initialize AI query parser
         if QUERY_PARSER_AVAILABLE:

@@ -12,6 +12,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from ...core.config import settings
+
 logger = logging.getLogger(__name__)
 
 __all__ = [
@@ -26,8 +28,6 @@ __all__ = [
     "detect_query_language",
     "translate_query_to_english",
     "preprocess_non_english_query",
-    "MAX_PROCESSED_QUERY_LENGTH",
-    "LONG_QUERY_THRESHOLD",
     "LongQueryResult",
     "preprocess_long_query",
 ]
@@ -837,12 +837,6 @@ class LongQueryResult:
     processing_note: str | None = None
 
 
-# Threshold for considering a query "long" (500+ characters per PRD)
-LONG_QUERY_THRESHOLD = 500
-# Maximum processed query length target
-MAX_PROCESSED_QUERY_LENGTH = 400
-
-
 def preprocess_long_query(query: str, llm: Any = None) -> LongQueryResult:
     """
     Preprocess very long queries (500+ characters) to extract key intent.
@@ -862,7 +856,7 @@ def preprocess_long_query(query: str, llm: Any = None) -> LongQueryResult:
     query_length = len(query)
 
     # If query is short enough, return as-is
-    if query_length <= LONG_QUERY_THRESHOLD:
+    if query_length <= settings.long_query_threshold:
         return LongQueryResult(
             original_query=query,
             processed_query=query,
@@ -1034,9 +1028,9 @@ Return ONLY the JSON object, no other text.
             result = json.loads(json_match.group(0))
             if "processed_query" in result:
                 # Ensure processed query isn't too long
-                if len(result["processed_query"]) > MAX_PROCESSED_QUERY_LENGTH:
+                if len(result["processed_query"]) > settings.max_processed_query_length:
                     result["processed_query"] = result["processed_query"][
-                        :MAX_PROCESSED_QUERY_LENGTH
+                        : settings.max_processed_query_length
                     ]
                 return result
     except Exception as e:
@@ -1120,7 +1114,7 @@ def _extract_intent_rule_based(query: str, key_details: list[str]) -> str:
     processed = " ".join(parts)
 
     # Ensure we don't exceed max length
-    if len(processed) > MAX_PROCESSED_QUERY_LENGTH:
-        processed = processed[: MAX_PROCESSED_QUERY_LENGTH - 3] + "..."
+    if len(processed) > settings.max_processed_query_length:
+        processed = processed[: settings.max_processed_query_length - 3] + "..."
 
     return processed

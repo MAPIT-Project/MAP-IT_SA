@@ -28,20 +28,9 @@ import httpx
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+from ..core.config import settings
+
 logger = logging.getLogger(__name__)
-
-# EU Portal API endpoints
-EU_PORTAL_BASE = "https://api.tech.ec.europa.eu/search-api/prod/rest/search"
-EU_PORTAL_TOPIC_DETAILS = (
-    "https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails"
-)
-
-# Rate limit and retry configuration
-MAX_RETRIES = 3
-BASE_DELAY = 1.0  # seconds
-MAX_DELAY = 30.0  # seconds
-EXPONENTIAL_BASE = 2.0
-CACHE_TTL = 3600  # 1 hour cache for successful API responses
 
 
 class RateLimitError(Exception):
@@ -110,7 +99,7 @@ class CallEnrichmentService:
         cache_key = topic_code.upper()
         if cache_key in cls._api_cache:
             data, cached_at = cls._api_cache[cache_key]
-            if datetime.now() - cached_at < timedelta(seconds=CACHE_TTL):
+            if datetime.now() - cached_at < timedelta(seconds=settings.call_enrichment_cache_ttl):
                 logger.info(f"📦 Using cached API response for {topic_code}")
                 return data
             else:
@@ -232,7 +221,7 @@ class CallEnrichmentService:
         Returns:
             API data or None if all retries failed
         """
-        for attempt in range(MAX_RETRIES + 1):
+        for attempt in range(settings.call_enrichment_max_retries + 1):
             try:
                 return self._fetch_from_api(topic_code)
 
@@ -240,9 +229,9 @@ class CallEnrichmentService:
                 self.set_rate_limited(e.retry_after)
 
                 # Don't retry on last attempt
-                if attempt == MAX_RETRIES:
+                if attempt == settings.call_enrichment_max_retries:
                     logger.error(
-                        f"❌ Rate limited after {MAX_RETRIES + 1} attempts for {topic_code}"
+                        f"❌ Rate limited after {settings.call_enrichment_max_retries + 1} attempts for {topic_code}"
                     )
                     # Return local data with rate limit flag
                     local_data = self._get_local_call(topic_code)
@@ -253,7 +242,11 @@ class CallEnrichmentService:
                     return None
 
                 # Calculate delay with jitter
-                delay = min(BASE_DELAY * (EXPONENTIAL_BASE**attempt), MAX_DELAY)
+                delay = min(
+                    settings.call_enrichment_base_delay
+                    * (settings.call_enrichment_exponential_base**attempt),
+                    settings.call_enrichment_max_delay,
+                )
                 delay = delay * (0.5 + random.random())  # Add jitter
 
                 # Use Retry-After if provided
@@ -261,7 +254,7 @@ class CallEnrichmentService:
                     delay = max(delay, e.retry_after)
 
                 logger.warning(
-                    f"⏳ Rate limited (attempt {attempt + 1}/{MAX_RETRIES + 1}), "
+                    f"⏳ Rate limited (attempt {attempt + 1}/{settings.call_enrichment_max_retries + 1}), "
                     f"retrying in {delay:.1f}s"
                 )
                 time.sleep(delay)
@@ -269,7 +262,7 @@ class CallEnrichmentService:
             except APIUnavailableError as e:
                 logger.warning(f"⚠️ API unavailable: {e}")
 
-                if attempt == MAX_RETRIES:
+                if attempt == settings.call_enrichment_max_retries:
                     # Return local data as fallback
                     local_data = self._get_local_call(topic_code)
                     if local_data:
@@ -281,7 +274,11 @@ class CallEnrichmentService:
                     return None
 
                 # Shorter delay for 5xx errors
-                delay = min(BASE_DELAY * (EXPONENTIAL_BASE**attempt), MAX_DELAY / 2)
+                delay = min(
+                    settings.call_enrichment_base_delay
+                    * (settings.call_enrichment_exponential_base**attempt),
+                    settings.call_enrichment_max_delay / 2,
+                )
                 delay = delay * (0.5 + random.random())
                 logger.warning(f"⏳ Retrying in {delay:.1f}s...")
                 time.sleep(delay)
@@ -402,7 +399,7 @@ class CallEnrichmentService:
             # The EU Portal has a direct JSON endpoint for topic details
             # Format: https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails/{topic_code}.json
             # IMPORTANT: The endpoint requires LOWERCASE topic codes
-            url = f"{EU_PORTAL_TOPIC_DETAILS}/{topic_code.lower()}.json"
+            url = f"{settings.eu_portal_topic_details_url}/{topic_code.lower()}.json"
             logger.info(f"📡 Fetching direct topic details from: {url}")
 
             response = self.client.get(url)
@@ -616,7 +613,7 @@ class CallEnrichmentService:
                 ),
             }
 
-            response = self.client.post(EU_PORTAL_BASE, data=form_data, files=files)
+            response = self.client.post(settings.eu_portal_base_url, data=form_data, files=files)
 
             # Check for rate limiting (429)
             if response.status_code == 429:
