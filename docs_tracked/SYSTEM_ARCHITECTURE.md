@@ -1,7 +1,7 @@
 # MAP-IT System Architecture
 
-> **Last Updated:** January 23, 2026
-> **Version:** 3.3 (V3/V4 + Erasmus+ + Creative Europe + Multi-Programme)
+> **Last Updated:** May 13, 2026
+> **Version:** 3.4 (V3/V4 + All 6 EU Programmes + 42 Tools)
 
 ---
 
@@ -175,7 +175,7 @@ I found **15 funding opportunities** for your query:
 │  Smart Behavior:                                                            │
 │  • Simple queries ("What is RIA?") → 1-2 iterations, fast                  │
 │  • Complex queries ("Compare EIC vs ERC") → Up to 5 iterations, thorough   │
-│  • 34 tools available: stats, docs, calls, projects, proposal, Erasmus+,   │
+│  • 42 tools available: stats, docs, calls, projects, proposal, all programmes   │
 │    Creative Europe, multi-programme, proposal quality, geographic analysis │
 │  • Speculative execution: pre-runs likely tools for faster responses       │
 │  • Plan caching: reuses query plans for repeated patterns                  │
@@ -230,7 +230,7 @@ The ToolAwareAgent uses the ReAct pattern (Reasoning + Acting):
 **Smart Behavior:**
 - Simple queries ("What is RIA?") → 1-2 iterations, fast
 - Complex queries ("Compare EIC vs ERC") → Up to 5 iterations, thorough
-- 34 tools available: stats, docs, calls, projects, proposal support, Erasmus+, Creative Europe, multi-programme
+- 42 tools available: stats, docs, calls, projects, proposal, all 6 EU programmes (Horizon Europe, Erasmus+, Creative Europe, EU4Health, Digital Europe, LIFE)
 
 ### Phase 3: Response Generation
 
@@ -372,7 +372,7 @@ For **complex queries** (comparisons, analysis, multi-source), the Tool-Aware Ag
 
 ## Available Tools
 
-The system has **34 tools** available for the multi-tool agent:
+The system has **42 tools** available for the multi-tool agent:
 
 ### Statistics Tools
 
@@ -380,6 +380,9 @@ The system has **34 tools** available for the multi-tool agent:
 |------|-------------|------------|
 | `get_programme_statistics` | Success rates, funding amounts for a programme | `programme`, `metric` (optional) |
 | `get_country_statistics` | Participation stats for a country | `country`, `programme` (optional) |
+| `get_organization_stats` | Aggregate statistics for an organization (total projects, coordinator count, total funding) | `organization_name` |
+| `analyze_geographic_diversification` | Analyze geographic diversity of consortium partners by custom country groups | `country_groups` (Nordic, CEE, Baltic, etc.) |
+| `show_cached_projects` | Display recently viewed projects from cache for quick reference | None |
 
 **Example:**
 ```python
@@ -429,7 +432,8 @@ search_funding_calls(keywords='hydrogen energy', status='open', year=2025)
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `search_projects` | Search CORDIS for funded projects (LOCAL-FIRST: PostgreSQL + Neo4j + Vector) | `keywords`, `programme`, `country` |
-| `get_project_details` | Get details for a project | `project_id` |
+| `get_project_details` | Get details for a project including full partner list | `project_id` |
+| `get_project_partners` | Get full list of partner organizations for a project | `project_id` |
 | `find_similar_projects` | Find projects similar to a given project (graph-based) | `project_id`, `similarity_type` (topic/consortium/cluster) |
 | `find_semantically_similar_projects` | Find projects semantically similar using AI embeddings | `project_id`, `limit` |
 | `find_organization_projects` | Find all projects an organization participated in | `organization_name`, `role` (optional) |
@@ -681,6 +685,86 @@ search_creative_europe_templates(query='cooperation project evaluation criteria'
 - Uses **lump sum** funding with co-financing requirements
 - Funding rates vary by action: 60-80% of eligible costs
 - Budget caps per action type (e.g., €200K for COOP-SMALL, €1M for COOP-MEDIUM, €2M for COOP-LARGE)
+
+### EU4Health Programme Tools
+
+These tools provide specialized support for EU4Health programme applications:
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `check_eu4health_eligibility` | Check organization eligibility for EU4Health actions | `org_type`, `country`, `action_type`, `strand` |
+| `search_eu4health_templates` | Search EU4Health documents (Annual Work Programmes, Regulation) | `query`, `strand`, `topic`, `top_k` |
+
+**Examples:**
+```python
+# Check eligibility for EU4Health action grant
+check_eu4health_eligibility(org_type='NGO', country='Germany', action_type='ACTION_GRANT')
+# Returns: { "eligible": true, "eligible_strands": ["PREVENTION", "HEALTH_SYSTEMS"], ... }
+
+# Search for pandemic preparedness topics
+search_eu4health_templates(query='pandemic preparedness crisis response')
+# Returns: [{ "content": "...", "source": "Annual Work Programme 2026", ... }]
+```
+
+**EU4Health Strands:**
+- **CRISIS**: Crisis preparedness and response
+- **PREVENTION**: Health promotion and disease prevention
+- **HEALTH_SYSTEMS**: Strengthening health systems
+- **DIGITAL**: Digital health services
+
+### Digital Europe Programme Tools
+
+These tools provide specialized support for Digital Europe programme applications:
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `check_digital_europe_eligibility` | Check organization eligibility for Digital Europe funding | `org_type`, `country`, `objective` |
+| `search_digital_europe_templates` | Search Digital Europe programme documents | `query`, `objective`, `topic`, `top_k` |
+
+**Examples:**
+```python
+# Check eligibility for AI funding objective
+check_digital_europe_eligibility(org_type='SME', country='France', objective='AI')
+# Returns: { "eligible": true, "eligible_actions": [...], "funding_rates": [...] }
+
+# Search for cybersecurity topics
+search_digital_europe_templates(query='cybersecurity skills training')
+# Returns: [{ "content": "...", "source": "Digital Europe Work Programme", ... }]
+```
+
+**Digital Europe Objectives:**
+- **HPC**: High-performance computing infrastructure
+- **AI**: Artificial intelligence development and deployment
+- **Cybersecurity**: Cybersecurity capacity and skills
+- **Skills**: Digital skills training
+- **Deployment**: EDIHs (European Digital Innovation Hubs)
+- **Semiconductors**: Semiconductor design and manufacturing
+
+### LIFE Programme Tools
+
+These tools provide specialized support for LIFE programme applications:
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `check_life_eligibility` | Check organization eligibility for LIFE funding | `org_type`, `country`, `sub_programme` |
+| `search_life_templates` | Search LIFE Programme documents for guidance | `query`, `sub_programme`, `topic`, `top_k` |
+
+**Examples:**
+```python
+# Check eligibility for nature projects
+check_life_eligibility(org_type='NGO', country='Spain', sub_programme='NAT')
+# Returns: { "eligible": true, "eligible_sub_programmes": ["NAT", "ENV"], ... }
+
+# Search for circular economy topics
+search_life_templates(query='circular economy waste management')
+# Returns: [{ "content": "...", "source": "LIFE Programme Guide", ... }]
+```
+
+**LIFE Sub-Programmes:**
+- **NAT**: Nature and biodiversity
+- **ENV**: Environment and resource efficiency
+- **CCA**: Climate change mitigation and adaptation
+- **CET**: Clean energy transition
 
 ### Multi-Programme Tools
 
@@ -1597,7 +1681,7 @@ All previous improvements have been implemented. See details below:
 
 ### Tool Count Update
 
-The system now has **34 tools** available (increased from 23):
+The system now has **42 tools** available (increased from 23):
 - **Added for Creative Europe**: `check_creative_europe_eligibility`, `calculate_creative_europe_budget`, `search_creative_europe_templates`
 - **Added for Multi-Programme**: `search_all_programmes`, `recommend_programmes`, `get_programme_info`
 - **Added for Proposal Quality**: `score_proposal_section`, `score_full_proposal`, `quick_quality_check`, `validate_budget`

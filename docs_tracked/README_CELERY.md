@@ -125,7 +125,7 @@ docker-compose -f docker-compose.celery.yml restart celery-worker celery-worker-
 # Scale regular workers to 6
 docker-compose -f docker-compose.celery.yml up -d --scale celery-worker=2
 
-# Scale streaming workers to 3  
+# Scale streaming workers to 3
 docker-compose -f docker-compose.celery.yml up -d --scale celery-worker-stream=2
 ```
 
@@ -140,7 +140,7 @@ command: celery -A celery_app worker --loglevel=info --concurrency=8 --queues=ra
 ### Database Connection Tuning:
 The system automatically optimizes database connections:
 - **Min Connections**: 5 per worker
-- **Max Connections**: 50 per worker  
+- **Max Connections**: 50 per worker
 - **Connection Pooling**: Enabled by default
 
 ### Redis Configuration:
@@ -169,7 +169,7 @@ celery-worker:
    ```bash
    # Check if Supabase is running
    supabase status
-   
+
    # Restart Supabase if needed
    supabase stop && supabase start
    ```
@@ -178,7 +178,7 @@ celery-worker:
    ```bash
    # Check worker logs
    docker-compose -f docker-compose.celery.yml logs celery-worker
-   
+
    # Restart workers
    docker-compose -f docker-compose.celery.yml restart celery-worker
    ```
@@ -187,7 +187,7 @@ celery-worker:
    ```bash
    # Check Redis status
    docker-compose -f docker-compose.celery.yml logs redis
-   
+
    # Test Redis connectivity
    docker-compose -f docker-compose.celery.yml exec redis redis-cli ping
    ```
@@ -239,7 +239,7 @@ POST /api/query
 {
   "question": "Your research question",
   "max_results": 5,
-  "ai_provider": "gemini|openai", 
+  "ai_provider": "gemini|openai",
   "ai_version": "V2|V3|V4|V5|V6|V7|V8"
 }
 ```
@@ -265,7 +265,7 @@ POST /api/query/stream
 ### Optional:
 - `DEFAULT_AI_PROVIDER`: Default provider (gemini|openai)
 - `OPENAI_MODEL`: OpenAI model name
-- `GEMINI_MODEL`: Gemini model name  
+- `GEMINI_MODEL`: Gemini model name
 - `USE_LOCAL_DB`: Enable local database mode (default: true)
 
-This setup leverages your existing Supabase infrastructure while adding powerful concurrent processing capabilities through Celery workers. 
+This setup leverages your existing Supabase infrastructure while adding powerful concurrent processing capabilities through Celery workers.

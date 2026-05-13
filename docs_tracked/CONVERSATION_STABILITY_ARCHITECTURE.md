@@ -111,7 +111,7 @@ class ConversationLockManager:
 ```python
 from app.core import get_conversation_lock
 
-async def process_message(conversation_id: int, message: str):
+async def process_message_with_lock(conversation_id: int, message: str):
     """Process a message with lock protection."""
     async with get_conversation_lock(conversation_id, timeout=60.0):
         # Only one request can be here at a time for this conversation
@@ -678,9 +678,11 @@ async def stream_message(conversation_id: int, request: MessageRequest):
     """Stream a message response with lock protection."""
     try:
         async with get_conversation_lock(conversation_id, timeout=60.0):
-            async for event in conversation_manager.process_message(
+            async for event in conversation_manager.process_message_v3(
                 conversation_id=conversation_id,
-                message=request.message
+                user_message=request.message,
+                user_id=request.user_id,
+                streaming=True
             ):
                 yield event
     except TimeoutError:

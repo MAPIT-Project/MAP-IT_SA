@@ -40,7 +40,7 @@ The V3 architecture uses a **single agentic loop** without intent classification
 ### Agentic Architecture (ReAct Pattern)
 The system uses a sophisticated **agentic architecture** that can:
 - **Self-correct** when initial search results are insufficient
-- **Use multiple tools** to gather information from different sources (41 tools available)
+- **Use multiple tools** to gather information from different sources (42 tools available)
 - **Reason iteratively** to answer complex comparison and analysis questions
 - **Synthesize answers** from graph databases, vector stores, and external APIs
 - **Speculatively execute** tools in parallel to reduce latency
@@ -64,7 +64,7 @@ The system uses a sophisticated **agentic architecture** that can:
 - `embedding/` - Incremental embedding updates for new projects
 - `feedback/` - User feedback collection and analysis
 - `rag/` - RAG-specific components (retrievers, chunkers, generators)
-- `tools/` - Tool orchestration for multi-step reasoning (41 tools available)
+- `tools/` - Tool orchestration for multi-step reasoning (42 tools available)
 - `call_extractors/` - Funding call document processing
 - `conversation/` - Conversation management and memory
 - `memory/` - Short/long-term memory systems
@@ -79,13 +79,14 @@ The system uses a sophisticated **agentic architecture** that can:
 - `document_routes.py` - Document management endpoints
 - `call_document_routes.py` - Call document access endpoints
 
-### Available Tools (41 Tools)
-The system has 41 tools available for the multi-tool agent:
+### Available Tools (42 Tools)
+The system has 42 tools available for the multi-tool agent:
 
 **Statistics Tools:**
 - `get_programme_statistics`: Success rates, funding amounts for a programme
 - `get_country_statistics`: Participation stats for a country
 - `analyze_geographic_diversification`: Analyze geographic diversity of consortium partners by custom country groups (Nordic, CEE, Baltic, etc.)
+- `show_cached_projects`: Display recently viewed projects from cache for quick reference
 
 **Comparison Tools:**
 - `compare_programmes`: Compare two programmes side-by-side
@@ -226,7 +227,7 @@ Available Celery tasks in `app/services/celery_app.py`:
 make test
 
 # Run specific test files
-pytest tests/test_integration_v2.py
+pytest tests/test_conversation_scenarios.py
 pytest tests/test_intent_detection_only.py
 pytest tests/test_data_source_verification.py
 pytest tests/test_conversation_routing.py
@@ -304,10 +305,10 @@ For `faq` queries, the LLM determines complexity type:
 - `multi_source`: Needs multiple info types (e.g., "Eligibility AND success rates")
 - `validation`: Verify/confirm (e.g., "Is EIC success rate really 8%?")
 
-**Phase 3: Execution Routing (v2.2)**
+**Phase 3: Execution Routing (V3)**
 - **ALL queries** → Tool-Aware Agent (ReAct) for best results
 - Simple queries finish in 1-2 iterations, complex ones use up to 5
-- Simple loop is only used as fallback if ToolAwareAgent is unavailable
+- ToolAwareAgent is a hard requirement - no fallback to older architectures
 
 **Phase 4: Response Generation**
 Results are synthesized into final response with:
