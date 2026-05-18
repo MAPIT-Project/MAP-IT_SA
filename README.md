@@ -70,6 +70,7 @@ To keep things organized, the documentation is divided into specialized guides:
 |-------|-------------|
 | **[Tool Reference](docs/guides/TOOL_REFERENCE.md)** | Detailed explanation of all 42+ agentic tools. |
 | **[Data Ingestion](docs/guides/DATA_INGESTION.md)** | How to get the data, run ingestion scripts, and setup the graph. |
+| **[Database Schema](docs/DATABASE_SCHEMA.md)** | Deep dive into the 50+ PostgreSQL tables and vector search logic. |
 | **[Roadmap & Status](docs/guides/ROADMAP.md)** | Current implementation status, system limits, and future plans. |
 | **[System Architecture](docs_tracked/SYSTEM_ARCHITECTURE.md)** | Deep dive into the V3/V4 architectures and service layer. |
 | **[API Specification](docs_tracked/FRONTEND_STREAMING_V3_SPEC.md)** | Details on SSE streaming and V3 endpoint formats. |

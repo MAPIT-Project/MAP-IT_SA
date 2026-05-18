@@ -239,16 +239,32 @@ The system has **42 tools** available. For a detailed breakdown of all tools, pl
 
 ---
 
-## Data Sources
+## Data Sources & Hybrid Search
 
-The MAP-IT SA platform relies on a robust multi-database setup:
+The MAP-IT SA platform relies on a robust **Three-Tier Storage Architecture** to deliver high-precision results:
 
-1. **Neo4j Graph Database**: Handles relationship traversal, pre-aggregated statistics, and geographic analysis.
-2. **Supabase (pgvector)**: Stores embeddings for official EU document chunks.
-3. **CORDIS Database (Local PostgreSQL)**: Contains metadata and 768-dim embeddings for 13,850+ Horizon Europe projects.
-4. **EU Portal API**: Provides live updates and enrichment for funding calls across all programmes.
+### 1. Supabase / PostgreSQL (Relational + Vector)
+Our primary data hub, containing over **50 tables** and **18 views**.
+- **CORDIS Data**: Locally hosted project metadata (~14,000 projects) and organization participation details (~90,000 records).
+- **Knowledge Base**: Official EU document chunks (~40,000) for RAG.
+- **Vector Search**: High-dimensional embeddings (768-dim and 3072-dim) using `pgvector`.
+- **Hybrid Search Logic**: We utilize custom RPC functions like `hybrid_search` which combine:
+  - **Vector Similarity**: Cosine distance scoring.
+  - **Keyword Search**: PostgreSQL `ts_vector` and `ts_query` with GIN indexing.
+  - **Reciprocal Rank Fusion (RRF)**: Merging results from multiple search strategies.
 
-*(For detailed data ingestion workflows, see `docs/guides/DATA_INGESTION.md`)*
+### 2. Neo4j Graph Database
+Handles relationship-aware queries that are computationally expensive in traditional SQL.
+- **Network Analysis**: Identifying experienced partners based on historical collaboration clusters.
+- **Pre-aggregated Statistics**: Fast retrieval of programme-level and country-level funding stats.
+- **Geographic Patterns**: Analyzing consortium diversification using graph traversal.
+
+### 3. EU Portal API (Live Sync)
+Ensures that time-sensitive data is always accurate.
+- **Call Enrichment**: Fetching the latest deadline updates and full call texts on-demand.
+- **Live Search**: Fallback for programmes not yet fully ingested into the local knowledge base.
+
+*(For an exhaustive breakdown of all 50+ tables, see the [Database Schema Guide](../docs/DATABASE_SCHEMA.md))*
 
 ---
 

@@ -720,9 +720,11 @@ combined_score = (
 ## Database Systems
 
 ### PostgreSQL (Supabase)
-- Primary relational database for project metadata
-- Vector search capabilities via `pgvector` extension
-- Configured via `DATABASE_URL` environment variable
+- Primary relational hub for project metadata, conversations, and analytics.
+- **Data Scale**: 50+ tables, 18 views, 90,000+ organization records.
+- **Hybrid Search**: Combines `pgvector` similarity with FTS (keyword) scoring.
+- **Key Tables**: `projects`, `organizations`, `document_chunks`, `funding_calls`.
+- **Custom Logic**: Uses RPC functions (`hybrid_search`, `search_documents`) for optimized search.
 
 ### Neo4j Graph Database
 - Relationship-aware queries for projects, organizations, topics
