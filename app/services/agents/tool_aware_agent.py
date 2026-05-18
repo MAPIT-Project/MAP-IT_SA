@@ -220,7 +220,7 @@ class ToolAwareAgent(
 
         prompt = (
             f"Write ONE sentence (max 30 words) introducing these results to the user. "
-            f"User asked: \"{query[:200]}\". Results: {', '.join(summary_parts)}. "
+            f'User asked: "{query[:200]}". Results: {", ".join(summary_parts)}. '
             f"Be direct and helpful. No markdown. No greeting."
         )
 
@@ -593,8 +593,7 @@ class ToolAwareAgent(
                     plan.final_answer = formatted
                 plan.confidence = 0.90
                 step.observation = (
-                    f"Executed {len(step.tool_calls)} tool(s) — "
-                    f"auto-formatted structured results"
+                    f"Executed {len(step.tool_calls)} tool(s) — auto-formatted structured results"
                 )
                 step.next_action_needed = False
                 plan.reasoning_steps.append(step)
@@ -1458,7 +1457,7 @@ class ToolAwareAgent(
 
         logger.info(
             f"📚 Knowledge sections selected: {selected} "
-            f"({len(combined)} chars, ~{len(combined)//4} tokens)"
+            f"({len(combined)} chars, ~{len(combined) // 4} tokens)"
         )
 
         return combined

@@ -1404,12 +1404,12 @@ No projects found for this organization in the database.
                 org_parts.append("|---|---|")
                 org_parts.append(f"| **Total Projects** | {proj_count:,} |")
                 org_parts.append(
-                    f"| **As Coordinator** | {coord_count:,} ({coord_count/max(proj_count,1)*100:.0f}%) |"
+                    f"| **As Coordinator** | {coord_count:,} ({coord_count / max(proj_count, 1) * 100:.0f}%) |"
                 )
                 org_parts.append(
-                    f"| **As Participant** | {participant_count:,} ({participant_count/max(proj_count,1)*100:.0f}%) |"
+                    f"| **As Participant** | {participant_count:,} ({participant_count / max(proj_count, 1) * 100:.0f}%) |"
                 )
-                org_parts.append(f"| **Total EC Funding** | €{total_funding/1_000_000:,.1f}M |")
+                org_parts.append(f"| **Total EC Funding** | €{total_funding / 1_000_000:,.1f}M |")
                 org_parts.append(f"| **Country** | {country} |")
                 if entity_type:
                     org_parts.append(f"| **Organization Type** | {entity_type} |")
