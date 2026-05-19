@@ -116,15 +116,47 @@ services:
     networks:
       - mapit_network
 
+# =========================================================================
+# Standalone Local Database (Optional fallback for dev without Supabase CLI)
+# =========================================================================
+# To run standalone PostgreSQL without running the Supabase CLI, uncomment
+# the service block below, and use it instead of supabase_db_supabase_cli.
+#
+#   postgres:
+#     image: pgvector/pgvector:pg16
+#     container_name: mapit-postgres
+#     ports:
+#       - "5432:5432"
+#     environment:
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres_secure_password
+#       POSTGRES_DB: postgres
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U postgres"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#     networks:
+#       - mapit_network
+
 volumes:
   redis_data:
   neo4j_data:
   neo4j_logs:
   neo4j_plugins:
+  # Uncomment if using standalone database:
+  # postgres_data:
 
 networks:
   mapit_network:
     driver: bridge
+
+  # External Supabase CLI network.
+  # Note: If docker-compose up fails with network not found, run:
+  # docker network create supabase_network_supabase_cli
+  # Or change "external: true" to "external: false" for a standalone bridge network.
   supabase_network:
     external: true
     name: supabase_network_supabase_cli

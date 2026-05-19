@@ -16,18 +16,26 @@ The system relies on four primary data stores:
 
 The system is pre-configured to handle 13,850+ projects.
 
-### Step A: PostgreSQL Ingestion
-Run the script to import project metadata from local JSON/CSV files into the `projects` and `organizations` tables.
+### Step A: PostgreSQL Restoration
+The structured project metadata (the `projects` and `organizations` tables) is restored directly from the pre-packaged PostgreSQL dump, as no public ingestion script is provided for importing raw CSV/JSON CORDIS datasets to SQL:
 ```bash
-python scripts/ingest_cordis_to_neo4j.py  # Also handles Neo4j relationship creation
+export DATABASE_URL="postgresql://postgres:postgres@localhost:54322/postgres"
+pg_restore --clean --no-acl --no-owner -d "$DATABASE_URL" neo4j_backup/project_embeddings.dump
 ```
 
-### Step B: Embedding Generation
-Generate 3072-dim embeddings for all project descriptions using Google's embedding model.
+### Step B: Neo4j Ingestion
+Once the PostgreSQL database is restored, you can run the Neo4j ingestion script to populate project nodes, organisation nodes, and their relationships inside the graph database:
+```bash
+python scripts/ingest_cordis_to_neo4j.py
+```
+
+### Step C: Embedding Generation
+Generate 3072-dim embeddings for all project descriptions using Google's embedding model:
 ```bash
 python scripts/generate_project_embeddings.py
 ```
 *Note: This requires a valid `GOOGLE_EMBEDDING_API_KEY`.*
+
 
 ---
 
