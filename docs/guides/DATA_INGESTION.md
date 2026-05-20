@@ -57,19 +57,21 @@ Specific scripts exist for different funding streams:
 - **Digital Europe**: `python scripts/ingest_digital_europe_documents.py`
 - **LIFE**: `python scripts/ingest_life_documents.py`
 
----
-
 ## 3. Funding Calls (Live Data)
 
-While most data is local, funding calls are synced from the EU Portal API to ensure deadlines are accurate.
+While historical call data is pre-populated in the database dump, active/recent funding calls are synchronized or enriched from the EU Portal API.
 
-### Syncing Calls
+### Batch Syncing (Horizon Europe)
+To extract unique topic codes from existing funded projects in the database and pull their full metadata (deadlines, budgets, scope) from the EU Portal API, run:
 ```bash
-python scripts/sync_topics_from_projects.py  # Syncs Horizon Europe topics
-# Specific sync scripts for other programmes:
-python scripts/sync_erasmus_calls_from_api.py
-python scripts/sync_creative_europe_calls.py
+python scripts/sync_topics_from_projects.py
 ```
+
+### Dynamic Enrichment (All Programmes)
+Specific batch-syncing scripts for other programmes (Erasmus+, Creative Europe, LIFE, etc.) have been deprecated in favor of **On-the-Fly Dynamic Enrichment**:
+- The backend's `CallEnrichmentService` intercepts search results and call queries.
+- If a queried call is missing details (e.g., deadline, budget, full scope) or is not present in the local database, it fetches the details dynamically from the EU Portal API.
+- The results are cached in memory and persisted back into the PostgreSQL `funding_calls` table to ensure subsequent queries are fast.
 
 ---
 

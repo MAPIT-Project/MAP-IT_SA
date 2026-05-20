@@ -244,7 +244,7 @@ The system has **42 tools** available. For a detailed breakdown of all tools, pl
 The MAP-IT SA platform relies on a robust **Three-Tier Storage Architecture** to deliver high-precision results:
 
 ### 1. Supabase / PostgreSQL (Relational + Vector)
-Our primary data hub, containing over **50 tables** and **18 views**.
+Our primary data hub, containing **35 active tables** and **15 views**.
 - **CORDIS Data**: Locally hosted project metadata (~14,000 projects) and organization participation details (~90,000 records).
 - **Knowledge Base**: Official EU document chunks (~40,000) for RAG.
 - **Vector Search**: High-dimensional embeddings (768-dim and 3072-dim) using `pgvector`.
@@ -264,7 +264,7 @@ Ensures that time-sensitive data is always accurate.
 - **Call Enrichment**: Fetching the latest deadline updates and full call texts on-demand.
 - **Live Search**: Fallback for programmes not yet fully ingested into the local knowledge base.
 
-*(For an exhaustive breakdown of all 50+ tables, see the [Database Schema Guide](../docs/DATABASE_SCHEMA.md))*
+*(For an exhaustive breakdown of all 35 tables, see the [Database Schema Guide](../docs/DATABASE_SCHEMA.md))*
 
 ---
 

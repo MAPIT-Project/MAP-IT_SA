@@ -763,13 +763,11 @@ New database tables added for analytics and feedback (in `migration/` directory)
 
 **Erasmus+ Data Scripts:**
 - `scripts/ingest_erasmus_documents.py` - Ingest Erasmus+ Programme Guide and Work Programmes
-- `scripts/sync_erasmus_calls_from_api.py` - Sync Erasmus+ funding calls from EU Portal API
 - `scripts/ingest_erasmus_templates.py` - Ingest Erasmus+ application templates (categorizes by Key Action, Sector, Document Type)
 - `scripts/ingest_erasmus_to_neo4j.py` - Populate Neo4j with Erasmus+ reference data (ErasmusAction, ErasmusSector, PartnerRegion nodes)
 
 **Creative Europe Data Scripts:**
 - `scripts/ingest_creative_europe_documents.py` - Ingest Creative Europe Work Programmes, CulturEU Guide, strand overviews
-- `scripts/sync_creative_europe_calls.py` - Sync Creative Europe funding calls from EU Portal API (CREA-CULT, CREA-MEDIA, CREA-CROSS topics)
 - `scripts/ingest_creative_europe_to_neo4j.py` - Populate Neo4j with Creative Europe reference data (CreativeEuropeAction, CreativeEuropeStrand, CreativeEuropeRegion nodes)
 
 ## Special Considerations
