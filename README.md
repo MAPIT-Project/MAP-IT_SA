@@ -2,6 +2,12 @@
 
 A production-grade Retrieval-Augmented Generation (RAG) system for querying European Union funding programmes. MAP-IT implements sophisticated multi-source intelligent search, agentic AI capabilities, and comprehensive tooling for **6 EU funding programmes**.
 
+> [!WARNING]
+> **Project Disclaimer & Review Notice:**
+> - **Horizon Europe Focus**: This system was primarily designed and optimized for **Horizon Europe**. The other 5 programmes (Erasmus+, Creative Europe, EU4Health, Digital Europe, and LIFE) are supported but are not as advanced or as thoroughly tested.
+> - **AI-Assisted Single-Dev Build**: This large codebase was built by a **single developer** leveraging AI extensively to execute the work of a full development team.
+> - **Manual Review Required**: Due to the massive scale of this project, a complete manual review of all code has not been feasible. There may be duplicate logic, redundant code, or potential security vulnerabilities. **Please perform a thorough security audit and code review before deploying this system to production or making it public.**
+
 ---
 
 ## 🚀 Overview
@@ -68,9 +74,10 @@ To keep things organized, the documentation is divided into specialized guides:
 
 | Guide | Description |
 |-------|-------------|
+| **[CLAUDE.md](CLAUDE.md)** | **Recommended Start Point**: Deep dive into developer rules, system architecture overview, command references, and agentic tool designs. |
 | **[Tool Reference](docs/guides/TOOL_REFERENCE.md)** | Detailed explanation of all 42+ agentic tools. |
 | **[Data Ingestion](docs/guides/DATA_INGESTION.md)** | How to get the data, run ingestion scripts, and setup the graph. |
-| **[Database Schema](docs/DATABASE_SCHEMA.md)** | Deep dive into the 50+ PostgreSQL tables and vector search logic. |
+| **[Database Schema](docs/DATABASE_SCHEMA.md)** | Deep dive into the 35 active PostgreSQL tables and vector search logic. |
 | **[Roadmap & Status](docs/guides/ROADMAP.md)** | Current implementation status, system limits, and future plans. |
 | **[System Architecture](docs_tracked/SYSTEM_ARCHITECTURE.md)** | Deep dive into the V3/V4 architectures and service layer. |
 | **[API Specification](docs_tracked/FRONTEND_STREAMING_V3_SPEC.md)** | Details on SSE streaming and V3 endpoint formats. |
@@ -102,9 +109,10 @@ make format  # Auto-format with black, isort, and ruff
 ## 🛑 Limits to Keep in Mind
 - **Vector Search**: Uses exact search for high-dimensional vectors (3072-dim).
 - **Data Snapshots**: CORDIS data is local; live call data is synced via API.
-- **Experimental**: Real-time collaboration features are still in the roadmap phase.
+- **Programme Maturity**: Only **Horizon Europe** is fully mature and comprehensively tested. Other programmes (Erasmus+, Creative Europe, EU4Health, Digital Europe, LIFE) are integrated but have simpler implementations and less coverage.
+- **AI Code & Security**: Built by a single developer leveraging AI to handle multiple engineering domains. Unreviewed/duplicate code may exist, and security audits have not been manually conducted. Thorough review is required before going public.
 
 ---
 
 ## ❤️ Credits & Support
-Developed for the MAP-IT platform. For technical inquiries, refer to the [System Architecture](docs_tracked/SYSTEM_ARCHITECTURE.md).
+Developed and maintained by **Anmar Ram** ([anmar.noah@gmail.com](mailto:anmar.noah@gmail.com)) for the MAP-IT platform. For technical inquiries, refer to the [System Architecture](docs_tracked/SYSTEM_ARCHITECTURE.md).

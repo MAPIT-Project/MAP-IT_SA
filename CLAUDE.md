@@ -8,11 +8,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **production-grade Retrieval-Augmented Generation (RAG) system** for querying European research and education funding programmes. The system implements sophisticated multi-source intelligent search, agentic AI capabilities, and comprehensive tooling for:
+This is a **production-grade Retrieval-Augmented Generation (RAG) system** for querying European research, education, health, digital, and environment funding programmes. The system implements sophisticated multi-source intelligent search, agentic AI capabilities, and comprehensive tooling for **6 EU programmes**:
 
 - **Horizon Europe**: Research and innovation funding (CORDIS projects, calls, statistics)
 - **Erasmus+**: Education, training, youth and sport funding (Programme Guide 2026, AWP 2026, calls)
 - **Creative Europe**: Culture, media, and cross-sectoral funding (Work Programmes 2021-2026, CulturEU Guide, calls)
+- **EU4Health**: Health policy, crisis preparedness, disease prevention (Work Programmes, calls)
+- **Digital Europe**: Digital transformation, HPC, AI, Cybersecurity, Deployment (Work Programmes, calls)
+- **LIFE**: Environment and climate action, circular economy, nature, clean energy (guidelines, SAP/SIP, calls)
 
 ## Key Architecture Components
 
@@ -410,6 +413,34 @@ When results are insufficient, the system identifies causes:
   - `CreativeEuropeAction` nodes (24): All action types with full metadata
   - `CreativeEuropeRegion` nodes (3): Country eligibility by strand
   - Relationships: BELONGS_TO_STRAND, ALLOWS_COORDINATOR_FROM, ALLOWS_PARTNER_FROM, MEMBER_OF
+
+### 7. EU4Health Data Sources
+- **Purpose**: EU4Health programme guidance and funding calls
+- **Contains**:
+  - Annual Work Programmes (AWP)
+  - EU4Health Regulation documents
+  - Funding calls synced from EU Portal API
+- **Coverage**: NGO eligibility, public body eligibility, joint actions, and co-financing rules
+- **Queries via**: `VectorSearchService` with `programme="eu4health"` filter
+
+### 8. Digital Europe Data Sources
+- **Purpose**: Digital Europe programme guidance and funding calls
+- **Contains**:
+  - Main Work Programmes and Cybersecurity/Digital Trust guidelines
+  - SME participation criteria and third-country rules
+  - Funding calls synced from EU Portal API
+- **Coverage**: High-Performance Computing (HPC), AI, Cybersecurity, Advanced Digital Skills, and Deployment
+- **Queries via**: `VectorSearchService` with `programme="digital_europe"` filter
+
+### 9. LIFE Data Sources
+- **Purpose**: LIFE programme guidance and funding calls
+- **Contains**:
+  - LIFE Programme guidelines for applicants
+  - Strategic and standard project guidelines (SAP/SIP)
+  - Funding calls synced from EU Portal API
+- **Coverage**: 4 sub-programmes: Nature & Biodiversity (NAT), Circular Economy & Quality of Life (ENV), Climate Change Mitigation & Adaptation (CCA), Clean Energy Transition (CET)
+- **Queries via**: `VectorSearchService` with `programme="life"` filter
+
 
 ## Hybrid Graph+SQL Architecture
 
