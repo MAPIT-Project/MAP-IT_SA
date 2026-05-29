@@ -395,7 +395,7 @@ class AtomicMessageStorage:
                     "Memory service is using FallbackRedis - conversation context may not persist!"
                 )
 
-        from ..memory.short_term_memory import ConversationTurn
+        from ..services.memory.short_term_memory import ConversationTurn
 
         turn = ConversationTurn(
             message_id=message_id, role=role, content=content, timestamp=datetime.now()
