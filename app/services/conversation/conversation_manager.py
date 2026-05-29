@@ -31,6 +31,14 @@ class ConversationManager:
 
     def __init__(self):
         """Initialize all subsystems"""
+        # Set default values for all attributes to prevent AttributeError if initialization fails
+        self.memory_service = None
+        self.db_pool = None
+        self.atomic_storage = None
+        self.tool_aware_agent = None
+        self._tool_aware_agent_available = False
+        self.config = {}
+
         try:
             # Memory management
             self.memory_service = MemoryService()
@@ -61,7 +69,7 @@ class ConversationManager:
             logger.info("✅ ConversationManager initialized (Simplified Architecture V3)")
 
         except Exception as e:
-            logger.warning(f"⚠️ ConversationManager initialization error: {e}")
+            logger.error(f"❌ ConversationManager initialization error: {e}", exc_info=True)
 
     def _load_configuration(self) -> dict[str, Any]:
         """Load system configuration."""
