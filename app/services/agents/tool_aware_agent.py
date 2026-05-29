@@ -192,7 +192,9 @@ class ToolAwareAgent(
             logger.warning(f"Quality analysis failed: {e}")
             return None
 
-    def _generate_contextual_intro(self, query: str, tool_results: dict[str, Any]) -> str | None:
+    async def _generate_contextual_intro(
+        self, query: str, tool_results: dict[str, Any]
+    ) -> str | None:
         """Generate a brief contextual introduction for auto-promoted results.
 
         Uses a lightweight LLM call (fast model, ~100 tokens) to write a 1-2 sentence
@@ -209,11 +211,28 @@ class ToolAwareAgent(
                 if "similar_projects" in result:
                     count = len(result.get("similar_projects", []))
                     summary_parts.append(f"{count} similar projects found")
+                elif "projects" in result and isinstance(result["projects"], list):
+                    count = len(result["projects"])
+                    summary_parts.append(f"{count} matching projects found")
+                elif "calls" in result and isinstance(result["calls"], list):
+                    count = len(result["calls"])
+                    summary_parts.append(f"{count} funding opportunities found")
+                elif "documents" in result and isinstance(result["documents"], list):
+                    count = len(result["documents"])
+                    summary_parts.append(f"{count} document excerpts found")
                 elif "work_packages" in result:
                     wp_count = len(result.get("work_packages", []))
                     summary_parts.append(f"timeline with {wp_count} work packages generated")
+                elif "calculated_budget" in result:
+                    summary_parts.append("budget calculation completed")
                 elif "rendered_content" in result:
                     summary_parts.append("paginated results ready")
+
+        if not summary_parts and tool_results:
+            # Fallback to general tool name description
+            first_key = list(tool_results.keys())[0]
+            tool_name = first_key.split("_")[0] if "_" in first_key else first_key
+            summary_parts.append(f"results from the {tool_name} search")
 
         if not summary_parts:
             return None
@@ -227,21 +246,15 @@ class ToolAwareAgent(
         try:
             import asyncio
 
-            response = asyncio.get_event_loop().run_in_executor(
-                None, self.llm_flash.generate_content, prompt
+            response = await asyncio.wait_for(
+                asyncio.to_thread(self.llm_flash.generate_content, prompt), timeout=3.0
             )
-            # Since we're likely in async context, try to get result quickly
-            # If it takes too long, skip the intro
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # Can't await in sync context — skip intro
-                return None
-            text = loop.run_until_complete(asyncio.wait_for(response, timeout=3))
-            intro = text.text.strip() if hasattr(text, "text") else str(text).strip()
-            if intro and 10 < len(intro) < 200:
-                return intro
+            text = response.text.strip() if hasattr(response, "text") else str(response).strip()
+            if text and 10 < len(text) < 200:
+                return text
             return None
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Error generating contextual intro: {e}")
             return None
 
     @staticmethod
@@ -564,7 +577,7 @@ class ToolAwareAgent(
 
         return False
 
-    def _handle_call_tools_action(
+    async def _handle_call_tools_action(
         self,
         step: ReasoningStep,
         reasoning_result: dict,
@@ -586,7 +599,7 @@ class ToolAwareAgent(
             formatted = self._synthesize_from_results(query, tool_results_this_step)
             if formatted and len(formatted) > 200:
                 # Add contextual intro via lightweight LLM call
-                intro = self._generate_contextual_intro(query, tool_results_this_step)
+                intro = await self._generate_contextual_intro(query, tool_results_this_step)
                 if intro:
                     plan.final_answer = intro + "\n\n" + formatted
                 else:
@@ -781,7 +794,7 @@ class ToolAwareAgent(
             step.tool_calls = await self._execute_tool_calls(tool_calls)
             tool_results_this_step = {}
 
-            should_break = self._handle_call_tools_action(
+            should_break = await self._handle_call_tools_action(
                 step,
                 reasoning_result,
                 all_tool_results,

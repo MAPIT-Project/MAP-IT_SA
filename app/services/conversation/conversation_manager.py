@@ -4,6 +4,7 @@ Simplified V3 Architecture - Focused on Agentic AI with ToolAwareAgent.
 """
 
 import asyncio
+import json
 import logging
 import os
 import random
@@ -164,11 +165,37 @@ class ConversationManager:
 
             # 6. Store BOTH messages atomically
             if answer:
+                assistant_metadata = {}
+                if agent_result:
+                    assistant_metadata = {
+                        "ai_provider": "gemini",
+                        "ai_version": "V3",
+                        "model_used": agent_result.get("model_used", "unknown"),
+                        "data_source": "multi_programme",
+                        "processing_time": (datetime.now() - start_time).total_seconds(),
+                        "projects_found": len(
+                            agent_result.get("tool_results", {}).get("projects", [])
+                        )
+                        if "projects" in agent_result.get("tool_results", {})
+                        else 0,
+                        "logs_question": user_message,
+                        "logs_model_used": agent_result.get("model_used", "unknown"),
+                        "logs_phases": json.dumps(
+                            {"reasoning_steps": agent_result.get("reasoning_steps", [])}
+                        ),
+                        "logs_total_processing_time_ms": int(
+                            (datetime.now() - start_time).total_seconds() * 1000
+                        ),
+                        "logs_success": agent_result.get("success", True),
+                        "logs_average_relevance_score": str(agent_result.get("confidence", 0.8)),
+                    }
                 storage_result: StorageResult = await self.atomic_storage.store_message_pair(
                     conversation_id=conversation_id,
                     user_id=user_id,
                     user_message=user_message,
                     assistant_message=answer,
+                    citations=None,
+                    assistant_metadata=assistant_metadata,
                 )
 
                 if not storage_result.success:
@@ -239,6 +266,9 @@ class ConversationManager:
                 formatter = get_formatter()
                 formatted_answer = formatter.format_from_tool_results(tool_results, user_message)
                 if formatted_answer:
+                    # If the agent provided a substantial natural language answer, merge them
+                    if agent_answer and len(agent_answer.strip()) > 30:
+                        return f"{agent_answer.strip()}\n\n---\n\n{formatted_answer}"
                     return formatted_answer
             except Exception as e:
                 logger.warning(f"V3 formatter failed: {e}")
@@ -319,11 +349,35 @@ class ConversationManager:
                 )
 
             # 5. Atomic storage
+            assistant_metadata = {}
+            if agent_result:
+                assistant_metadata = {
+                    "ai_provider": "gemini",
+                    "ai_version": "V3",
+                    "model_used": agent_result.get("model_used", "unknown"),
+                    "data_source": "multi_programme",
+                    "processing_time": (datetime.now() - start_time).total_seconds(),
+                    "projects_found": len(agent_result.get("tool_results", {}).get("projects", []))
+                    if "projects" in agent_result.get("tool_results", {})
+                    else 0,
+                    "logs_question": user_message,
+                    "logs_model_used": agent_result.get("model_used", "unknown"),
+                    "logs_phases": json.dumps(
+                        {"reasoning_steps": agent_result.get("reasoning_steps", [])}
+                    ),
+                    "logs_total_processing_time_ms": int(
+                        (datetime.now() - start_time).total_seconds() * 1000
+                    ),
+                    "logs_success": agent_result.get("success", True),
+                    "logs_average_relevance_score": str(agent_result.get("confidence", 0.8)),
+                }
             storage_result = await self.atomic_storage.store_message_pair(
                 conversation_id=conversation_id,
                 user_id=user_id,
                 user_message=user_message,
                 assistant_message=answer,
+                citations=None,
+                assistant_metadata=assistant_metadata,
             )
 
             if not storage_result.success:
@@ -348,9 +402,43 @@ class ConversationManager:
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
             yield {
                 "type": "complete",
+                "ai_provider": "gemini",
+                "ai_version": "V3",
+                "model_used": agent_result.get("model_used", "unknown")
+                if agent_result
+                else "unknown",
+                "data_source": "multi_programme",
+                "processing_time": processing_time / 1000.0,
+                "projects_found": len(agent_result.get("tool_results", {}).get("projects", []))
+                if agent_result and "projects" in agent_result.get("tool_results", {})
+                else 0,
+                "logs": {
+                    "question": user_message,
+                    "model_used": agent_result.get("model_used", "unknown")
+                    if agent_result
+                    else "unknown",
+                    "phases": {"reasoning_steps": agent_result.get("reasoning_steps", [])}
+                    if agent_result
+                    else {"reasoning_steps": []},
+                    "total_processing_time_ms": int(processing_time),
+                    "projects_retrieved": len(
+                        agent_result.get("tool_results", {}).get("projects", [])
+                    )
+                    if agent_result and "projects" in agent_result.get("tool_results", {})
+                    else 0,
+                    "projects_processed": len(
+                        agent_result.get("tool_results", {}).get("projects", [])
+                    )
+                    if agent_result and "projects" in agent_result.get("tool_results", {})
+                    else 0,
+                    "success": agent_result.get("success", True) if agent_result else True,
+                    "average_relevance_score": agent_result.get("confidence", 0.8)
+                    if agent_result
+                    else 0.8,
+                },
                 "metadata": {
                     "architecture": "simplified_v3",
-                    "confidence": agent_result.get("confidence, 0.8") if agent_result else 0.5,
+                    "confidence": agent_result.get("confidence", 0.8) if agent_result else 0.5,
                     "tools_used": agent_result.get("sources_used", []) if agent_result else [],
                     "processing_time_ms": processing_time,
                 },

@@ -120,7 +120,7 @@ class TestFundingCallsFormatting:
         formatter = V3ResponseFormatter()
         result = formatter.format_funding_calls([])
 
-        assert "No funding calls found" in result
+        assert "No Matching Funding Calls Found" in result
 
     def test_format_single_call(self):
         """Test formatting single call."""
@@ -190,6 +190,17 @@ class TestFundingCallsFormatting:
 
         # Should NOT display the numeric ID as a type
         assert "101079329" not in result or "Type" not in result.split("101079329")[0][-20:]
+
+    def test_format_funding_calls_pagination(self):
+        """Test formatting more than 10 funding calls shows pagination."""
+        formatter = V3ResponseFormatter()
+        calls = [{"title": f"Call {i}", "call_id": f"ID{i}", "status": "open"} for i in range(12)]
+        result = formatter.format_funding_calls(calls)
+        assert "**12 funding opportunities**" in result
+        assert "Call 1" in result
+        assert "Call 5" in result
+        assert "Additional Funding Opportunities" in result
+        assert "Showing 1-10 of 12" in result
 
 
 class TestDeadlineFormatting:
@@ -314,7 +325,7 @@ class TestProjectFormatting:
         formatter = V3ResponseFormatter()
         result = formatter.format_projects([])
 
-        assert "No projects found" in result
+        assert "No Matching Projects Found" in result
 
     def test_format_single_project(self):
         """Test formatting single project."""
@@ -379,6 +390,20 @@ class TestProjectFormatting:
         # Should include deliverables section
         assert "deliverable" in result.lower() or "D1.1" in result or "Report" in result
 
+    def test_format_projects_pagination(self):
+        """Test formatting more than 10 projects shows pagination."""
+        formatter = V3ResponseFormatter()
+        projects = [
+            {"title": f"Project {i}", "acronym": f"ACR{i}", "id": f"ID{i}", "status": "open"}
+            for i in range(12)
+        ]
+        result = formatter.format_projects(projects)
+        assert "**12 funded projects**" in result
+        assert "Project 1" in result or "ACR1" in result
+        assert "Project 5" in result or "ACR5" in result
+        assert "Additional Matching Projects" in result
+        assert "Showing 1-10 of 12" in result
+
 
 class TestToolResultsFormatting:
     """Tests for format_from_tool_results."""
@@ -423,6 +448,28 @@ class TestToolResultsFormatting:
         result = formatter.format_from_tool_results(tool_results, "Query")
 
         assert result is None or result == ""
+
+    def test_format_multiple_tools_result(self):
+        """Test formatting both calls and projects tool results concurrently."""
+        formatter = V3ResponseFormatter()
+
+        tool_results = {
+            "search_funding_calls": {
+                "success": True,
+                "calls": [{"title": "Test Call", "call_id": "ID1", "status": "open"}],
+            },
+            "search_projects": {
+                "success": True,
+                "projects": [{"title": "Test Project", "acronym": "TEST"}],
+            },
+        }
+
+        result = formatter.format_from_tool_results(tool_results, "Find AI calls and projects")
+
+        assert result is not None
+        assert "Test Call" in result
+        assert "Test Project" in result or "TEST" in result
+        assert "---" in result
 
 
 class TestSingletonPattern:

@@ -55,18 +55,59 @@ class V3ResponseFormatter:
     STATUS_ICONS = {"open": "🟢", "upcoming": "🟡", "closed": "🔴", "default": "📊"}
 
     def format_funding_calls(self, calls: list[dict], query: str = "") -> str:
-        """Format a list of funding calls into a rich response."""
+        """Format a list of funding calls into a rich response, with pagination for large lists."""
         if not calls:
             return self.format_no_matching_calls(query)
 
-        lines = [f"I found **{len(calls)} funding opportunities** for your query:\n"]
+        total_calls = len(calls)
 
-        for i, call in enumerate(calls, 1):
-            lines.append(self._format_single_call(i, call))
+        # Determine how many detailed calls to show (up to 5)
+        detailed_count = min(total_calls, 5)
+        lines = [f"I found **{total_calls} funding opportunities** for your query:\n"]
+
+        for i in range(detailed_count):
+            lines.append(self._format_single_call(i + 1, calls[i]))
             lines.append("")  # Empty line between calls
 
-        # Add helpful footer
+        # If there are more calls, show a compact summary table for calls 6-10
+        if total_calls > 5:
+            table_count = min(total_calls, 10)
+            lines.append("### 📋 Additional Funding Opportunities\n")
+            lines.append("| # | Call ID | Title | Deadline | Budget |")
+            lines.append("|---|---------|-------|----------|--------|")
+            for i in range(5, table_count):
+                call = calls[i]
+                call_id = (
+                    call.get("call_id")
+                    or call.get("topic_code")
+                    or call.get("topic_id")
+                    or call.get("identifier", "—")
+                )
+                title = call.get("title") or "Untitled Call"
+                if len(title) > 50:
+                    title = title[:47] + "..."
+                deadline = call.get("deadline") or call.get("application_deadline") or ""
+                deadline_str = self._format_deadline(deadline) if deadline else "—"
+                budget = call.get("budget") or call.get("estimated_budget") or ""
+                budget_str = self._format_budget(budget) if budget else "—"
+                lines.append(f"| {i + 1} | `{call_id}` | {title} | {deadline_str} | {budget_str} |")
+            lines.append("")
+
+        # Add helpful footer with next steps and pagination info
         lines.append("---\n")
+
+        # Add pagination footer
+        if total_calls > 10:
+            lines.append(f"*Showing 1-10 of {total_calls} funding opportunities.*")
+            lines.append(
+                "💡 *To see more funding opportunities, you can narrow down your search (e.g. by adding a status, year, or cluster) or ask me to **'show more calls'**.*\n"
+            )
+        elif total_calls > 5:
+            lines.append(f"*Showing all {total_calls} funding opportunities.*")
+            lines.append(
+                "💡 *You can ask me for more details on any of these opportunities or search for other topics.*\n"
+            )
+
         lines.append(self._get_application_guidance())
 
         return "\n".join(lines)
@@ -376,18 +417,60 @@ class V3ResponseFormatter:
 • Start building your consortium if partnerships are required"""
 
     def format_projects(self, projects: list[dict], query: str = "") -> str:
-        """Format a list of CORDIS projects."""
+        """Format a list of CORDIS projects, with pagination for large lists."""
         if not projects:
             return self.format_no_matching_projects(query)
 
-        lines = [f"I found **{len(projects)} funded projects** related to your query:\n"]
+        total_projects = len(projects)
 
-        for i, project in enumerate(projects, 1):
-            lines.append(self._format_single_project(i, project))
+        # Determine how many detailed projects to show (up to 5)
+        detailed_count = min(total_projects, 5)
+        lines = [f"I found **{total_projects} funded projects** related to your query:\n"]
+
+        for i in range(detailed_count):
+            lines.append(self._format_single_project(i + 1, projects[i]))
             lines.append("")
 
-        # Add helpful footer with next steps
+        # If there are more projects, show a compact summary table for projects 6-10
+        if total_projects > 5:
+            table_count = min(total_projects, 10)
+            lines.append("### 📋 Additional Matching Projects\n")
+            lines.append("| # | Acronym | Title | EU Contribution | Coordinator |")
+            lines.append("|---|---------|-------|-----------------|-------------|")
+            for i in range(5, table_count):
+                proj = projects[i]
+                acronym = proj.get("acronym") or proj.get("title", "N/A")[:15]
+                title = proj.get("title") or "Untitled Project"
+                if len(title) > 50:
+                    title = title[:47] + "..."
+                eu_contrib = (
+                    proj.get("ecMaxContribution")
+                    or proj.get("ec_contribution")
+                    or proj.get("eu_contribution")
+                    or ""
+                )
+                eu_contrib_str = self._format_budget(eu_contrib) if eu_contrib else "—"
+                coord = proj.get("coordinator") or proj.get("coordinator_name") or "—"
+                if len(coord) > 30:
+                    coord = coord[:27] + "..."
+                lines.append(f"| {i + 1} | **{acronym}** | {title} | {eu_contrib_str} | {coord} |")
+            lines.append("")
+
+        # Add helpful footer with next steps and pagination info
         lines.append("---\n")
+
+        # Add pagination footer
+        if total_projects > 10:
+            lines.append(f"*Showing 1-10 of {total_projects} matching projects.*")
+            lines.append(
+                "💡 *To see more projects, you can narrow down your search (e.g. by adding a country, programme, or specific keywords) or ask me to **'show page 2'** or **'show next page'**.*\n"
+            )
+        elif total_projects > 5:
+            lines.append(f"*Showing all {total_projects} matching projects.*")
+            lines.append(
+                "💡 *You can ask me for more details on any of these projects or search for other topics.*\n"
+            )
+
         lines.append(self._get_project_guidance(query))
 
         return "\n".join(lines)
@@ -677,7 +760,15 @@ class V3ResponseFormatter:
             logger.info(f"📋 Formatting {len(all_documents)} document excerpts")
             return self.format_documents(all_documents, query)
 
-        # Format the merged results (prefer calls over projects if both present)
+        # Format the merged results (format both if present, otherwise format individual)
+        if all_calls and all_projects:
+            logger.info(
+                f"📋 Formatting both calls ({len(all_calls)}) and projects ({len(all_projects)})"
+            )
+            calls_formatted = self.format_funding_calls(all_calls, query)
+            projects_formatted = self.format_projects(all_projects, query)
+            return f"{calls_formatted}\n\n---\n\n{projects_formatted}"
+
         if all_calls:
             logger.info(
                 f"📋 Formatting {len(all_calls)} merged funding calls (deduplicated from {len(seen_call_ids)} unique IDs)"

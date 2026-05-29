@@ -189,6 +189,7 @@ class AtomicMessageStorage:
         user_message: str,
         assistant_message: str,
         citations: list[dict[str, Any]] | None = None,
+        assistant_metadata: dict[str, Any] | None = None,
     ) -> StorageResult:
         """
         Store both user and assistant messages atomically.
@@ -202,6 +203,7 @@ class AtomicMessageStorage:
             user_message: The user's message
             assistant_message: The assistant's response
             citations: Optional citations
+            assistant_metadata: Optional assistant metadata/logs
 
         Returns:
             StorageResult with both message IDs
@@ -258,6 +260,65 @@ class AtomicMessageStorage:
                 """,
                     (json.dumps(citations), result.assistant_message_id),
                 )
+
+            # Store assistant metadata if provided
+            if assistant_metadata:
+                update_fields = {}
+
+                # Direct metadata fields
+                for k in [
+                    "ai_provider",
+                    "ai_version",
+                    "model_used",
+                    "data_source",
+                    "processing_time",
+                    "projects_found",
+                ]:
+                    if k in assistant_metadata:
+                        update_fields[k] = assistant_metadata[k]
+
+                # Logs nested dictionary (Svelte format)
+                logs = assistant_metadata.get("logs")
+                if logs and isinstance(logs, dict):
+                    update_fields["logs_question"] = logs.get("question")
+                    update_fields["logs_model_used"] = logs.get("model_used")
+                    if "phases" in logs:
+                        phases = logs["phases"]
+                        update_fields["logs_phases"] = (
+                            json.dumps(phases) if not isinstance(phases, str) else phases
+                        )
+                    update_fields["logs_total_processing_time_ms"] = logs.get(
+                        "total_processing_time_ms"
+                    )
+                    update_fields["logs_projects_retrieved"] = logs.get("projects_retrieved")
+                    update_fields["logs_projects_processed"] = logs.get("projects_processed")
+                    update_fields["logs_success"] = logs.get("success")
+                    update_fields["logs_average_relevance_score"] = logs.get(
+                        "average_relevance_score"
+                    )
+
+                # Flat logs fields (direct keys)
+                for k in [
+                    "logs_question",
+                    "logs_model_used",
+                    "logs_phases",
+                    "logs_total_processing_time_ms",
+                    "logs_projects_retrieved",
+                    "logs_projects_processed",
+                    "logs_success",
+                    "logs_average_relevance_score",
+                ]:
+                    if k in assistant_metadata:
+                        val = assistant_metadata[k]
+                        if k == "logs_phases" and val is not None and not isinstance(val, str):
+                            update_fields[k] = json.dumps(val)
+                        else:
+                            update_fields[k] = val
+
+                if update_fields:
+                    set_clause = ", ".join([f"{k} = %s" for k in update_fields.keys()])
+                    params = list(update_fields.values()) + [result.assistant_message_id]
+                    cursor.execute(f"UPDATE message SET {set_clause} WHERE id = %s", params)
 
             # Commit transaction
             conn.commit()
@@ -371,6 +432,65 @@ class AtomicMessageStorage:
                 """,
                     (json.dumps(citations), message_id),
                 )
+
+            # Add metadata/logs if provided
+            if metadata:
+                update_fields = {}
+
+                # Direct metadata fields
+                for k in [
+                    "ai_provider",
+                    "ai_version",
+                    "model_used",
+                    "data_source",
+                    "processing_time",
+                    "projects_found",
+                ]:
+                    if k in metadata:
+                        update_fields[k] = metadata[k]
+
+                # Logs nested dictionary (Svelte format)
+                logs = metadata.get("logs")
+                if logs and isinstance(logs, dict):
+                    update_fields["logs_question"] = logs.get("question")
+                    update_fields["logs_model_used"] = logs.get("model_used")
+                    if "phases" in logs:
+                        phases = logs["phases"]
+                        update_fields["logs_phases"] = (
+                            json.dumps(phases) if not isinstance(phases, str) else phases
+                        )
+                    update_fields["logs_total_processing_time_ms"] = logs.get(
+                        "total_processing_time_ms"
+                    )
+                    update_fields["logs_projects_retrieved"] = logs.get("projects_retrieved")
+                    update_fields["logs_projects_processed"] = logs.get("projects_processed")
+                    update_fields["logs_success"] = logs.get("success")
+                    update_fields["logs_average_relevance_score"] = logs.get(
+                        "average_relevance_score"
+                    )
+
+                # Flat logs fields (direct keys)
+                for k in [
+                    "logs_question",
+                    "logs_model_used",
+                    "logs_phases",
+                    "logs_total_processing_time_ms",
+                    "logs_projects_retrieved",
+                    "logs_projects_processed",
+                    "logs_success",
+                    "logs_average_relevance_score",
+                ]:
+                    if k in metadata:
+                        val = metadata[k]
+                        if k == "logs_phases" and val is not None and not isinstance(val, str):
+                            update_fields[k] = json.dumps(val)
+                        else:
+                            update_fields[k] = val
+
+                if update_fields:
+                    set_clause = ", ".join([f"{k} = %s" for k in update_fields.keys()])
+                    params = list(update_fields.values()) + [message_id]
+                    cursor.execute(f"UPDATE message SET {set_clause} WHERE id = %s", params)
 
             conn.commit()
             return message_id

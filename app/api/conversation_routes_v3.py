@@ -355,16 +355,25 @@ async def health_check():
 
     # Test Gemini connection with timeout
     try:
+        model = None
         if (
-            hasattr(conversation_manager, "response_generator")
-            and conversation_manager.response_generator.model
+            hasattr(conversation_manager, "tool_aware_agent")
+            and conversation_manager.tool_aware_agent
+            and hasattr(conversation_manager.tool_aware_agent, "llm")
         ):
+            model = conversation_manager.tool_aware_agent.llm
+        elif (
+            hasattr(conversation_manager, "response_generator")
+            and conversation_manager.response_generator
+            and hasattr(conversation_manager.response_generator, "model")
+        ):
+            model = conversation_manager.response_generator.model
+
+        if model:
             # Use asyncio timeout for the LLM call
             try:
                 test_response = await asyncio.wait_for(
-                    asyncio.to_thread(
-                        conversation_manager.response_generator.model.generate_content, "ping"
-                    ),
+                    asyncio.to_thread(model.generate_content, "ping"),
                     timeout=5.0,  # 5 second timeout for health check
                 )
                 components["gemini"] = bool(test_response.text)
