@@ -88,7 +88,7 @@ services:
 
   # Neo4j Graph Database for relationship-aware queries
   neo4j:
-    image: neo4j:5.15.0-community
+    image: neo4j:5.22.0-community
     container_name: mapit-neo4j
     ports:
       - "17474:7474"  # HTTP Browser (high port to avoid conflict with other Neo4j)
