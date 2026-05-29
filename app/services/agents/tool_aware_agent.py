@@ -748,6 +748,14 @@ class ToolAwareAgent(
                     "action": s.action,
                     "tools_called": [tc.tool_name for tc in s.tool_calls],
                     "observation": s.observation[:500] if s.observation else "",
+                    "tool_calls": [
+                        {
+                            "tool_name": tc.tool_name,
+                            "success": tc.success,
+                            "result_summary": str(tc.result)[:300] if tc.result else "No results",
+                        }
+                        for tc in s.tool_calls
+                    ],
                 }
                 for s in plan.reasoning_steps
             ],

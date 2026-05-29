@@ -306,7 +306,8 @@ class ConversationManager:
 
             # Generate name for first message
             if not recent_messages:
-                await self._handle_first_message_naming(conversation_id, user_message)
+                async for event in self._handle_first_message_naming(conversation_id, user_message):
+                    yield event
 
             yield {
                 "type": "status",

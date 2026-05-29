@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -80,3 +80,35 @@ class TestAsyncContextualIntro:
         assert "1 matching projects found" in prompt_arg
         assert "1 funding opportunities found" in prompt_arg
         assert intro == "Here is the generated intro sentence."
+
+
+class TestFirstMessageNaming:
+    @pytest.mark.asyncio
+    async def test_handle_first_message_naming_yields_correctly(self):
+        """Test that _handle_first_message_naming yields conversation name event correctly."""
+        # Mock ConversationManager
+        manager = ConversationManager.__new__(ConversationManager)
+
+        # Mock dependencies
+        manager._update_conversation_name = AsyncMock()
+
+        # Patch conversation namer
+        mock_namer = MagicMock()
+        mock_namer.generate_name = AsyncMock(return_value="Quantum Computing Project")
+
+        with patch(
+            "app.services.conversation.conversation_namer.get_conversation_namer",
+            return_value=mock_namer,
+        ):
+            events = []
+            async for event in manager._handle_first_message_naming(
+                12345, "What is quantum computing?"
+            ):
+                events.append(event)
+
+            assert len(events) == 1
+            assert events[0]["type"] == "conversation_name"
+            assert events[0]["name"] == "Quantum Computing Project"
+            assert events[0]["conversation_id"] == 12345
+            assert mock_namer.generate_name.called
+            assert manager._update_conversation_name.called
