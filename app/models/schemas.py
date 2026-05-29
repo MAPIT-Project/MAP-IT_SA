@@ -17,9 +17,6 @@ class QuestionRequest(BaseModel):
     )
     ai_provider: str | None = Field(None, description="AI provider to use (openai or gemini)")
     ai_version: str | None = Field("V9", description="RAG version to use (V2-V9)")
-    use_local_db: bool | None = Field(
-        None, description="Override global setting for database usage"
-    )
     conversation_id: int | None = Field(
         None, description="Conversation ID for context-aware responses"
     )

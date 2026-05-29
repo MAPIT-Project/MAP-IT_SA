@@ -8,11 +8,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **production-grade Retrieval-Augmented Generation (RAG) system** for querying European research and education funding programmes. The system implements sophisticated multi-source intelligent search, agentic AI capabilities, and comprehensive tooling for:
+This is a **production-grade Retrieval-Augmented Generation (RAG) system** for querying European research, education, health, digital, and environment funding programmes. The system implements sophisticated multi-source intelligent search, agentic AI capabilities, and comprehensive tooling for **6 EU programmes**:
 
 - **Horizon Europe**: Research and innovation funding (CORDIS projects, calls, statistics)
 - **Erasmus+**: Education, training, youth and sport funding (Programme Guide 2026, AWP 2026, calls)
 - **Creative Europe**: Culture, media, and cross-sectoral funding (Work Programmes 2021-2026, CulturEU Guide, calls)
+- **EU4Health**: Health policy, crisis preparedness, disease prevention (Work Programmes, calls)
+- **Digital Europe**: Digital transformation, HPC, AI, Cybersecurity, Deployment (Work Programmes, calls)
+- **LIFE**: Environment and climate action, circular economy, nature, clean energy (guidelines, SAP/SIP, calls)
 
 ## Key Architecture Components
 
@@ -40,7 +43,7 @@ The V3 architecture uses a **single agentic loop** without intent classification
 ### Agentic Architecture (ReAct Pattern)
 The system uses a sophisticated **agentic architecture** that can:
 - **Self-correct** when initial search results are insufficient
-- **Use multiple tools** to gather information from different sources (41 tools available)
+- **Use multiple tools** to gather information from different sources (42 tools available)
 - **Reason iteratively** to answer complex comparison and analysis questions
 - **Synthesize answers** from graph databases, vector stores, and external APIs
 - **Speculatively execute** tools in parallel to reduce latency
@@ -64,7 +67,7 @@ The system uses a sophisticated **agentic architecture** that can:
 - `embedding/` - Incremental embedding updates for new projects
 - `feedback/` - User feedback collection and analysis
 - `rag/` - RAG-specific components (retrievers, chunkers, generators)
-- `tools/` - Tool orchestration for multi-step reasoning (41 tools available)
+- `tools/` - Tool orchestration for multi-step reasoning (42 tools available)
 - `call_extractors/` - Funding call document processing
 - `conversation/` - Conversation management and memory
 - `memory/` - Short/long-term memory systems
@@ -79,13 +82,14 @@ The system uses a sophisticated **agentic architecture** that can:
 - `document_routes.py` - Document management endpoints
 - `call_document_routes.py` - Call document access endpoints
 
-### Available Tools (41 Tools)
-The system has 41 tools available for the multi-tool agent:
+### Available Tools (42 Tools)
+The system has 42 tools available for the multi-tool agent:
 
 **Statistics Tools:**
 - `get_programme_statistics`: Success rates, funding amounts for a programme
 - `get_country_statistics`: Participation stats for a country
 - `analyze_geographic_diversification`: Analyze geographic diversity of consortium partners by custom country groups (Nordic, CEE, Baltic, etc.)
+- `show_cached_projects`: Display recently viewed projects from cache for quick reference
 
 **Comparison Tools:**
 - `compare_programmes`: Compare two programmes side-by-side
@@ -226,7 +230,7 @@ Available Celery tasks in `app/services/celery_app.py`:
 make test
 
 # Run specific test files
-pytest tests/test_integration_v2.py
+pytest tests/test_conversation_scenarios.py
 pytest tests/test_intent_detection_only.py
 pytest tests/test_data_source_verification.py
 pytest tests/test_conversation_routing.py
@@ -270,12 +274,6 @@ pytest --cov=app tests/
 - `DELETE /api/v3/conversation/{id}/context` - Clear conversation memory
 - `GET /api/v3/conversation/health` - Health check
 
-**Legacy V2 Endpoints:**
-- `POST /api/query` - Main question answering endpoint (Enhanced RAG)
-- `POST /api/query/stream` - Streaming SSE endpoint
-- `POST /api/query/async` - Start async query
-- `GET /api/query/status/{task_id}` - Check async query status
-
 **Feedback API Endpoints:**
 - `POST /api/feedback` - Submit user feedback (rating, comments, tool feedback)
 - `GET /api/feedback/summary` - Get aggregated feedback metrics
@@ -310,10 +308,10 @@ For `faq` queries, the LLM determines complexity type:
 - `multi_source`: Needs multiple info types (e.g., "Eligibility AND success rates")
 - `validation`: Verify/confirm (e.g., "Is EIC success rate really 8%?")
 
-**Phase 3: Execution Routing (v2.2)**
+**Phase 3: Execution Routing (V3)**
 - **ALL queries** → Tool-Aware Agent (ReAct) for best results
 - Simple queries finish in 1-2 iterations, complex ones use up to 5
-- Simple loop is only used as fallback if ToolAwareAgent is unavailable
+- ToolAwareAgent is a hard requirement - no fallback to older architectures
 
 **Phase 4: Response Generation**
 Results are synthesized into final response with:
@@ -415,6 +413,34 @@ When results are insufficient, the system identifies causes:
   - `CreativeEuropeAction` nodes (24): All action types with full metadata
   - `CreativeEuropeRegion` nodes (3): Country eligibility by strand
   - Relationships: BELONGS_TO_STRAND, ALLOWS_COORDINATOR_FROM, ALLOWS_PARTNER_FROM, MEMBER_OF
+
+### 7. EU4Health Data Sources
+- **Purpose**: EU4Health programme guidance and funding calls
+- **Contains**:
+  - Annual Work Programmes (AWP)
+  - EU4Health Regulation documents
+  - Funding calls synced from EU Portal API
+- **Coverage**: NGO eligibility, public body eligibility, joint actions, and co-financing rules
+- **Queries via**: `VectorSearchService` with `programme="eu4health"` filter
+
+### 8. Digital Europe Data Sources
+- **Purpose**: Digital Europe programme guidance and funding calls
+- **Contains**:
+  - Main Work Programmes and Cybersecurity/Digital Trust guidelines
+  - SME participation criteria and third-country rules
+  - Funding calls synced from EU Portal API
+- **Coverage**: High-Performance Computing (HPC), AI, Cybersecurity, Advanced Digital Skills, and Deployment
+- **Queries via**: `VectorSearchService` with `programme="digital_europe"` filter
+
+### 9. LIFE Data Sources
+- **Purpose**: LIFE programme guidance and funding calls
+- **Contains**:
+  - LIFE Programme guidelines for applicants
+  - Strategic and standard project guidelines (SAP/SIP)
+  - Funding calls synced from EU Portal API
+- **Coverage**: 4 sub-programmes: Nature & Biodiversity (NAT), Circular Economy & Quality of Life (ENV), Climate Change Mitigation & Adaptation (CCA), Clean Energy Transition (CET)
+- **Queries via**: `VectorSearchService` with `programme="life"` filter
+
 
 ## Hybrid Graph+SQL Architecture
 
@@ -725,9 +751,11 @@ combined_score = (
 ## Database Systems
 
 ### PostgreSQL (Supabase)
-- Primary relational database for project metadata
-- Vector search capabilities via `pgvector` extension
-- Configured via `DATABASE_URL` environment variable
+- Primary relational hub for project metadata, conversations, and analytics.
+- **Data Scale**: 50+ tables, 18 views, 90,000+ organization records.
+- **Hybrid Search**: Combines `pgvector` similarity with FTS (keyword) scoring.
+- **Key Tables**: `projects`, `organizations`, `document_chunks`, `funding_calls`.
+- **Custom Logic**: Uses RPC functions (`hybrid_search`, `search_documents`) for optimized search.
 
 ### Neo4j Graph Database
 - Relationship-aware queries for projects, organizations, topics
@@ -766,13 +794,11 @@ New database tables added for analytics and feedback (in `migration/` directory)
 
 **Erasmus+ Data Scripts:**
 - `scripts/ingest_erasmus_documents.py` - Ingest Erasmus+ Programme Guide and Work Programmes
-- `scripts/sync_erasmus_calls_from_api.py` - Sync Erasmus+ funding calls from EU Portal API
 - `scripts/ingest_erasmus_templates.py` - Ingest Erasmus+ application templates (categorizes by Key Action, Sector, Document Type)
 - `scripts/ingest_erasmus_to_neo4j.py` - Populate Neo4j with Erasmus+ reference data (ErasmusAction, ErasmusSector, PartnerRegion nodes)
 
 **Creative Europe Data Scripts:**
 - `scripts/ingest_creative_europe_documents.py` - Ingest Creative Europe Work Programmes, CulturEU Guide, strand overviews
-- `scripts/sync_creative_europe_calls.py` - Sync Creative Europe funding calls from EU Portal API (CREA-CULT, CREA-MEDIA, CREA-CROSS topics)
 - `scripts/ingest_creative_europe_to_neo4j.py` - Populate Neo4j with Creative Europe reference data (CreativeEuropeAction, CreativeEuropeStrand, CreativeEuropeRegion nodes)
 
 ## Special Considerations
@@ -785,9 +811,9 @@ The system supports multiple LLM providers:
 - Provider selection via `ai_provider` parameter or `DEFAULT_AI_PROVIDER` env var
 
 ### Streaming vs Async Processing
-- **Streaming**: Real-time SSE responses via `/api/query/stream`
+- **Streaming**: Real-time SSE responses via `/api/v3/conversation/{id}/message/stream`
 - **Async**: Background processing via Celery workers with task status polling
-- **Synchronous**: Direct responses via `/api/query`
+- **Synchronous**: Direct responses via `/api/v3/conversation/{id}/message`
 
 ### Professional Context Management
 - Domain-specific knowledge injection for Horizon Europe queries
@@ -914,21 +940,6 @@ When using the V3 streaming endpoint (`/api/v3/conversation/{id}/message/stream`
 - `token` - Streaming response text
 - `complete` - Final metadata with `architecture="simplified_v3"`
 - `error` - Error information
-
-### Legacy Streaming Response Format
-When using the legacy endpoint (`/api/query/stream`), progress updates are sent as SSE:
-```json
-{"type": "status", "stage": "processing", "message": "Processing..."}
-{"type": "progress", "stage": "intent_detected", "message": "AI analyzed intent: faq"}
-{"type": "progress", "stage": "agentic_search", "message": "AI is using self-correcting search..."}
-{"type": "progress", "stage": "agentic_executing", "message": "Searching data sources..."}
-{"type": "progress", "stage": "agentic_search", "message": "Found 8 results", "count": 8}
-{"type": "progress", "stage": "agentic_evaluating", "message": "Found good results!"}
-{"type": "status", "stage": "generating_response", "message": "Generating response..."}
-{"type": "token", "content": "Based on the Horizon Europe regulation..."}
-{"type": "token", "content": "..."}
-{"type": "complete", "metadata": {"confidence": "high", "iterations": 1}}
-```
 
 ## Conversation Stability Architecture
 

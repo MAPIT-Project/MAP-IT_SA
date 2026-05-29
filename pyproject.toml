@@ -14,6 +14,7 @@ extend-exclude = '''
     | \.mypy_cache
     | \.ruff_cache
     | \.pytest_cache
+    | \.claude
 )/
 '''
 
@@ -28,6 +29,13 @@ combine_as_imports = true
 line-length = 100
 target-version = "py311"
 src = ["app", "tests"]
+exclude = [
+    ".claude",
+    ".git",
+    "venv",
+    ".venv",
+    "__pycache__",
+]
 
 [tool.ruff.lint]
 select = [

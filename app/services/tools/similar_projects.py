@@ -24,13 +24,10 @@ import psycopg2
 from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 
+from ..core.config import settings
+
 load_dotenv()
 logger = logging.getLogger(__name__)
-
-# Timeout constants (in seconds)
-EMBEDDING_TIMEOUT = 30.0  # Time allowed for embedding generation
-VECTOR_SEARCH_TIMEOUT = 10.0  # Time allowed for vector similarity search
-GRAPH_CONTEXT_TIMEOUT = 30.0  # Time allowed for graph context enhancement
 
 
 # Cluster keyword mapping for automatic cluster inference
@@ -232,9 +229,9 @@ class SimilarProjectsTool:
         try:
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(_generate)
-                return future.result(timeout=EMBEDDING_TIMEOUT)
+                return future.result(timeout=settings.embedding_timeout)
         except FuturesTimeoutError:
-            logger.warning(f"Embedding generation timed out after {EMBEDDING_TIMEOUT}s")
+            logger.warning(f"Embedding generation timed out after {settings.embedding_timeout}s")
             return None
         except Exception as e:
             logger.error(f"Embedding generation error: {e}")
@@ -392,7 +389,7 @@ class SimilarProjectsTool:
 
         except FuturesTimeoutError:
             logger.warning(
-                f"Vector search timed out after {VECTOR_SEARCH_TIMEOUT}s, using keyword fallback"
+                f"Vector search timed out after {settings.vector_search_timeout}s, using keyword fallback"
             )
             return self._get_keyword_fallback(
                 description, cluster, action_type, limit, fallback_reason="vector_search_timeout"
@@ -547,10 +544,10 @@ class SimilarProjectsTool:
         try:
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(_execute_search)
-                result = future.result(timeout=VECTOR_SEARCH_TIMEOUT)
+                result = future.result(timeout=settings.vector_search_timeout)
                 return result, False
         except FuturesTimeoutError:
-            logger.warning(f"Vector search timed out after {VECTOR_SEARCH_TIMEOUT}s")
+            logger.warning(f"Vector search timed out after {settings.vector_search_timeout}s")
             return [], True
         except Exception as e:
             logger.error(f"Vector search with timeout error: {e}")

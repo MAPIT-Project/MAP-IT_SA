@@ -314,12 +314,12 @@ class ServiceAvailabilityChecker:
         try:
             from .config import settings
 
-            if not settings.use_local_db or not settings.database_url:
+            if not settings.database_url:
                 return ServiceStatus(
                     service=ServiceType.POSTGRES,
                     status=AvailabilityStatus.UNAVAILABLE,
                     last_check=datetime.now(UTC),
-                    error_message="Not configured",
+                    error_message="DATABASE_URL not configured",
                 )
 
             import psycopg2

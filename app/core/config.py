@@ -41,22 +41,41 @@ class Settings(BaseSettings):
         """Get embedding API key, falling back to Gemini key if not set."""
         return self.google_embedding_api_key or self.gemini_api_key
 
-    # Database Configuration
-    use_local_db: bool = False
-    database_url: str | None = None
+    # Database Configuration (Required)
+    database_url: str
     db_min_connections: int = 5
     db_max_connections: int = 50
 
-    # CORDIS Configuration
-    cordis_source: str = "local"  # Options: "local", "legacy_api"
-    cordis_api_url: str = "https://cordis.europa.eu/api/search/results"
-    cordis_api_timeout: int = 30
-
-    # Supabase Configuration
-    supabase_url: str | None = None
+    # Supabase Configuration (Required)
+    supabase_url: str
     supabase_anon_key: str | None = None
-    supabase_service_key: str | None = None
-    use_supabase: bool = False
+    supabase_service_key: str
+
+    # EU Portal API Configuration
+    eu_portal_base_url: str = "https://api.tech.ec.europa.eu/search-api/prod/rest/search"
+    eu_portal_topic_details_url: str = (
+        "https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails"
+    )
+    eu_portal_facet_url: str = "https://api.tech.ec.europa.eu/search-api/prod/rest/facet"
+
+    # Call Enrichment Service Configuration
+    call_enrichment_max_retries: int = 3
+    call_enrichment_base_delay: float = 1.0  # seconds
+    call_enrichment_max_delay: float = 30.0  # seconds
+    call_enrichment_exponential_base: float = 2.0
+    call_enrichment_cache_ttl: int = 3600  # 1 hour in seconds
+
+    # Enhanced Call Search Configuration
+    enhanced_call_search_cache_ttl: int = 3600  # 1 hour in seconds
+
+    # Similar Projects Tool Configuration
+    embedding_timeout: float = 30.0  # seconds
+    vector_search_timeout: float = 10.0  # seconds
+    graph_context_timeout: float = 30.0  # seconds
+
+    # Query Processing Configuration
+    long_query_threshold: int = 500  # characters
+    max_processed_query_length: int = 400  # characters
 
     # Vector Search Configuration
     vector_search_enabled: bool = False
@@ -90,19 +109,21 @@ class Settings(BaseSettings):
 
     @field_validator("database_url")
     @classmethod
-    def validate_database_url(cls, v, info):
-        """Validate database URL when local DB is enabled."""
-        if info.data.get("use_local_db") and not v:
-            raise ValueError("DATABASE_URL is required when use_local_db=True")
+    def validate_database_url(cls, v):
+        """Validate database URL (required)."""
+        if not v:
+            raise ValueError("DATABASE_URL is required")
         return v
 
     @field_validator("supabase_url", "supabase_service_key")
     @classmethod
-    def validate_supabase_config(cls, v, info):
-        """Validate Supabase configuration when enabled."""
-        if info.data.get("use_supabase") and not v:
-            field_name = info.field_name.upper()
-            raise ValueError(f"{field_name} is required when use_supabase=True")
+    def validate_supabase_config(cls, v):
+        """Validate Supabase configuration (required)."""
+        if not v:
+            if "supabase_url" in str(v).lower():
+                raise ValueError("SUPABASE_URL is required")
+            else:
+                raise ValueError("SUPABASE_SERVICE_KEY is required")
         return v
 
     @field_validator("google_embedding_api_key")
@@ -111,15 +132,6 @@ class Settings(BaseSettings):
         """Validate Google API key when vector search is enabled."""
         if info.data.get("vector_search_enabled") and not v:
             raise ValueError("GOOGLE_EMBEDDING_API_KEY is required when vector_search_enabled=True")
-        return v
-
-    @field_validator("cordis_source")
-    @classmethod
-    def validate_cordis_source(cls, v):
-        """Validate CORDIS source configuration."""
-        valid_sources = ["local", "legacy_api"]
-        if v not in valid_sources:
-            raise ValueError(f"cordis_source must be one of: {valid_sources}")
         return v
 
     class Config:

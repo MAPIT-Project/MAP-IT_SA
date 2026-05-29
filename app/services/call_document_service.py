@@ -21,6 +21,8 @@ from pathlib import Path
 import requests
 from psycopg2.extras import Json
 
+from ..core.config import settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -29,7 +31,7 @@ class CallDocumentService:
 
     def __init__(self, db_pool):
         self.db_pool = db_pool
-        self.base_api_url = "https://api.tech.ec.europa.eu/search-api/prod/rest/search"
+        self.base_api_url = settings.eu_portal_base_url
         self.shared_docs_dir = Path("data/shared_documents")
         self.shared_docs_dir.mkdir(parents=True, exist_ok=True)
 

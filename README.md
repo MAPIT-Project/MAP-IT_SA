@@ -1,393 +1,118 @@
-# MAP-IT: Intelligent EU Funding Research Assistant
+# MAP-IT: Multi-Programme EU Funding Research Assistant
 
-A production-grade Retrieval-Augmented Generation (RAG) system for querying European research projects from the CORDIS database. The system implements sophisticated multi-source intelligent search, agentic AI capabilities, and comprehensive tooling for Horizon Europe research project queries.
+A production-grade Retrieval-Augmented Generation (RAG) system for querying European Union funding programmes. MAP-IT implements sophisticated multi-source intelligent search, agentic AI capabilities, and comprehensive tooling for **6 EU funding programmes**.
 
-## Features
+> [!WARNING]
+> **Project Disclaimer & Review Notice:**
+> - **Horizon Europe Focus**: This system was primarily designed and optimized for **Horizon Europe**. The other 5 programmes (Erasmus+, Creative Europe, EU4Health, Digital Europe, and LIFE) are supported but are not as advanced or as thoroughly tested.
+> - **AI-Assisted Single-Dev Build**: This large codebase was built by a **single developer** leveraging AI extensively to execute the work of a full development team.
+> - **Manual Review Required**: Due to the massive scale of this project, a complete manual review of all code has not been feasible. There may be duplicate logic, redundant code, or potential security vulnerabilities. **Please perform a thorough security audit and code review before deploying this system to production or making it public.**
 
-- **Multi-Source Search**: Combines graph search (Neo4j), vector search (pgvector), and full-text search
-- **Agentic AI System**: Self-correcting tool orchestrator with ReAct pattern reasoning
-- **20 Specialized Tools**: Statistics, comparisons, project discovery, proposal support
-- **Semantic Search**: AI-powered project similarity using 768-dim embeddings (13,850+ projects)
-- **Real-time Streaming**: SSE-based responses with progress updates
-- **Conversation Memory**: Short-term and long-term context management
+---
 
-## Quick Start
+## 🚀 Overview
+
+MAP-IT is designed to help researchers, consultants, and organizations navigate the complex landscape of EU funding. It provides a conversational interface that can find calls, analyze projects, check eligibility, and assist in proposal writing.
+
+### Supported Programmes
+1. **Horizon Europe**: Research & Innovation
+2. **Erasmus+**: Education, Training, Youth & Sport
+3. **Creative Europe**: Culture & Media
+4. **EU4Health**: Public Health
+5. **Digital Europe**: Strategic Digital Technologies
+6. **LIFE**: Environment & Climate Action
+
+---
+
+## 🛠️ Quick Start
 
 ### Prerequisites
+- **Python 3.11+**
+- **Docker & Docker Compose** (for Neo4j, Redis, and API)
+- **Supabase Account** (for pgvector document storage)
+- **Google Gemini API Key** (Primary AI reasoning and embeddings)
 
-- Python 3.11+
-- Docker & Docker Compose
-- PostgreSQL (via Supabase or local)
-- Redis
-- Neo4j 5.x
+### Installation & Setup
 
-### Installation
-
-1. **Clone the repository**
+1. **Clone & Enter**
    ```bash
-   git clone <repository-url>
+   git clone <repo-url>
    cd MAP-IT_SA
    ```
 
-2. **Create virtual environment**
+2. **Environment & Dependencies**
    ```bash
    python3 -m venv venv
-   source venv/bin/activate  # Linux/macOS
-   # or: venv\Scripts\activate  # Windows
+   source venv/bin/activate
+   make install-dev
    ```
 
-3. **Install dependencies**
-   ```bash
-   make install      # Production dependencies
-   make install-dev  # Development dependencies (includes ruff, black, pytest)
-   ```
-
-4. **Configure environment**
+3. **Configuration**
    ```bash
    cp .env.example .env
-   # Edit .env with your API keys and database credentials
+   # Update .env with your keys (Gemini, Database, Neo4j, etc.)
    ```
 
-5. **Start services**
+4. **Launch Infrastructure**
    ```bash
    make docker-up
    ```
 
-6. **Run the API**
+5. **Initialize Data**
+   See the [Data Ingestion Guide](docs/guides/DATA_INGESTION.md) for detailed steps on populating the databases.
+
+6. **Run API**
    ```bash
-   make run          # Production
-   make run-reload   # Development with hot reload
+   make run-reload  # Accessible at http://localhost:8000
    ```
 
-The API will be available at `http://localhost:8000`.
+---
 
-## Environment Variables
+## 📚 Documentation Suite
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `GEMINI_API_KEY` | Google Gemini API key | Yes |
-| `OPENAI_API_KEY` | OpenAI API key (alternative provider) | No |
-| `OPENROUTER_API_KEY` | OpenRouter API key (alternative provider) | No |
-| `DATABASE_URL` | PostgreSQL connection string | Yes |
-| `SUPABASE_URL` | Supabase project URL | Yes |
-| `SUPABASE_ANON_KEY` | Supabase anonymous key | Yes |
-| `SUPABASE_SERVICE_KEY` | Supabase service key | Yes |
-| `NEO4J_URI` | Neo4j bolt URI | Yes |
-| `NEO4J_USER` | Neo4j username | Yes |
-| `NEO4J_PASSWORD` | Neo4j password | Yes |
-| `REDIS_URL` | Redis connection URL | Yes |
-| `GOOGLE_EMBEDDING_API_KEY` | Google Embedding API key | No |
+To keep things organized, the documentation is divided into specialized guides:
 
-## API Endpoints
+| Guide | Description |
+|-------|-------------|
+| **[CLAUDE.md](CLAUDE.md)** | **Recommended Start Point**: Deep dive into developer rules, system architecture overview, command references, and agentic tool designs. |
+| **[Tool Reference](docs/guides/TOOL_REFERENCE.md)** | Detailed explanation of all 42+ agentic tools. |
+| **[Data Ingestion](docs/guides/DATA_INGESTION.md)** | How to get the data, run ingestion scripts, and setup the graph. |
+| **[Database Schema](docs/DATABASE_SCHEMA.md)** | Deep dive into the 35 active PostgreSQL tables and vector search logic. |
+| **[Roadmap & Status](docs/guides/ROADMAP.md)** | Current implementation status, system limits, and future plans. |
+| **[System Architecture](docs_tracked/SYSTEM_ARCHITECTURE.md)** | Deep dive into the V3/V4 architectures and service layer. |
+| **[API Specification](docs_tracked/FRONTEND_STREAMING_V3_SPEC.md)** | Details on SSE streaming and V3 endpoint formats. |
 
-### V3 API (Recommended)
+---
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v3/conversation/{id}/message/stream` | POST | Streaming response with SSE |
-| `/api/v3/conversation/{id}/message` | POST | Non-streaming response |
-| `/api/v3/conversation/{id}/context` | GET | Get conversation history |
-| `/api/v3/conversation/{id}/context` | DELETE | Clear conversation memory |
-| `/api/v3/conversation/health` | GET | Health check |
+## 🧠 Key Architecture: V3 Simplified
 
-### Legacy V2 API
+The project has transitioned to a **Simplified Agentic Architecture**:
+- **No Manual Intent Routing**: The `ToolAwareAgent` analyzes the query and decides which tools to call dynamically.
+- **ReAct Pattern**: The agent follows a Reasoning + Acting loop to solve complex queries.
+- **Hybrid Data Flow**: Tools automatically merge results from Neo4j (Graph), PostgreSQL (Structured), and pgvector (Unstructured) using **RRF (Reciprocal Rank Fusion)**.
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/query` | POST | Main question answering |
-| `/api/query/stream` | POST | Streaming SSE endpoint |
-| `/api/query/async` | POST | Start async query |
-| `/api/query/status/{task_id}` | GET | Check async query status |
+---
 
-### Feedback API
+## 🧪 Development & Testing
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/feedback` | POST | Submit user feedback |
-| `/api/feedback/summary` | GET | Get aggregated metrics |
-| `/api/feedback/suggestions` | GET | AI-powered improvement suggestions |
-
-## Architecture
-
-### System Overview
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              USER QUERY                                      │
-└─────────────────────────────────┬───────────────────────────────────────────┘
-                                  │
-                                  ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     TOOL-AWARE AGENT (ReAct Pattern)                        │
-│                                                                             │
-│  1. THINK: Analyze query, decide which tools to use                        │
-│  2. ACT: Call tools (can run multiple in parallel)                         │
-│  3. OBSERVE: Review results from tools                                     │
-│  4. REPEAT: If more info needed, think again and call more tools           │
-│  5. CONCLUDE: Synthesize final answer from all gathered data               │
-│                                                                             │
-│  • 20 tools available • Up to 5 reasoning iterations • Plan caching        │
-└──────────────────────────────────┬──────────────────────────────────────────┘
-                                   │
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           DATA SOURCES                                       │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
-│  │   Neo4j     │  │  Supabase   │  │   CORDIS    │  │   EU Portal API     │ │
-│  │   Graph     │  │  pgvector   │  │  Projects   │  │   (enrichment)      │ │
-│  │             │  │             │  │ + Vectors   │  │                     │ │
-│  │ Statistics  │  │ Documents   │  │ 13,865+     │  │ Live call data      │ │
-│  │ Patterns    │  │ Embeddings  │  │ projects    │  │                     │ │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Available Tools (20)
-
-**Statistics Tools:**
-- `get_programme_statistics` - Success rates, funding amounts for a programme
-- `get_country_statistics` - Participation stats for a country
-
-**Comparison Tools:**
-- `compare_programmes` - Compare two programmes side-by-side
-
-**Document Tools:**
-- `search_documents` - Search official EU documents
-
-**Call Tools:**
-- `search_funding_calls` - Find open/upcoming calls
-- `get_call_details` - Get details for a specific call
-
-**Project Tools:**
-- `search_projects` - Search CORDIS for funded projects
-- `get_project_details` - Get details for a project
-- `find_similar_projects` - Find similar projects by topic/consortium/cluster
-- `find_semantically_similar_projects` - AI-powered semantic similarity search
-- `find_organization_projects` - Find all projects for an organization
-- `get_collaboration_network` - Get organization collaboration networks
-- `search_by_cluster` - Find projects in a research cluster
-
-**Proposal Support Tools:**
-- `get_budget_benchmark` - Budget statistics from similar funded projects
-- `get_consortium_patterns` - Consortium composition analysis
-- `find_experienced_partners` - Find organizations with relevant experience
-- `get_similar_funded_projects` - Semantic similarity for proposal research
-- `analyze_call_history` - Historical funding pattern analysis
-
-**Proposal Planning Tools:**
-- `calculate_budget` - Generate detailed budget breakdowns
-- `generate_timeline` - Create project timelines with work packages
-
-## Development
-
-### Commands
-
+We use `make` for common tasks:
 ```bash
-make help         # Show available commands
-make install      # Install production dependencies
-make install-dev  # Install development dependencies
-make run          # Run API server
-make run-reload   # Run API with hot reload
-make docker-up    # Start Docker services
-make docker-down  # Stop Docker services
-make lint         # Run ruff linter
-make format       # Format code (ruff, isort, black)
-make test         # Run tests
-make precommit    # Run pre-commit hooks
-make hooks        # Install git hooks
-make clean        # Clean cache files
+make test    # Run all pytest scenarios
+make lint    # Run ruff check (Excludes .claude templates)
+make format  # Auto-format with black, isort, and ruff
 ```
 
-### Docker Services
+**Testing Tip**: Scenario-based tests are located in `tests/scenarios/`. Use these to verify complex multi-turn conversation flows.
 
-The `docker-compose.yml` defines:
-- `api` - FastAPI application (port 8000)
-- `redis` - Message broker (port 6379)
-- `celery-worker` - Regular query processing
-- `celery-worker-stream` - Streaming query processing
-- `neo4j` - Graph database (ports 7474, 7687)
+---
 
-### Testing
+## 🛑 Limits to Keep in Mind
+- **Vector Search**: Uses exact search for high-dimensional vectors (3072-dim).
+- **Data Snapshots**: CORDIS data is local; live call data is synced via API.
+- **Programme Maturity**: Only **Horizon Europe** is fully mature and comprehensively tested. Other programmes (Erasmus+, Creative Europe, EU4Health, Digital Europe, LIFE) are integrated but have simpler implementations and less coverage.
+- **AI Code & Security**: Built by a single developer leveraging AI to handle multiple engineering domains. Unreviewed/duplicate code may exist, and security audits have not been manually conducted. Thorough review is required before going public.
 
-```bash
-# Run all tests
-make test
+---
 
-# Run specific test files
-pytest tests/test_integration_v2.py
-pytest tests/test_intent_detection_only.py
-
-# Run with coverage
-pytest --cov=app tests/
-```
-
-### Code Quality
-
-The project uses:
-- **Ruff** - Fast Python linter
-- **Black** - Code formatter (100 char line length)
-- **isort** - Import sorting
-- **Pre-commit** - Git hooks for automated checks
-
-## Project Structure
-
-```
-MAP-IT_SA/
-├── app/
-│   ├── api/                    # API routes
-│   │   ├── routes.py           # Legacy V2 routes
-│   │   ├── conversation_routes_v3.py  # V3 API
-│   │   └── feedback_routes.py  # Feedback endpoints
-│   ├── services/
-│   │   ├── agents/             # Agentic AI components
-│   │   │   ├── tool_aware_agent.py    # ReAct agent
-│   │   │   ├── agentic_manager.py     # Self-correcting loop
-│   │   │   └── result_evaluator.py    # Quality scoring
-│   │   ├── analytics/          # Tool usage analytics
-│   │   ├── cache/              # Query plan caching
-│   │   ├── data_intelligence/  # Graph search, query planning
-│   │   ├── embedding/          # Incremental embedding updates
-│   │   ├── feedback/           # User feedback collection
-│   │   ├── memory/             # Conversation memory
-│   │   ├── rag/                # RAG components
-│   │   ├── response/           # Response formatting
-│   │   └── tools/              # Tool implementations
-│   ├── core/                   # Configuration, dependencies
-│   ├── models/                 # Pydantic schemas
-│   └── main.py                 # FastAPI entry point
-├── data/
-│   ├── cordis/                 # CORDIS project data
-│   ├── shared_documents/       # Horizon Europe documents
-│   └── manual_uploads/         # User-uploaded documents
-├── docs/                       # Documentation
-├── migration/                  # Database migrations
-├── scripts/                    # Helper scripts
-├── tests/                      # Test files
-├── docker-compose.yml          # Docker configuration
-├── Makefile                    # Development commands
-├── requirements.txt            # Production dependencies
-└── requirements-dev.txt        # Development dependencies
-```
-
-## Key Capabilities
-
-### FAQ Answering
-Answer questions about eligibility, rules, and requirements for EU funding programmes.
-
-```
-User: "Can Switzerland participate in Horizon Europe?"
-Response: "Yes, Switzerland can participate as an Associated Country..."
-```
-
-### Call Search
-Find open and upcoming funding calls with local-first search and API enrichment.
-
-```
-User: "Find hydrogen funding calls"
-Response: Lists calls with type icons, deadlines, budgets, and apply links
-```
-
-### Project Search
-Search 13,865+ funded CORDIS projects using full-text, graph, and semantic search.
-
-```
-User: "Show me AI healthcare projects from Germany"
-Response: Lists matching projects with details, funding amounts, consortia
-```
-
-### Comparisons
-Compare programmes, countries, or funding types using multi-tool reasoning.
-
-```
-User: "Compare EIC Accelerator vs ERC success rates"
-Response: Side-by-side comparison with statistics and explanations
-```
-
-### Proposal Support
-Get budget benchmarks, consortium patterns, and find potential partners.
-
-```
-User: "What's the typical budget for a Climate RIA?"
-Response: Budget statistics (mean, median, min, max) from funded projects
-```
-
-## Data Sources
-
-| Source | Purpose | Data |
-|--------|---------|------|
-| **Neo4j** | Statistics, patterns, relationships | Success rates, consortium patterns, org networks |
-| **Supabase (pgvector)** | Document search | Regulations, work programmes, guidance docs |
-| **CORDIS PostgreSQL** | Project data | 13,865+ funded projects with embeddings |
-| **EU Portal API** | Live enrichment | Call details, deadlines, status updates |
-
-## Streaming Response Format
-
-V3 streaming events (SSE):
-
-```json
-{"type": "status", "stage": "processing", "message": "Processing..."}
-{"type": "agent_thinking", "content": "Analyzing query: find hydrogen funding calls..."}
-{"type": "tool_call", "tool": "search_funding_calls", "args": {"keywords": "hydrogen"}}
-{"type": "tool_result", "tool": "search_funding_calls", "result": {"calls_found": 15}}
-{"type": "token", "content": "I found **15 funding opportunities**..."}
-{"type": "complete", "metadata": {"architecture": "simplified_v3", "tools_used": [...]}}
-```
-
-## Configuration
-
-### Agentic Settings
-
-```python
-# agentic_manager.py
-AgenticManager(
-    max_iterations=3,        # Max self-correction attempts
-    sufficient_score=0.65,   # Quality threshold (0-1)
-    enable_multi_tool=True   # Enable ReAct agent
-)
-
-# tool_aware_agent.py
-ToolAwareAgent(
-    max_iterations=5         # Max reasoning iterations
-)
-```
-
-### Embedding Settings
-
-| Setting | Value |
-|---------|-------|
-| Model | Google text-embedding-004 |
-| Dimensions | 768 |
-| Index | IVFFlat (100 lists) |
-
-## Performance Optimizations
-
-- **Query Plan Caching**: Redis-based caching for repeated query patterns
-- **Speculative Execution**: Pre-executes likely tools based on query patterns
-- **Parallel Tool Calls**: Independent tool calls run simultaneously
-- **RRF Fusion**: Reciprocal Rank Fusion combines multi-source results
-
-## Documentation
-
-Detailed documentation is available in the `docs/` directory:
-- `SYSTEM_ARCHITECTURE.md` - Full architecture documentation
-- `STREAMING_API_GUIDE_FOR_FRONTEND.md` - Frontend integration guide
-- `DATABASE_SCHEMA_DOCUMENTATION.md` - Database schema details
-- `technical_specification.md` - Technical specifications
-
-## Contributing
-
-1. Install development dependencies: `make install-dev`
-2. Install git hooks: `make hooks`
-3. Create a feature branch
-4. Make changes and ensure tests pass: `make test`
-5. Format code: `make format`
-6. Run linter: `make lint`
-7. Submit a pull request
-
-## License
-
-[Specify license here]
-
-## Support
-
-For issues and feature requests, please open an issue on the repository.
+## ❤️ Credits & Support
+Developed and maintained by **Anmar Ram** ([anmar.noah@gmail.com](mailto:anmar.noah@gmail.com)) for the MAP-IT platform. For technical inquiries, refer to the [System Architecture](docs_tracked/SYSTEM_ARCHITECTURE.md).

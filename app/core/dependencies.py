@@ -28,10 +28,10 @@ def get_cordis_repository() -> CordisProjectRepository:
     global _cordis_repository
 
     if _cordis_repository is None:
-        if not settings.use_local_db or not settings.database_url:
+        if not settings.database_url:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="CORDIS repository not available: local database not configured",
+                detail="CORDIS repository not available: DATABASE_URL not configured",
             )
 
         try:
@@ -52,12 +52,12 @@ def initialize_cordis_repository() -> CordisProjectRepository | None:
     Initialize the CORDIS repository during FastAPI startup.
 
     Returns:
-        CordisProjectRepository or None: Initialized repository or None if not configured
+        CordisProjectRepository or None: Initialized repository or None if initialization fails
     """
     global _cordis_repository
 
-    if not settings.use_local_db or not settings.database_url:
-        logger.info("ℹ️ CORDIS repository not configured (local database disabled)")
+    if not settings.database_url:
+        logger.warning("⚠️  DATABASE_URL not configured, skipping CORDIS repository initialization")
         return None
 
     try:
@@ -85,15 +85,12 @@ def shutdown_cordis_repository():
 
 def get_cordis_source_config() -> dict:
     """
-    Get CORDIS source configuration for telemetry and decision making.
+    Get CORDIS data source configuration for telemetry.
 
     Returns:
-        dict: Configuration with source type and validation status
+        dict: Configuration with local database status
     """
     return {
-        "source": settings.cordis_source,
-        "api_url": settings.cordis_api_url,
-        "timeout": settings.cordis_api_timeout,
-        "local_enabled": settings.use_local_db and bool(settings.database_url),
-        "legacy_api_available": bool(settings.cordis_api_url),
+        "local_database_enabled": bool(settings.database_url),
+        "cordis_data_available": bool(settings.database_url),  # CORDIS projects in local DB
     }

@@ -111,8 +111,8 @@ async def startup_event():
     """Application startup event."""
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"Debug mode: {settings.debug}")
-    logger.info(f"Database enabled: {settings.use_local_db}")
-    logger.info(f"Supabase enabled: {settings.use_supabase}")
+    logger.info(f"Database configured: {bool(settings.database_url)}")
+    logger.info(f"Supabase configured: {bool(settings.supabase_url)}")
     logger.info(f"Vector search enabled: {settings.vector_search_enabled}")
 
     # Log available AI providers
@@ -127,18 +127,17 @@ async def startup_event():
     if settings.google_embedding_api_key:
         logger.info(f"Google Embedding API configured: {settings.embedding_model}")
 
-    # Test services if enabled
-    if settings.use_supabase:
-        try:
-            from .services.supabase_client import SupabaseVectorStore
+    # Test services
+    try:
+        from .services.supabase_client import SupabaseVectorStore
 
-            supabase = SupabaseVectorStore()
-            if supabase.test_connection():
-                logger.info("✅ Supabase connection successful")
-            else:
-                logger.warning("⚠️ Supabase connection failed")
-        except Exception as e:
-            logger.error(f"❌ Supabase initialization error: {e}")
+        supabase = SupabaseVectorStore()
+        if supabase.test_connection():
+            logger.info("✅ Supabase connection successful")
+        else:
+            logger.warning("⚠️ Supabase connection failed")
+    except Exception as e:
+        logger.error(f"❌ Supabase initialization error: {e}")
 
     if settings.vector_search_enabled and settings.google_embedding_api_key:
         try:
@@ -155,9 +154,9 @@ async def startup_event():
     # Initialize CORDIS repository if configured
     repository = initialize_cordis_repository()
     if repository:
-        logger.info(f"📊 CORDIS source configuration: {settings.cordis_source}")
+        logger.info("✅ CORDIS repository initialized (local PostgreSQL)")
     else:
-        logger.info("📊 CORDIS repository not configured (local database disabled)")
+        logger.warning("⚠️  CORDIS repository initialization failed")
 
 
 @app.on_event("shutdown")

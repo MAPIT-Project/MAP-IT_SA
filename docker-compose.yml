@@ -23,39 +23,52 @@ services:
     env_file:
       - .env
     environment:
+      # Redis Configuration (Docker-specific, uses service name)
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - REDIS_URL=redis://redis:6379/0
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+
+      # Database Configuration (Docker-specific, uses service name)
       - DATABASE_URL=postgresql://postgres:postgres@supabase_db_supabase_cli:5432/postgres
-      - USE_LOCAL_DB=true
+
+      # Docker Environment
       - DOCKER_ENV=true
+
+      # AI Provider Configuration (respects .env or uses defaults)
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - DEFAULT_AI_PROVIDER=gemini
+      - DEFAULT_AI_PROVIDER=${DEFAULT_AI_PROVIDER:-gemini}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3-flash-preview}
       - GEMINI_PRO_MODEL=${GEMINI_PRO_MODEL:-gemini-3.1-pro-preview}
       - SMART_MODEL_ROUTING=${SMART_MODEL_ROUTING:-true}
       - OPENROUTER_MODEL=${OPENROUTER_MODEL:-x-ai/grok-4-fast:free}
+
       # Enhanced RAG Configuration
       - GOOGLE_EMBEDDING_API_KEY=${GOOGLE_EMBEDDING_API_KEY:-}
+
+      # Supabase Configuration (Docker-specific, uses service name)
       - SUPABASE_URL=http://supabase_kong_supabase_cli:8000
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
-      - USE_SUPABASE=true
+
+      # Vector Search Configuration (respects .env or uses defaults)
       - VECTOR_SEARCH_ENABLED=${VECTOR_SEARCH_ENABLED:-true}
-      - EMBEDDING_MODEL=models/gemini-embedding-001
-      - EMBEDDING_DIMENSION=3072
-      - CHUNK_SIZE=1000
-      - CHUNK_OVERLAP=200
-      - MAX_CHUNKS_PER_QUERY=5
-      - SIMILARITY_THRESHOLD=0.7
-      - MAX_FILE_SIZE_MB=50
-      - UPLOAD_DIR=uploads
-      # Neo4j Configuration (use Docker service name)
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-models/gemini-embedding-001}
+      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION:-3072}
+      - CHUNK_SIZE=${CHUNK_SIZE:-1000}
+      - CHUNK_OVERLAP=${CHUNK_OVERLAP:-300}
+      - MAX_CHUNKS_PER_QUERY=${MAX_CHUNKS_PER_QUERY:-20}
+      - SIMILARITY_THRESHOLD=${SIMILARITY_THRESHOLD:-0.45}
+
+      # Document Processing (respects .env or uses default)
+      - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-50}
+      - UPLOAD_DIR=${UPLOAD_DIR:-uploads}
+
+      # Neo4j Configuration (Docker-specific, uses service name)
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=${NEO4J_PASSWORD:-mapit_secure_password_2024}
@@ -103,15 +116,47 @@ services:
     networks:
       - mapit_network
 
+# =========================================================================
+# Standalone Local Database (Optional fallback for dev without Supabase CLI)
+# =========================================================================
+# To run standalone PostgreSQL without running the Supabase CLI, uncomment
+# the service block below, and use it instead of supabase_db_supabase_cli.
+#
+#   postgres:
+#     image: pgvector/pgvector:pg16
+#     container_name: mapit-postgres
+#     ports:
+#       - "5432:5432"
+#     environment:
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres_secure_password
+#       POSTGRES_DB: postgres
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U postgres"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#     networks:
+#       - mapit_network
+
 volumes:
   redis_data:
   neo4j_data:
   neo4j_logs:
   neo4j_plugins:
+  # Uncomment if using standalone database:
+  # postgres_data:
 
 networks:
   mapit_network:
     driver: bridge
+
+  # External Supabase CLI network.
+  # Note: If docker-compose up fails with network not found, run:
+  # docker network create supabase_network_supabase_cli
+  # Or change "external: true" to "external: false" for a standalone bridge network.
   supabase_network:
     external: true
     name: supabase_network_supabase_cli

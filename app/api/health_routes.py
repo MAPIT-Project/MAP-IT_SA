@@ -70,9 +70,9 @@ async def check_postgres() -> ServiceHealth:
     try:
         from ..core.config import settings
 
-        if not settings.use_local_db or not settings.database_url:
+        if not settings.database_url:
             return ServiceHealth(
-                name="postgres", status="healthy", message="Not configured (disabled)"
+                name="postgres", status="unhealthy", message="DATABASE_URL not configured"
             )
 
         import psycopg2
@@ -265,8 +265,10 @@ async def check_supabase() -> ServiceHealth:
     try:
         from ..core.config import settings
 
-        if not settings.use_supabase:
-            return ServiceHealth(name="supabase", status="healthy", message="Not configured")
+        if not settings.supabase_url:
+            return ServiceHealth(
+                name="supabase", status="unhealthy", message="SUPABASE_URL not configured"
+            )
 
         from ..services.supabase_client import SupabaseVectorStore
 
@@ -338,10 +340,8 @@ async def health_check() -> dict[str, Any]:
             services[check.name] = check.to_dict()
 
     # Determine overall status
-    # Critical services: postgres (if enabled), gemini
-    critical_services = []
-    if settings.use_local_db:
-        critical_services.append("postgres")
+    # Critical services: postgres, gemini
+    critical_services = ["postgres"]
     if settings.gemini_api_key:
         critical_services.append("gemini")
 
@@ -383,12 +383,11 @@ async def readiness_check(response: Response) -> dict[str, Any]:
     ready = True
     checks = {}
 
-    # Check PostgreSQL if enabled
-    if settings.use_local_db:
-        postgres_health = await check_postgres()
-        checks["postgres"] = postgres_health.status
-        if postgres_health.status == "unhealthy":
-            ready = False
+    # Check PostgreSQL (required)
+    postgres_health = await check_postgres()
+    checks["postgres"] = postgres_health.status
+    if postgres_health.status == "unhealthy":
+        ready = False
 
     # Check at least one AI provider
     if settings.gemini_api_key:
@@ -452,8 +451,8 @@ async def dependencies_status() -> dict[str, Any]:
     return {
         "dependencies": dependencies,
         "configuration": {
-            "database_enabled": settings.use_local_db,
-            "supabase_enabled": settings.use_supabase,
+            "database_configured": bool(settings.database_url),
+            "supabase_configured": bool(settings.supabase_url),
             "vector_search_enabled": settings.vector_search_enabled,
             "ai_provider": settings.default_ai_provider,
         },

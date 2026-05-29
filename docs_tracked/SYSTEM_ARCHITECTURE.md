@@ -1,7 +1,7 @@
 # MAP-IT System Architecture
 
-> **Last Updated:** January 23, 2026
-> **Version:** 3.3 (V3/V4 + Erasmus+ + Creative Europe + Multi-Programme)
+> **Last Updated:** May 18, 2026
+> **Version:** 3.5 (V3/V4 + All 6 EU Programmes + 42 Tools - Fully Cleaned)
 
 ---
 
@@ -11,13 +11,12 @@
 2. [V3 Simplified Architecture](#v3-simplified-architecture)
 3. [Architecture Diagram](#architecture-diagram)
 4. [Query Processing Pipeline](#query-processing-pipeline)
-5. [Agentic Loop (Self-Correcting)](#agentic-loop-self-correcting)
-6. [Multi-Tool Agent (ReAct)](#multi-tool-agent-react)
-7. [Available Tools](#available-tools)
-8. [Data Sources](#data-sources)
-9. [Key Services](#key-services)
-10. [Configuration](#configuration)
-11. [Example Flows](#example-flows)
+5. [Multi-Tool Agent (ReAct)](#multi-tool-agent-react)
+6. [Available Tools](#available-tools)
+7. [Data Sources](#data-sources)
+8. [Key Services](#key-services)
+9. [Configuration](#configuration)
+10. [Example Flows](#example-flows)
 
 ---
 
@@ -36,7 +35,6 @@ MAP-IT is an intelligent research assistant for EU funding programs. It supports
 
 The system uses a sophisticated **agentic architecture** that can:
 
-- **Self-correct** when initial search results are insufficient
 - **Use multiple tools** to gather information from different sources
 - **Reason iteratively** to answer complex comparison and analysis questions
 - **Synthesize answers** from graph databases, vector stores, and external APIs
@@ -53,7 +51,7 @@ The system uses a sophisticated **agentic architecture** that can:
 | **Statistics** | Get success rates, funding amounts, participation data |
 | **Comparisons** | Compare programmes, countries, or funding types |
 | **Document Search** | Search official EU regulations and work programmes |
-| **Multi-Programme Search** | Search across all EU programmes (Horizon Europe, Erasmus+, Creative Europe, EU4Health, Digital Europe, LIFE) |
+| **Multi-Programme Search** | Search across all EU programmes |
 | **Programme Recommendations** | AI-powered recommendations for best-fit funding programmes |
 | **Proposal Quality Scoring** | Evaluate proposal sections using EU evaluation criteria |
 | **Geographic Analysis** | Analyze consortium geographic diversification patterns |
@@ -62,18 +60,18 @@ The system uses a sophisticated **agentic architecture** that can:
 
 ## V3 Simplified Architecture
 
-**Version 3.0** introduced a simplified architecture that removes intent classification in favor of a single agentic loop that handles all queries.
+**Version 3.0** introduced a simplified architecture that removes all intent classification in favor of a single agentic loop that handles all queries.
 
-> **Note:** As of December 2025, V1 and V2 have been completely removed from the codebase. The system now uses only V3 (conversation) and V4 (proposal sessions).
+> **Note:** As of May 2026, V1 and V2 architectures—including `AgenticManager`, `UnifiedIntentClassifier`, and legacy RAG modules—have been **completely removed** from the codebase. The system now exclusively uses V3 (chat) and V4 (proposal sessions).
 
 ### V3 Architecture Highlights
 
 | Aspect | Description |
 |--------|-------------|
-| **Intent Classification** | None - the agent decides what tools to use |
-| **Routing** | Single ToolAwareAgent handles all queries |
-| **Response Formatting** | Post-processor formats structured data with rich formatting |
-| **API Enrichment** | Automatic on-demand enrichment for missing call data |
+| **Intent Classification** | None - the agent dynamically decides what tools to use. |
+| **Routing** | Single `ToolAwareAgent` handles all queries. |
+| **Response Formatting** | Post-processor formats structured data with rich formatting (emojis, links). |
+| **API Enrichment** | Automatic on-demand enrichment for missing call data via EU Portal API. |
 
 ### V3 API Endpoints
 
@@ -112,49 +110,13 @@ The system uses a sophisticated **agentic architecture** that can:
 
 **4. CallEnrichmentService** - On-demand API enrichment
 - Fetches missing data from EU Portal API
-- Triggers when: `title.length < 20` OR `title == topic_code` OR `description.length < 50`
 - Caches enriched data in PostgreSQL
-- Works for both structured and vector search results
-
-### V3 Streaming Event Types
-
-```json
-{"type": "status", "stage": "processing", "message": "Processing your query..."}
-{"type": "agent_thinking", "content": "Analyzing query: find hydrogen funding calls..."}
-{"type": "tool_call", "tool": "search_funding_calls", "args": {"keywords": "hydrogen"}}
-{"type": "tool_result", "tool": "search_funding_calls", "result": {"calls_found": 15}}
-{"type": "token", "content": "I found **15 funding opportunities**..."}
-{"type": "complete", "metadata": {"architecture": "simplified_v3", "tools_used": [...]}}
-```
-
-### V3 Response Format Example
-
-```markdown
-I found **15 funding opportunities** for your query:
-
-**1. Competitiveness, energy security and integration aspects of advanced biofuels**
-📋 **Call ID:** HORIZON-CL5-2026-D3-02-01
-🔬 **Type:** RIA
-🟢 **Status:** Open
-⏰ **Deadline:** 05 Feb 2026
-🏛️ **Programme:** Cluster 5 - Climate, Energy and Mobility
-💰 **Budget:** EUR 20.00 million
-
-**Scope:** This topic focuses on advanced biofuels and renewable fuels...
-
-🔗 **Apply:** https://ec.europa.eu/info/funding-tenders/opportunities/portal/...
-
----
-
-💡 **How to Apply:**
-• **Register** on the EU Funding & Tenders Portal...
-```
 
 ---
 
 ## Architecture Diagram
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              USER QUERY                                      │
 └─────────────────────────────────┬───────────────────────────────────────────┘
@@ -175,12 +137,8 @@ I found **15 funding opportunities** for your query:
 │  Smart Behavior:                                                            │
 │  • Simple queries ("What is RIA?") → 1-2 iterations, fast                  │
 │  • Complex queries ("Compare EIC vs ERC") → Up to 5 iterations, thorough   │
-│  • 34 tools available: stats, docs, calls, projects, proposal, Erasmus+,   │
-│    Creative Europe, multi-programme, proposal quality, geographic analysis │
-│  • Speculative execution: pre-runs likely tools for faster responses       │
+│  • 42 tools available: stats, docs, calls, projects, proposal, all programmes   │
 │  • Plan caching: reuses query plans for repeated patterns                  │
-│                                                                             │
-│  Fallback: Simple loop only if ToolAwareAgent unavailable                  │
 └──────────────────────────────────┬──────────────────────────────────────────┘
                                    │
                               │
@@ -196,129 +154,31 @@ I found **15 funding opportunities** for your query:
 │  │ Relations   │  │ Chunks      │  │ Embeddings  │  │                     │ │
 │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        RESPONSE GENERATOR                                    │
-│  - Formats response with citations                                          │
-│  - Adds confidence indicators (high/medium/low)                             │
-│  - Shows reasoning trace for complex queries                                │
-│  - Streams tokens for real-time UX                                          │
-└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Query Processing Pipeline (V3)
 
-In V3, there is no intent classification. All queries go directly to the ToolAwareAgent.
+In V3, there is no intent classification. All queries go directly to the `ToolAwareAgent`.
 
 ### Phase 1: Query Reception
-
-The query is received via V3 API endpoints and passed directly to the ToolAwareAgent.
+The query is received via V3 API endpoints and passed directly to the `ToolAwareAgent`.
 
 ### Phase 2: Agentic Processing
-
-The ToolAwareAgent uses the ReAct pattern (Reasoning + Acting):
-
-1. **THINK**: Analyze query, decide which tools to use
-2. **ACT**: Call tools (can run multiple in parallel)
-3. **OBSERVE**: Review results from tools
-4. **REPEAT**: If more info needed, think again and call more tools
-5. **CONCLUDE**: Synthesize final answer from all gathered data
-
-**Smart Behavior:**
-- Simple queries ("What is RIA?") → 1-2 iterations, fast
-- Complex queries ("Compare EIC vs ERC") → Up to 5 iterations, thorough
-- 34 tools available: stats, docs, calls, projects, proposal support, Erasmus+, Creative Europe, multi-programme
+The `ToolAwareAgent` uses the ReAct pattern (Reasoning + Acting):
+1. **THINK**: Analyze query, decide which tools to use.
+2. **ACT**: Call tools (can run multiple in parallel).
+3. **OBSERVE**: Review results from tools.
+4. **REPEAT**: If more info needed, think again and call more tools.
+5. **CONCLUDE**: Synthesize final answer from all gathered data.
 
 ### Phase 3: Response Generation
-
 Results are synthesized into a final response with:
 - Answer text with rich formatting
 - Source citations
 - Confidence level
-- Reasoning trace (for complex queries)
 - Streaming tokens for real-time UX
-
----
-
-## Agentic Loop (Self-Correcting)
-
-**File:** `app/services/agents/agentic_manager.py`
-
-The Agentic Loop handles simpler queries with **automatic retry and refinement**.
-
-### How It Works
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Query: "What are consortium requirements?"                     │
-└──────────────────────────┬──────────────────────────────────────┘
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  ITERATION 1                                                    │
-│  📖 Understand → intent: faq, type: procedural                 │
-│  📋 Plan → vector search + keyword search                      │
-│  🔍 Execute → 3 results found                                  │
-│  📊 Evaluate → score: 0.45 (below 0.65 threshold) ❌           │
-│  🔍 Reflect → "Query too broad, results lack detail"           │
-└──────────────────────────┬──────────────────────────────────────┘
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  ITERATION 2                                                    │
-│  📋 Replan → Add keywords: "eligibility minimum partners"      │
-│  🔍 Execute → 8 results found                                  │
-│  📊 Evaluate → score: 0.82 (above threshold) ✅                │
-│  ✨ Synthesize → Generate final answer                         │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Components
-
-| Component | File | Purpose |
-|-----------|------|---------|
-| `AgentContext` | `agent_context.py` | Tracks state across iterations |
-| `ResultEvaluator` | `result_evaluator.py` | Scores results (0-100) |
-| `Reflector` | `reflector.py` | Analyzes why results were poor |
-| `Replanner` | `replanner.py` | Creates improved search strategy |
-
-### Evaluation Metrics (Hybrid: Rule + LLM)
-
-The `ResultEvaluator` uses a **hybrid approach**:
-
-1. **Rule-based scoring** (fast, free) - always runs first
-2. **LLM evaluation** (accurate, costs tokens) - only for uncertain cases (score 0.4-0.7)
-
-**Rule-Based Metrics:**
-| Metric | Weight | Description |
-|--------|--------|-------------|
-| Result Count | 20% | Enough results found? |
-| Relevance Score | 25% | Are results semantically relevant? |
-| Content Quality | 25% | Do results have detailed content? |
-| Query Coverage | 15% | Do results contain query terms? |
-| Source Diversity | 10% | Multiple sources used? |
-| Freshness | 5% | Recent information? |
-
-**LLM Evaluation (for edge cases):**
-- Triggered when rule-based score is 0.4-0.7 (uncertain zone)
-- Evaluates: relevance, completeness, accuracy, actionability
-- Combined: `final_score = (rule_based * 0.3) + (llm_score * 0.7)`
-
-**Threshold:** Results are **sufficient** if score ≥ 0.65
-
-### Root Cause Analysis
-
-When results are insufficient, the `Reflector` identifies the cause:
-
-| Root Cause | Action Taken |
-|------------|--------------|
-| `query_too_broad` | Refine with specific terms |
-| `query_too_narrow` | Broaden the search |
-| `wrong_source` | Switch data source |
-| `semantic_mismatch` | Use keyword search instead |
-| `temporal_mismatch` | Add year filters |
-| `entity_not_found` | Add entity context |
 
 ---
 
@@ -326,11 +186,11 @@ When results are insufficient, the `Reflector` identifies the cause:
 
 **File:** `app/services/agents/tool_aware_agent.py`
 
-For **complex queries** (comparisons, analysis, multi-source), the Tool-Aware Agent uses the **ReAct pattern** (Reasoning + Acting).
+For **all queries**, the Tool-Aware Agent uses the **ReAct pattern** (Reasoning + Acting) to orchestrate data retrieval.
 
 ### How It Works
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │  Query: "Compare EIC Accelerator vs ERC success rates"         │
 └──────────────────────────┬──────────────────────────────────────┘
@@ -349,12 +209,6 @@ For **complex queries** (comparisons, analysis, multi-source), the Tool-Aware Ag
 └──────────────────────────┬──────────────────────────────────────┘
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  🧠 THINK: "Need context to explain the differences"           │
-│  🔧 ACT: Call search_documents("EIC vs ERC differences")       │
-│  👀 OBSERVE: Got explanatory text                              │
-└──────────────────────────┬──────────────────────────────────────┘
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
 │  🎯 CONCLUDE: Synthesize answer from all gathered data         │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -366,914 +220,51 @@ For **complex queries** (comparisons, analysis, multi-source), the Tool-Aware Ag
 | **Parallel Execution** | Independent tool calls run simultaneously |
 | **Iterative Reasoning** | Up to 5 reasoning iterations |
 | **LLM-Driven Decisions** | Gemini decides which tools to call next |
-| **Fallback Logic** | Falls back to basic search if reasoning fails |
 
 ---
 
 ## Available Tools
 
-The system has **34 tools** available for the multi-tool agent:
-
-### Statistics Tools
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_programme_statistics` | Success rates, funding amounts for a programme | `programme`, `metric` (optional) |
-| `get_country_statistics` | Participation stats for a country | `country`, `programme` (optional) |
-
-**Example:**
-```python
-get_programme_statistics(programme='EIC Accelerator', metric='success_rate')
-# Returns: { "success_rate": 8.2, "total_funding": "1.2B EUR", ... }
-```
-
-### Comparison Tools
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `compare_programmes` | Compare two programmes side-by-side | `programme_a`, `programme_b`, `metrics` |
-
-**Example:**
-```python
-compare_programmes(programme_a='EIC', programme_b='ERC', metrics=['success_rate', 'avg_funding'])
-# Returns: { "EIC": {...}, "ERC": {...}, "comparison": {...} }
-```
-
-### Document Tools
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `search_documents` | Search official EU documents | `query`, `document_type` (optional), `max_results` |
-
-**Example:**
-```python
-search_documents(query='consortium eligibility RIA', document_type='regulation')
-# Returns: [{ "content": "...", "source": "Horizon Europe Regulation", ... }]
-```
-
-### Call Tools
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `search_funding_calls` | Find open/upcoming calls | `keywords`, `status`, `year` |
-| `get_call_details` | Get details for a specific call | `call_id` |
-
-**Example:**
-```python
-search_funding_calls(keywords='hydrogen energy', status='open', year=2025)
-# Returns: [{ "call_id": "HORIZON-CL5-2025-...", "deadline": "2025-04-15", ... }]
-```
-
-### Project Tools
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `search_projects` | Search CORDIS for funded projects (LOCAL-FIRST: PostgreSQL + Neo4j + Vector) | `keywords`, `programme`, `country` |
-| `get_project_details` | Get details for a project | `project_id` |
-| `find_similar_projects` | Find projects similar to a given project (graph-based) | `project_id`, `similarity_type` (topic/consortium/cluster) |
-| `find_semantically_similar_projects` | Find projects semantically similar using AI embeddings | `project_id`, `limit` |
-| `find_organization_projects` | Find all projects an organization participated in | `organization_name`, `role` (optional) |
-| `get_collaboration_network` | Get collaboration network for an organization | `organization_name` |
-| `search_by_cluster` | Find projects in a specific research cluster | `cluster` (name or code) |
-
-**Examples:**
-```python
-# Local-first project search with semantic matching (no API calls!)
-search_projects(keywords='quantum computing', country='Germany')
-# Returns: [{ "acronym": "...", "funding": "...", "participants": [...] }]
-# Note: Uses PostgreSQL full-text + Neo4j graph + Vector semantic search with RRF fusion
-
-# Find similar projects (graph-based: topic, consortium, or cluster)
-find_similar_projects(project_id='101000000', similarity_type='topic')
-# Returns: [{ "id": "...", "title": "...", "similarity_type": "topic", ... }]
-
-# Find semantically similar projects (AI embeddings - understands meaning)
-find_semantically_similar_projects(project_id='101000000', limit=10)
-# Returns: [{ "id": "...", "title": "...", "similarity_score": 0.85, ... }]
-# Note: Uses 768-dim embeddings to find conceptually similar projects
-
-# Organization projects
-find_organization_projects(organization_name='Fraunhofer', role='coordinator')
-# Returns: [{ "id": "...", "title": "...", "role": "coordinator", ... }]
-
-# Collaboration network
-get_collaboration_network(organization_name='CNRS')
-# Returns: { "organization": "CNRS", "partners": [...], "total_partners": 50 }
-
-# Cluster search
-search_by_cluster(cluster='Climate')
-# Returns: [{ "id": "...", "title": "...", "cluster_name": "Climate", ... }]
-```
-
-### Proposal Support Tools (Group 2)
-
-These tools help users improve proposal quality using **real data from 13,865+ funded projects**:
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_budget_benchmark` | Get budget statistics (HYBRID: Graph+SQL with weighted fusion) | `action_type`, `cluster`, `topic_keywords`, `include_org_type_breakdown`, `include_country_breakdown` |
-| `get_consortium_patterns` | Analyze consortium composition patterns (HYBRID: Graph+SQL with parallel queries) | `action_type`, `cluster`, `topic_keywords`, `include_successful_templates`, `include_coordinator_analysis` |
-| `find_experienced_partners` | Find organizations with track record (HYBRID: Graph+SQL with RRF fusion) | `keywords`, `country` (optional), `org_type` (optional), `limit` |
-| `get_similar_funded_projects` | Find semantically similar funded projects (HYBRID: Vector+Graph with combined scoring) | `description`, `cluster` (optional), `action_type` (optional), `limit`, `rerank_with_graph`, `include_graph_context` |
-| `analyze_call_history` | Analyze historical funding patterns (HYBRID: Graph+SQL with topic evolution) | `topic_pattern`, `cluster`, `keywords`, `year_from`, `year_to`, `include_topic_evolution`, `include_cluster_trends` |
-
-**Examples:**
-```python
-# Budget benchmarking - "What's typical for a Climate RIA?" (HYBRID: Graph+SQL)
-get_budget_benchmark(action_type='RIA', cluster='CL5', include_org_type_breakdown=True)
-# Returns: {
-#   "statistics": {
-#     "projects_analyzed": 496,
-#     "total_eu_contribution": {"min": 1.3M, "max": 20M, "average": 4.9M, "median": 4.5M},
-#     "consortium_size": {"average": 13.3, "median": 12}
-#   },
-#   "metadata": {
-#     "search_type": "hybrid",
-#     "sources_used": ["graph", "sql"],
-#     "graph_project_count": 496,
-#     "sql_project_count": 408
-#   },
-#   "consortium_context": {"avg_partners": 15.6, "avg_countries": 7.9, ...},
-#   "budget_by_org_type": [{"org_type": "REC", "percentage_of_total": 34.0, ...}, ...]
-# }
-
-# Consortium patterns - "What's the typical makeup of Health IAs?" (HYBRID: Graph+SQL)
-get_consortium_patterns(action_type='IA', cluster='HLTH', include_successful_templates=True, include_coordinator_analysis=True)
-# Returns: {
-#   "success": true,
-#   "consortium_size": {"avg_partners": 12.5, "avg_countries": 8.2},
-#   "org_type_distribution": {"HES": 35%, "REC": 28%, "PRC": 22%, "OTH": 15%},
-#   "country_distribution": {"Germany": 18%, "France": 14%, ...},
-#   "successful_templates": [{"project_acronym": "...", "budget": ..., "partner_count": 15, ...}],
-#   "coordinator_analysis": {"top_coordinators": [...]},
-#   "metadata": {
-#     "search_type": "hybrid",
-#     "sources_used": ["graph", "sql"],
-#     "inferred_clusters": []
-#   }
-# }
-
-# Partner discovery - "Find German SMEs with hydrogen experience" (HYBRID: Graph+SQL)
-find_experienced_partners(keywords='hydrogen fuel cells', country='Germany', org_type='SME', limit=10)
-# Returns: {
-#   "experienced_partners": [
-#     {"name": "...", "country": "DE", "project_count": 5, "experience_score": 0.82,
-#      "source": "both", "projects": [...], ...}
-#   ],
-#   "total_found": 47,
-#   "metadata": {
-#     "search_type": "hybrid",
-#     "sources_used": ["graph", "sql"],
-#     "graph_partners": 15,
-#     "sql_partners": 12,
-#     "inferred_clusters": ["CLUSTER-5"],
-#     "two_hop_partners_added": 8
-#   }
-# }
-
-# Similar projects - "Show funded projects like my AI healthcare idea" (HYBRID: Vector+Graph)
-get_similar_funded_projects(description='AI diagnostic imaging for early cancer detection', limit=5, rerank_with_graph=True)
-# Returns: {
-#   "similar_projects": [
-#     {"acronym": "AISCREEN", "similarity_score": 0.67, "combined_score": 0.72,
-#      "graph_context": {"similar_projects_in_cluster": 12}, ...}
-#   ],
-#   "metadata": {
-#     "search_type": "hybrid",
-#     "sources_used": ["vector", "graph"],
-#     "reranked_with_graph": true,
-#     "inferred_clusters": ["CLUSTER-1", "CLUSTER-4"]
-#   }
-# }
-
-# Call history - "What got funded in Cluster 4 over the years?" (HYBRID: Graph+SQL)
-analyze_call_history(cluster='CL4', year_from=2021, year_to=2025, include_topic_evolution=True, include_cluster_trends=True)
-# Returns: {
-#   "success": true,
-#   "calls_analyzed": 50,
-#   "projects_funded": 811,
-#   "total_funding_allocated": 4.79e9,
-#   "timeline": {2024: {"projects_funded": 289, "total_funding": ..., "calls": 15}, ...},
-#   "trends": {"funding_trend": "strongly_increasing", "year_over_year_funding_growth": 15.2},
-#   "topic_landscape": {"total_topics": 100, "top_topics": [...], "topics_by_year": {...}},
-#   "cluster_statistics": {"total_projects": 5000, "total_funding": 5.6e9, "avg_budget": 4.5e6},
-#   "metadata": {
-#     "search_type": "hybrid",
-#     "sources_used": ["graph", "sql"],
-#     "graph_trends_available": true,
-#     "inferred_clusters": []
-#   }
-# }
-
-# Call history with keyword inference (auto-detects cluster from keywords)
-analyze_call_history(keywords='hydrogen fuel cell', include_topic_evolution=True)
-# Returns: {
-#   "success": true,
-#   "metadata": {
-#     "inferred_clusters": ["CLUSTER-5"],  # Auto-inferred from keywords!
-#     "sources_used": ["graph", "sql"]
-#   },
-#   ...
-# }
-```
-
-**Design Philosophy:**
-- All data comes from **funded CORDIS projects** (no fake "AI scores" or success predictions)
-- Helps users understand **realistic benchmarks** for their proposals
-- Uses **768-dim embeddings** (Google text-embedding-004) for semantic similarity
-- Timeline aggregations query **all matching projects** for accurate statistics
-
-**Hybrid Graph+SQL Architecture (Tier 1 & 2 Tools):**
-The proposal support tools use a hybrid architecture for optimal results:
-- **Graph Service (Neo4j)**: Pre-aggregated statistics, relationship traversal, consortium patterns
-- **SQL Service (PostgreSQL)**: Keyword filtering, detailed breakdowns, full project details
-- **Parallel Execution**: Graph and SQL queries run in parallel via ThreadPoolExecutor
-- **Result Fusion**: RRF (Reciprocal Rank Fusion) or weighted averaging depending on the tool
-- **Cluster Inference**: Keywords automatically mapped to Horizon Europe clusters (CLUSTER-1 through CLUSTER-6)
-- **SQL Fallback**: Tools gracefully degrade to SQL-only if Neo4j is unavailable
-
-| Tool | Fusion Method | New Features |
-|------|---------------|--------------|
-| `get_budget_benchmark` | Weighted averaging (by project count) | Org type/country breakdowns, consortium context |
-| `find_experienced_partners` | RRF (k=60) | 2-hop discovery, SQL enrichment |
-| `get_consortium_patterns` | Weighted (60% SQL, 40% Graph) | Successful templates, coordinator analysis |
-| `analyze_call_history` | Merge with max values | Topic evolution, cluster trends, cluster statistics |
-| `calculate_budget` | Graph priority with SQL fallback | Cluster context, similar projects, data-grounded ratios |
-| `generate_timeline` | SQL duration stats with graph examples | Duration context, cluster-specific WPs, real project examples |
-
-### Erasmus+ Programme Tools
-
-These tools provide specialized support for Erasmus+ applications:
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `check_erasmus_eligibility` | Check eligibility for Erasmus+ actions | `key_action`, `sector`, `organization_type`, `country` |
-| `calculate_erasmus_budget` | Calculate Erasmus+ lump sum budgets | `key_action`, `sector`, `activity_type`, `participants`, `duration`, `destinations` |
-| `search_erasmus_templates` | Search Erasmus+ Programme Guide | `query`, `key_action`, `sector`, `document_type` |
-
-**Examples:**
-```python
-# Check eligibility for KA2 higher education partnerships
-check_erasmus_eligibility(key_action='KA2', sector='HED', organization_type='university', country='Germany')
-# Returns: { "eligible": true, "requirements": [...], "notes": [...] }
-
-# Calculate budget for KA1 student mobility
-calculate_erasmus_budget(
-    key_action='KA1',
-    sector='HED',
-    activity_type='student_mobility',
-    participants=50,
-    duration_days=150,
-    destinations=[{'country': 'France', 'count': 30}, {'country': 'Spain', 'count': 20}]
-)
-# Returns: { "total_budget": 125000, "breakdown": {...}, "unit_costs": {...} }
-
-# Search for quality criteria in Programme Guide
-search_erasmus_templates(query='quality criteria KA2 partnership', key_action='KA2')
-# Returns: [{ "content": "...", "section": "quality_criteria", ... }]
-```
-
-**Erasmus+ Funding Model:**
-- Uses **lump sum** funding (not actual cost reimbursement)
-- Unit costs based on activity type, duration, and destination
-- Travel bands calculated by distance (10-99km, 100-499km, 500-1999km, etc.)
-- Sector-specific rates for HED, VET, SCH, ADU, YOU, SPORT
-
-### Creative Europe Programme Tools
-
-These tools provide specialized support for Creative Europe applications across CULTURE, MEDIA, and CROSS-SECTORAL strands:
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `check_creative_europe_eligibility` | Check organization eligibility for Creative Europe actions | `org_type`, `country`, `action_type`, `strand`, `is_coordinator` |
-| `calculate_creative_europe_budget` | Calculate Creative Europe grant amounts | `action_type`, `requested_amount`, `project_scale`, `num_partners`, `strand` |
-| `search_creative_europe_templates` | Search Creative Europe documents (Work Programmes, CulturEU Guide) | `query`, `strand`, `action_type`, `topic`, `top_k` |
-
-**Examples:**
-```python
-# Check eligibility for MEDIA development slate funding
-check_creative_europe_eligibility(org_type='PRODUCTION', country='France', action_type='DEVSLATE')
-# Returns: { "eligible": true, "requirements": [...], "funding_rate": "70%", ... }
-
-# Check eligibility for CULTURE cooperation projects
-check_creative_europe_eligibility(org_type='CULTURAL_ORG', country='Germany', strand='CULTURE')
-# Returns: { "eligible": true, "eligible_actions": ["COOP-SMALL", "COOP-MEDIUM", "COOP-LARGE"], ... }
-
-# Calculate budget for medium cooperation project
-calculate_creative_europe_budget(action_type='COOP-MEDIUM', num_partners=6, project_scale='large')
-# Returns: { "max_grant": 1000000, "funding_rate": "80%", "budget_range": {...}, ... }
-
-# Get all MEDIA action budget information
-calculate_creative_europe_budget(action_type='OVERVIEW', strand='MEDIA')
-# Returns: { "actions": [{"name": "DEVSLATE", "max_grant": 210000, ...}, ...] }
-
-# Search for evaluation criteria
-search_creative_europe_templates(query='cooperation project evaluation criteria', strand='CULTURE')
-# Returns: [{ "content": "...", "source": "Work Programme 2026", ... }]
-```
-
-**Creative Europe Strands:**
-- **CULTURE**: European Cooperation Projects (small/medium/large scale), Networks, Platforms, Literary Translation
-- **MEDIA**: Development (slate, single, co-dev), Distribution, Training, Festivals, Cinema Networks, Audience Development
-- **CROSS-SECTORAL**: Creative Innovation Labs, News Media Partnerships, Media Literacy, Music Moves Europe
-
-**Creative Europe Funding Model:**
-- Uses **lump sum** funding with co-financing requirements
-- Funding rates vary by action: 60-80% of eligible costs
-- Budget caps per action type (e.g., €200K for COOP-SMALL, €1M for COOP-MEDIUM, €2M for COOP-LARGE)
-
-### Multi-Programme Tools
-
-These tools enable cross-programme search and recommendations across all EU funding programmes:
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `search_all_programmes` | Search for funding across all EU programmes | `keywords`, `programmes` (optional), `status`, `year` |
-| `recommend_programmes` | Get AI recommendations for best-fit funding programmes | `description`, `organization_type`, `sector` |
-| `get_programme_info` | Get detailed information about a specific EU programme | `programme` (optional) |
-
-**Supported Programmes:**
-- **Horizon Europe** (€95.5B): Research and innovation
-- **Erasmus+** (€26.2B): Education, training, youth, sport
-- **Creative Europe** (€2.44B): Culture, media, cross-sectoral
-- **EU4Health** (€5.3B): Health policy and crisis response
-- **Digital Europe** (€7.5B): Digital capacity building
-- **LIFE** (€5.4B): Environment and climate action
-
-**Examples:**
-```python
-# Search across all programmes for renewable energy funding
-search_all_programmes(keywords='renewable energy')
-# Returns: { "horizon_europe": [...], "life": [...], "digital_europe": [...] }
-
-# Search specific programmes only
-search_all_programmes(keywords='digital skills', programmes=['erasmus_plus', 'digital_europe'])
-# Returns: { "erasmus_plus": [...], "digital_europe": [...] }
-
-# Get programme recommendations for a project idea
-recommend_programmes(description='Develop AI tools for early cancer detection', organization_type='university')
-# Returns: [
-#   { "programme": "horizon_europe", "score": 0.95, "reason": "Research focus, university eligibility" },
-#   { "programme": "eu4health", "score": 0.72, "reason": "Health domain alignment" }
-# ]
-
-# Get detailed info about a programme
-get_programme_info(programme='creative_europe')
-# Returns: { "name": "Creative Europe", "budget": "€2.44B", "strands": [...], "actions": [...] }
-
-# Get overview of all programmes
-get_programme_info()
-# Returns: { "programmes": [{"id": "horizon_europe", ...}, {"id": "erasmus_plus", ...}, ...] }
-```
-
-### Geographic Diversification Tool
-
-This tool analyzes consortium geographic diversification patterns by European region groups:
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `analyze_geographic_diversification` | Analyze geographic diversity of country partners in consortia | `cluster`, `exclude_widening`, `min_partners`, `country_groups` |
-
-**Default Country Groups:**
-- **Nordic**: NO, DK, SE, FI
-- **South Europe**: ES, PT, IT, GR
-- **Western Europe**: FR, DE, BE, NL, LU (BENELUX)
-- **Baltic**: EE, LV, LT
-- **CEE**: PL, SK, CZ, HU, SI
-- **Western Balkans**: HR, RS, ME
-- **EPC (Eastern Partnership)**: MD, BY, UA, GE, AM, AZ
-- **Islands**: IE, UK, MT, CY
-
-**Example:**
-```python
-# Analyze geographic diversification in Cluster 2 (SSH) projects
-analyze_geographic_diversification(cluster='CL2', exclude_widening=True)
-# Returns: {
-#   "coverage_statistics": {
-#     "projects_with_5_groups": 45,
-#     "projects_with_6_groups": 30,
-#     "projects_with_7_groups": 15,
-#     "projects_with_8_groups": 5
-#   },
-#   "group_representation": {
-#     "Nordic": {"projects_count": 320, "percentage": 67},
-#     "South Europe": {"projects_count": 450, "percentage": 94},
-#     ...
-#   },
-#   "underrepresented_groups": ["EPC", "Western Balkans"],
-#   "recommendations": [...]
-# }
-```
-
-### Proposal Quality Scoring Tools
-
-These tools evaluate proposal quality using EU Horizon Europe evaluation criteria:
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `score_proposal_section` | Evaluate a single proposal section (0-5 score) | `content`, `section_type`, `section_id`, `action_type` |
-| `score_full_proposal` | Evaluate complete proposal (0-15 score) | `excellence_content`, `impact_content`, `implementation_content`, `action_type` |
-| `quick_quality_check` | Fast quality check without full AI evaluation | `text`, `context` |
-| `validate_budget` | Validate budget against EU funding rules | `total_cost`, `eu_contribution`, `action_type`, `duration_months`, `num_partners`, `cost_breakdown` |
-
-**Section Types:**
-- **Excellence**: Objectives, methodology, state-of-the-art
-- **Impact**: Pathways to impact, dissemination, exploitation
-- **Implementation**: Work plan, consortium composition, resources
-
-**Examples:**
-```python
-# Score an excellence section
-score_proposal_section(content='Our project aims to...', section_type='excellence')
-# Returns: {
-#   "score": 4.2,
-#   "quality_level": "Good",
-#   "strengths": ["Clear objectives", "Novel methodology"],
-#   "weaknesses": ["Limited state-of-the-art coverage"],
-#   "suggestions": ["Expand literature review"]
-# }
-
-# Score a full proposal
-score_full_proposal(
-    excellence_content='...',
-    impact_content='...',
-    implementation_content='...',
-    action_type='RIA'
-)
-# Returns: {
-#   "total_score": 12.5,
-#   "funding_probability": "High",
-#   "sections": {"excellence": 4.2, "impact": 4.0, "implementation": 4.3}
-# }
-
-# Validate a proposal budget
-validate_budget(
-    total_cost=4000000,
-    eu_contribution=4000000,
-    action_type='RIA',
-    num_partners=8
-)
-# Returns: {
-#   "compliance_score": 95,
-#   "funding_rate_valid": true,
-#   "issues": [],
-#   "recommendations": [...]
-# }
-```
+The system has **42 tools** available. For a detailed breakdown of all tools, please refer to the `docs/guides/TOOL_REFERENCE.md` file.
+
+### Tool Categories
+- **Statistics Tools**: `get_programme_statistics`, `get_country_statistics`, `get_organization_stats`, etc.
+- **Comparison Tools**: `compare_programmes`
+- **Document Tools**: `search_documents`, `search_erasmus_templates`, etc.
+- **Call Tools**: `search_funding_calls`, `get_call_details`, `search_all_programmes`
+- **Project Tools**: `search_projects`, `get_project_details`, `find_similar_projects`, `find_semantically_similar_projects`
+- **Proposal Support Tools**: `get_budget_benchmark`, `get_consortium_patterns`, `find_experienced_partners`, `calculate_budget`, `generate_timeline`
+- **Eligibility Checkers**: Specific tools for Erasmus+, Creative Europe, EU4Health, Digital Europe, and LIFE.
+- **Quality Scorer**: `score_proposal_section`, `score_full_proposal`, `validate_budget`
 
 ---
 
-## Data Sources
-
-### 1. Neo4j Graph Database
-
-**Purpose:** Statistics, patterns, relationships, project discovery
-
-**Contains:**
-- Programme success rates
-- Country participation data
-- Consortium patterns
-- Funding distributions
-- Organization relationships
-- Project-topic-cluster relationships
-- Organization collaboration networks
-
-**Queries via:** `GraphSearchService`
-
-**Project Discovery:**
-- Find similar projects (by topic, consortium, or cluster)
-- Organization project lookup
-- Collaboration network mapping
-- Cluster-based project search
-
-### 2. Supabase (pgvector)
-
-**Purpose:** Document storage and semantic search
-
-**Contains:**
-- Horizon Europe regulations
-- Work programmes (2023-2027)
-- Guidance documents
-- Call topic descriptions
-- Proposal templates
-
-**Tables:**
-- `horizon_documents` - Document metadata
-- `document_chunks` - Text chunks with embeddings
-- `funding_calls` - Structured call data
-
-**Queries via:** `VectorSearchService`
-
-### 3. CORDIS Database (Local PostgreSQL)
-
-**Purpose:** Funded project information with semantic search
-
-**Contains:**
-- All Horizon Europe funded projects (13,865+ projects indexed)
-- Project descriptions, objectives
-- Consortium compositions
-- Funding amounts
-- Publications, deliverables
-- **Vector embeddings** for semantic similarity (13,850 projects)
-
-**Tables:**
-- `projects` - Project metadata (title, objective, status, dates, budget)
-- `organizations` - Organization data (name, country, role, SME status)
-- `project_embeddings` - Vector embeddings (768-dim) for semantic search
-
-**Queries via:** `CordisProjectRepository` → `LocalProjectSearchService`
-
-**Search Capabilities:**
-- Full-text search with PostgreSQL tsquery
-- **Semantic vector search** with pgvector (cosine similarity)
-- Country/programme/status filtering
-- Multi-source fusion with Neo4j graph data using **RRF algorithm**
-- **100% local** - No external API calls
-
-**Embedding Details:**
-- Model: Google `text-embedding-004` (768 dimensions)
-- Content: Title + objective (first 2000 chars)
-- Index: IVFFlat with 100 lists for fast approximate search
-
-### 4. EU Portal API
-
-**Purpose:** Live call data enrichment
-
-**Used for:**
-- Fetching missing call details
-- Verifying deadlines
-- Getting latest status
-- Enriching local data
-
-**Queries via:** `CallEnrichmentService`
-
-### 5. Erasmus+ Data Sources
-
-**Purpose:** Erasmus+ programme guidance and funding calls
-
-**Contains:**
-- Programme Guide 2026 (537 document chunks)
-- Annual Work Programme 2026
-- Funding calls (277 calls: 216 closed, 51 open, 10 upcoming)
-
-**Coverage:**
-- Eligibility criteria for all Key Actions
-- Budget rules (lump sums, unit costs, travel bands)
-- Quality assessment criteria
-- Sector-specific requirements (HED, VET, SCH, ADU, YOU, SPORT)
-- Application deadlines and submission rounds
-
-**Key Actions:**
-- **KA1**: Learning Mobility of Individuals
-- **KA2**: Cooperation Partnerships, Small-Scale Partnerships, Capacity Building
-- **KA3**: Policy Support
-- **Jean Monnet**: EU Studies, Modules, Chairs, Centres of Excellence
-- **Sport**: Cooperation Partnerships, Not-for-Profit Events
-
-**Queries via:** `VectorSearchService` with `filters={"programme": "erasmus"}`
-
-### 6. Creative Europe Data Sources
-
-**Purpose:** Creative Europe programme guidance and funding calls
-
-**Contains:**
-- Annual Work Programmes (2021-2026)
-- CulturEU Funding Guide
-- Strand overviews (CULTURE, MEDIA, Cross-sectoral)
-- Green aspects quality assessment guide
-- Funding calls (128+ calls synced from EU Portal API)
-
-**Coverage:**
-- Eligibility criteria by strand and action type
-- Budget rules and funding rates
-- Evaluation criteria
-- Strand-specific guidance
-
-**Strands:**
-- **CULTURE**: European Cooperation Projects (small/medium/large), Networks, Platforms, Literary Translation
-- **MEDIA**: Development (slate, single, co-dev), Distribution, Training, Festivals, Cinema Networks, Audience Development
-- **CROSS-SECTORAL**: Creative Innovation Labs, News Media Partnerships, Media Literacy, Music Moves Europe
-
-**Neo4j Graph Data:**
-- `CreativeEuropeStrand` nodes (3): CULTURE, MEDIA, CROSS-SECTORAL
-- `CreativeEuropeAction` nodes (24): All action types with full metadata
-- `CreativeEuropeRegion` nodes (3): Country eligibility by strand
-- Relationships: `BELONGS_TO_STRAND`, `ALLOWS_COORDINATOR_FROM`, `ALLOWS_PARTNER_FROM`, `MEMBER_OF`
-
-**Queries via:** `VectorSearchService` with `filters={"programme": "creative_europe"}`
-
-### 7. EU4Health Data Sources
-
-**Purpose:** EU4Health programme guidance and funding calls
-
-**Contains:**
-- Work Programmes (2021-2027)
-- Funding calls synced from EU Portal API
-- Eligibility rules and action types
-
-**Coverage:**
-- Action Grants (direct and operating)
-- Joint Actions with Member States
-- Procurement actions
-- Priority areas: Crisis preparedness, Disease prevention, Health systems, Digital health
-
-**Supported Action Types:**
-- **PJ-DIRECT-ACTIONS**: Project Grants
-- **OG-DIRECT-ACTIONS**: Operating Grants
-- **JA-JOINT-ACTIONS**: Joint Actions
-- **PP-PUBLIC-PROC**: Procurement
-
-**Eligibility Checker:** `EU4HealthEligibilityTool` class in `app/services/tools/eu4health_eligibility.py`
-
-### 8. Digital Europe Data Sources
-
-**Purpose:** Digital Europe Programme guidance and funding calls
-
-**Contains:**
-- Work Programmes (2021-2027)
-- Funding calls synced from EU Portal API
-- Eligibility rules by Specific Objective
-
-**Coverage:**
-- High Performance Computing (HPC)
-- Artificial Intelligence (AI)
-- Cybersecurity
-- Advanced Digital Skills
-- Deployment & Best Use
-
-**Supported Objectives:**
-- **SO1-HPC**: High Performance Computing
-- **SO2-AI**: Artificial Intelligence
-- **SO3-CYBER**: Cybersecurity
-- **SO4-SKILLS**: Advanced Digital Skills
-- **SO5-DEPLOY**: Deployment, Best Use of Digital Capacity
-
-**Eligibility Checker:** `DigitalEuropeEligibilityTool` class in `app/services/tools/digital_europe_eligibility.py`
-
-### 9. LIFE Programme Data Sources
-
-**Purpose:** LIFE Programme guidance and funding calls
-
-**Contains:**
-- Multi-Annual Work Programme (2021-2027)
-- Funding calls synced from EU Portal API
-- Eligibility rules by sub-programme
-
-**Coverage:**
-- Nature and Biodiversity
-- Circular Economy and Quality of Life
-- Climate Change Mitigation and Adaptation
-- Clean Energy Transition
-
-**Supported Project Types:**
-- **SAP**: Standard Action Projects
-- **SIP**: Strategic Integrated Projects (Nature)
-- **SNAP**: Strategic Nature Projects
-- **TA**: Technical Assistance
-- **OG**: Operating Grants for NGOs
-
-**Eligibility Checker:** `LIFEEligibilityTool` class in `app/services/tools/life_eligibility.py`
-
----
-
-## Hybrid Graph+SQL Architecture
-
-### Partner Discovery Tool Enhancement
-
-The `find_experienced_partners` tool uses a **hybrid architecture** that combines Neo4j graph traversal with PostgreSQL keyword search for optimal partner discovery.
-
-### Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        PARTNER DISCOVERY REQUEST                             │
-│                 keywords: "hydrogen fuel cells"                              │
-│                 country: "Germany", org_type: "SME"                          │
-└─────────────────────────────┬───────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      CLUSTER INFERENCE                                       │
-│  Keywords → Horizon Europe Clusters                                          │
-│  "hydrogen" → CLUSTER-5 (Climate, Energy, Mobility)                         │
-│  "AI", "machine learning" → CLUSTER-4 (Digital, Industry, Space)            │
-└─────────────────────────────┬───────────────────────────────────────────────┘
-                              │
-              ┌───────────────┴───────────────┐
-              │                               │
-              ▼                               ▼
-┌─────────────────────────────┐ ┌─────────────────────────────────────────────┐
-│     GRAPH SERVICE           │ │           SQL SERVICE                        │
-│     (Neo4j)                 │ │           (PostgreSQL)                       │
-│                             │ │                                              │
-│  • Cluster-based discovery  │ │  • Full-text keyword search                  │
-│  • 2-hop partner discovery  │ │  • Complete project details                  │
-│  • Relationship traversal   │ │  • Country/type filtering                    │
-│  • Collaboration networks   │ │  • Role-based filtering                      │
-│                             │ │                                              │
-│  Returns: 15 partners       │ │  Returns: 12 partners                        │
-│  (may lack project details) │ │  (with full project info)                    │
-└─────────────────────────────┘ └─────────────────────────────────────────────┘
-              │                               │
-              └───────────────┬───────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    RRF FUSION (Reciprocal Rank Fusion)                       │
-│                                                                              │
-│  • Merge results from both sources (k=60)                                   │
-│  • Boost partners found in BOTH sources: +0.005                             │
-│  • Boost well-connected 2-hop partners: +0.002                              │
-│  • Deduplicate by normalized organization name                              │
-│                                                                              │
-│  Result: 20 unique partners, ranked by combined score                        │
-└─────────────────────────────┬───────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    SQL ENRICHMENT (Graph-Only Partners)                      │
-│                                                                              │
-│  • Partners from graph may lack project details                             │
-│  • Fetch project examples from SQL for graph-only partners                  │
-│  • Add project titles, funding, dates to enrich results                     │
-│                                                                              │
-│  Enriched: 5 graph-only partners now have project details                   │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Key Features
-
-| Feature | Description |
-|---------|-------------|
-| **Cluster Inference** | Maps research keywords to Horizon Europe clusters (CLUSTER-1 to CLUSTER-6) |
-| **Graph Discovery** | Neo4j traversal finds organizations through relationships, not just keywords |
-| **2-Hop Partners** | Discovers "partners of partners" - extended collaboration network |
-| **RRF Fusion** | Combines rankings from Graph and SQL using Reciprocal Rank Fusion |
-| **Score Boosting** | Partners in both sources get +0.005; connected 2-hop partners get +0.002 |
-| **SQL Enrichment** | Graph-only partners are enriched with SQL project details |
-
-### Cluster Keyword Mapping
-
-```python
-CLUSTER_KEYWORDS = {
-    'CLUSTER-1': ['health', 'medical', 'clinical', 'disease', 'pandemic', ...],
-    'CLUSTER-2': ['culture', 'heritage', 'democracy', 'migration', ...],
-    'CLUSTER-3': ['security', 'cybersecurity', 'border', 'defense', ...],
-    'CLUSTER-4': ['digital', 'AI', 'artificial intelligence', 'data', 'cloud', ...],
-    'CLUSTER-5': ['climate', 'energy', 'hydrogen', 'solar', 'wind', 'transport', ...],
-    'CLUSTER-6': ['food', 'agriculture', 'biodiversity', 'ocean', 'water', ...]
-}
-```
-
-### Response Metadata
-
-The tool returns detailed metadata about the hybrid search:
-
-```json
-{
-  "experienced_partners": [...],
-  "total_found": 20,
-  "metadata": {
-    "search_type": "hybrid",
-    "sources_used": ["graph", "sql"],
-    "graph_partners": 15,
-    "sql_partners": 12,
-    "merged_total": 20,
-    "inferred_clusters": ["CLUSTER-5"],
-    "two_hop_partners_added": 8,
-    "graph_partners_enriched": 5,
-    "graph_only_count": 5
-  }
-}
-```
-
-### File Location
-
-- **Implementation:** `app/services/tools/partner_discovery.py`
-- **Key Methods:**
-  - `_find_partners_hybrid()` - Main hybrid orchestration
-  - `_find_partners_graph()` - Neo4j graph-based discovery
-  - `_find_partners_sql()` - PostgreSQL keyword search
-  - `_find_2hop_partners()` - Partners of partners discovery
-  - `_merge_partner_results()` - RRF fusion with boosts
-  - `_enrich_graph_partners_with_sql()` - SQL enrichment for graph-only partners
-  - `_infer_clusters_from_keywords()` - Keyword to cluster mapping
-  - `get_collaboration_network()` - Get organization's collaboration network
-
----
-
-### Budget Benchmark Tool Enhancement
-
-The `get_budget_benchmark` tool uses a **hybrid architecture** that combines Neo4j pre-aggregated statistics with PostgreSQL keyword filtering for comprehensive budget benchmarks.
-
-### Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        BUDGET BENCHMARK REQUEST                              │
-│                 cluster: "CLUSTER-5", action_type: "RIA"                     │
-│                 topic_keywords: "hydrogen fuel cells"                        │
-└─────────────────────────────┬───────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      CLUSTER INFERENCE (if no cluster)                       │
-│  topic_keywords → Horizon Europe Clusters                                    │
-│  "hydrogen" → CLUSTER-5 (Climate, Energy, Mobility)                         │
-└─────────────────────────────┬───────────────────────────────────────────────┘
-                              │
-              ┌───────────────┼───────────────┬───────────────┐
-              │               │               │               │
-              ▼               ▼               ▼               ▼
-┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│  GRAPH STATS    │ │   SQL STATS     │ │ CONSORTIUM CTX  │ │ ORG TYPE/COUNTRY│
-│  (Neo4j)        │ │   (PostgreSQL)  │ │   (Neo4j)       │ │   (PostgreSQL)  │
-│                 │ │                 │ │                 │ │                 │
-│ Pre-aggregated  │ │ Keyword filter  │ │ Avg partners    │ │ Budget by HES   │
-│ cluster stats   │ │ Sample projects │ │ Avg countries   │ │ Budget by REC   │
-│ Budget ranges   │ │ Detailed stats  │ │ Top coordinators│ │ Budget by PRC   │
-│                 │ │                 │ │                 │ │ Top countries   │
-│ Returns: 496    │ │ Returns: 408    │ │                 │ │                 │
-└─────────────────┘ └─────────────────┘ └─────────────────┘ └─────────────────┘
-              │               │               │               │
-              └───────────────┼───────────────┴───────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    WEIGHTED FUSION (by project count)                        │
-│                                                                              │
-│  • Weight each source by project count                                      │
-│  • Weighted average for budget metrics                                      │
-│  • Use SQL for median (more accurate with filtering)                        │
-│  • Use extreme min/max from either source                                   │
-│  • Use max project count for confidence                                     │
-│                                                                              │
-│  Result: Comprehensive statistics with breakdowns                            │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Key Features
-
-| Feature | Description |
-|---------|-------------|
-| **Parallel Queries** | Graph, SQL, consortium, and breakdown queries run concurrently |
-| **Weighted Fusion** | Merges Graph and SQL stats weighted by project count |
-| **Cluster Inference** | Maps research keywords to Horizon Europe clusters automatically |
-| **Org Type Breakdown** | Budget distribution by HES, REC, PRC, PUB, OTH |
-| **Country Breakdown** | Top 15 countries by funding with coordination counts |
-| **Consortium Context** | Average partners, countries, top coordinator countries |
-
-### Response Metadata
-
-```json
-{
-  "statistics": {
-    "projects_analyzed": 496,
-    "total_eu_contribution": {"min": 1322523, "max": 19949437, "average": 4856520, "median": 4488616},
-    "consortium_size": {"average": 13.3, "median": 12}
-  },
-  "recommendations": {
-    "suggested_budget_range": "€3.4M - €5.5M",
-    "suggested_consortium_size": "10-15 partners",
-    "confidence": "high"
-  },
-  "metadata": {
-    "search_type": "hybrid",
-    "sources_used": ["graph", "sql"],
-    "graph_project_count": 496,
-    "sql_project_count": 408,
-    "inferred_clusters": ["CLUSTER-5"]
-  },
-  "consortium_context": {
-    "avg_partners": 15.6,
-    "avg_countries": 7.9,
-    "top_coordinator_countries": ["ES", "IT", "EL", "DE", "BE"]
-  },
-  "budget_by_org_type": {
-    "by_org_type": [
-      {"org_type": "REC", "percentage_of_total": 34.0, "total_contribution": 669624790},
-      {"org_type": "PRC", "percentage_of_total": 33.9, "total_contribution": 667374496},
-      {"org_type": "HES", "percentage_of_total": 27.6, "total_contribution": 543128363}
-    ]
-  }
-}
-```
-
-### File Location
-
-- **Implementation:** `app/services/tools/budget_benchmark.py`
-- **Key Methods:**
-  - `get_benchmark()` - Main entry point with all options
-  - `_get_benchmark_hybrid()` - Parallel query orchestration
-  - `_get_benchmark_graph()` - Neo4j pre-aggregated stats
-  - `_get_benchmark_sql()` - PostgreSQL keyword-filtered stats
-  - `_merge_benchmark_results()` - Weighted fusion of results
-  - `_get_budget_by_org_type()` - Breakdown by organization type
-  - `_get_budget_by_country()` - Breakdown by country
-  - `_get_consortium_context()` - Consortium patterns from graph
-  - `_infer_clusters_from_keywords()` - Keyword to cluster mapping
-  - `get_budget_trends()` - Funding trends over time
-  - `get_benchmark_comparison()` - Compare benchmarks across clusters
+## Data Sources & Hybrid Search
+
+The MAP-IT SA platform relies on a robust **Three-Tier Storage Architecture** to deliver high-precision results:
+
+### 1. Supabase / PostgreSQL (Relational + Vector)
+Our primary data hub, containing **35 active tables** and **15 views**.
+- **CORDIS Data**: Locally hosted project metadata (~14,000 projects) and organization participation details (~90,000 records).
+- **Knowledge Base**: Official EU document chunks (~40,000) for RAG.
+- **Vector Search**: High-dimensional embeddings (768-dim and 3072-dim) using `pgvector`.
+- **Hybrid Search Logic**: We utilize custom RPC functions like `hybrid_search` which combine:
+  - **Vector Similarity**: Cosine distance scoring.
+  - **Keyword Search**: PostgreSQL `ts_vector` and `ts_query` with GIN indexing.
+  - **Reciprocal Rank Fusion (RRF)**: Merging results from multiple search strategies.
+
+### 2. Neo4j Graph Database
+Handles relationship-aware queries that are computationally expensive in traditional SQL.
+- **Network Analysis**: Identifying experienced partners based on historical collaboration clusters.
+- **Pre-aggregated Statistics**: Fast retrieval of programme-level and country-level funding stats.
+- **Geographic Patterns**: Analyzing consortium diversification using graph traversal.
+
+### 3. EU Portal API (Live Sync)
+Ensures that time-sensitive data is always accurate.
+- **Call Enrichment**: Fetching the latest deadline updates and full call texts on-demand.
+- **Live Search**: Fallback for programmes not yet fully ingested into the local knowledge base.
+
+*(For an exhaustive breakdown of all 35 tables, see the [Database Schema Guide](../docs/DATABASE_SCHEMA.md))*
 
 ---
 
@@ -1283,30 +274,19 @@ The `get_budget_benchmark` tool uses a **hybrid architecture** that combines Neo
 
 | Service | File | Purpose |
 |---------|------|---------|
-| `ConversationManager` | `conversation_manager.py` | Main orchestrator |
-| `ToolAwareAgent` | `tool_aware_agent.py` | Multi-tool reasoning (primary) |
-| `AgenticManager` | `agentic_manager.py` | Self-correcting loop (fallback) |
-| `V3ResponseFormatter` | `response/v3_response_formatter.py` | Rich formatting for calls/projects |
+| `ConversationManager` | `conversation_manager.py` | Main orchestrator (Lean V3 version) |
+| `ToolAwareAgent` | `tool_aware_agent.py` | Multi-tool reasoning (Primary logic loop) |
+| `ProposalAwareAgent` | `proposal_aware_agent.py` | Specialized agent for V4 proposal sessions |
 
 ### Data Services
 
 | Service | File | Purpose |
 |---------|------|---------|
-| `DataIntelligenceService` | `data_intelligence_service.py` | Graph + Vector search |
-| `VectorSearchService` | `vector_search_service.py` | Semantic search |
-| `GraphSearchService` | `graph_service.py` | Neo4j queries |
-| `LocalCallSearchService` | `local_call_search_service.py` | Call search |
+| `DataIntelligenceService` | `data_intelligence_service.py` | Graph + Vector search orchestration |
+| `VectorSearchService` | `vector_search_service.py` | Semantic document search |
+| `GraphSearchService` | `graph_service.py` | Neo4j relationship queries |
+| `LocalCallSearchService` | `local_call_search_service.py` | Local and API-enriched call search |
 | `LocalProjectSearchService` | `local_project_search_service.py` | Multi-source project search (PostgreSQL + Neo4j + Vector) |
-| `CordisProjectRepository` | `data/cordis_repository.py` | PostgreSQL project data access |
-
-### Support Services
-
-| Service | File | Purpose |
-|---------|------|---------|
-| `QueryPlanner` | `query_planner.py` | LLM-based query planning |
-| `CrossEncoderReranker` | `cross_encoder_reranker.py` | Result reranking |
-| `CallEnrichmentService` | `call_enrichment_service.py` | API enrichment |
-| `MemoryService` | `memory_service.py` | Conversation memory |
 
 ---
 
@@ -1329,21 +309,11 @@ SUPABASE_KEY=your_key
 NEO4J_URI=bolt://neo4j:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=your_password
-
-# Redis (for caching)
-REDIS_URL=redis://redis:6379
 ```
 
 ### Agentic Configuration
 
 ```python
-# In agentic_manager.py
-AgenticManager(
-    max_iterations=3,        # Max self-correction attempts
-    sufficient_score=0.65,   # Quality threshold (0-1)
-    enable_multi_tool=True   # Enable ReAct agent
-)
-
 # In tool_aware_agent.py
 ToolAwareAgent(
     max_iterations=5         # Max reasoning iterations
@@ -1354,406 +324,32 @@ ToolAwareAgent(
 
 ## Example Flows
 
-### Example 1: Simple FAQ
+### V3 Call Search with Rich Formatting
 
-```
-User: "Can Switzerland participate in Horizon Europe?"
-
-1. Intent: faq (confidence: 0.95)
-2. Route: Agentic Manager (simple query)
-3. Iteration 1:
-   - Plan: vector search + keyword search
-   - Execute: 4 results found
-   - Evaluate: score 0.90 ✅ (sufficient)
-4. Response: "Yes, Switzerland can participate as an Associated Country..."
-```
-
-### Example 2: Complex Comparison
-
-```
-User: "Compare EIC Accelerator success rates with regular RIA grants"
-
-1. Intent: faq (confidence: 0.95)
-2. Complexity: comparison detected
-3. Route: Tool-Aware Agent (multi-tool)
-4. Reasoning:
-   - Step 1: get_programme_statistics(EIC) + get_programme_statistics(RIA)
-   - Step 2: compare_programmes(EIC, RIA)
-   - Step 3: search_documents("EIC vs RIA differences")
-5. Synthesize from 3 sources
-6. Response: "EIC Accelerator has ~8% success rate while RIA grants..."
-```
-
-### Example 3: Self-Correcting Search
-
-```
-User: "What are the consortium requirements?"
-
-1. Intent: faq
-2. Route: Agentic Manager
-3. Iteration 1:
-   - Execute: 3 results, low relevance
-   - Evaluate: score 0.42 ❌
-   - Reflect: "Query too broad"
-4. Iteration 2:
-   - Replan: Add "eligibility minimum partners EU"
-   - Execute: 8 results, high relevance
-   - Evaluate: score 0.85 ✅
-5. Response: "For RIA projects, you need at least 3 independent entities..."
-```
-
-### Example 4: V3 Call Search with Rich Formatting
-
-```
+```text
 User: "Find hydrogen funding calls" (via /api/v3/conversation/{id}/message/stream)
 
-1. No intent classification (V3 simplified)
-2. ToolAwareAgent receives query directly
-3. Agent thinking: "User wants funding calls about hydrogen"
-4. Tool call: search_funding_calls(keywords="hydrogen", status="open")
-5. Tool result: 15 calls found
-6. V3ResponseFormatter formats results:
+1. No intent classification. Query goes straight to ToolAwareAgent.
+2. Agent thinking: "User wants funding calls about hydrogen"
+3. Tool call: search_funding_calls(keywords="hydrogen", status="open")
+4. Tool result: 15 calls found
+5. V3ResponseFormatter formats results:
    - Enriches calls with missing titles via EU Portal API
    - Adds type icons (🔬 RIA, 🚀 IA, etc.)
    - Adds status icons (🟢 Open, 🟡 Upcoming)
    - Generates Apply links
-   - Adds application guidance footer
-7. Streaming events:
-   - {"type": "agent_thinking", "content": "User wants funding calls..."}
-   - {"type": "tool_call", "tool": "search_funding_calls", ...}
-   - {"type": "tool_result", "tool": "search_funding_calls", ...}
-   - {"type": "token", "content": "I found **15 funding opportunities**..."}
-   - {"type": "complete", "metadata": {"architecture": "simplified_v3"}}
+6. Streaming events emitted back to the user.
 ```
 
----
+### Partner Discovery (Hybrid Graph+SQL)
 
-## Streaming Response Format
+```text
+User: "Find German SMEs with hydrogen experience"
 
-When using the streaming endpoint, progress updates are sent as SSE:
-
-```json
-{"type": "status", "stage": "processing", "message": "Processing..."}
-{"type": "progress", "stage": "intent_detected", "message": "AI analyzed intent: faq"}
-{"type": "progress", "stage": "agentic_search", "message": "AI is using self-correcting search..."}
-{"type": "progress", "stage": "agentic_executing", "message": "Searching data sources..."}
-{"type": "progress", "stage": "agentic_search", "message": "Found 8 results", "count": 8}
-{"type": "progress", "stage": "agentic_evaluating", "message": "Found good results!"}
-{"type": "status", "stage": "generating_response", "message": "Generating response..."}
-{"type": "token", "content": "Based on the Horizon Europe regulation..."}
-{"type": "token", "content": "..."}
-{"type": "complete", "metadata": {"confidence": "high", "iterations": 1}}
+1. Agent calls: find_experienced_partners(keywords='hydrogen fuel cells', country='Germany', org_type='SME')
+2. Graph Service finds partners based on historical clusters and collaborations.
+3. SQL Service finds partners using exact keyword matches.
+4. Results are fused using Reciprocal Rank Fusion (RRF).
+5. Graph-only partners are enriched with SQL project details.
+6. Unified, highly relevant list returned to user.
 ```
-
----
-
-## Completed Improvements
-
-- [x] **Phase 1:** Self-correcting agentic loop
-- [x] **Phase 2:** LLM-based complexity detection (replaces regex!)
-- [x] **Phase 2:** LLM-based evaluation for edge cases (hybrid approach)
-- [x] **Multi-tool reasoning:** ReAct agent with 16 tools
-- [x] **Local-first project search:** PostgreSQL + Neo4j (no API dependency)
-- [x] **Graph-enhanced search:** Relationship-based project discovery (similar projects, org networks, clusters)
-- [x] **Phase 3:** Semantic project search with vector embeddings (13,850 projects embedded)
-  - Vector similarity search using Google `text-embedding-004` (768 dimensions)
-  - Three-source fusion: PostgreSQL full-text + Neo4j graph + Vector semantic search
-  - RRF (Reciprocal Rank Fusion) algorithm for combining results
-  - New tool: `find_semantically_similar_projects` for AI-powered similarity
-- [x] **V3 Simplified Architecture:**
-  - Single agentic loop (no intent classification)
-  - V3 API routes at `/api/v3/conversation/...`
-  - Rich response formatter (V3ResponseFormatter) with emojis, structured data, Apply links
-  - On-demand API enrichment for missing call data (titles, descriptions)
-  - SSE streaming events: `agent_thinking`, `tool_call`, `tool_result`, `token`, `complete`
-- [x] **Group 2 Proposal Support Tools (5 new tools):**
-  - `get_budget_benchmark`: Budget statistics from 13,865+ funded projects by action type/cluster
-  - `get_consortium_patterns`: Consortium composition analysis (org types, countries, coordinator profiles)
-  - `find_experienced_partners`: Partner discovery with track record scoring and filtering
-  - `get_similar_funded_projects`: Semantic project similarity using 768-dim embeddings
-  - `analyze_call_history`: Historical funding pattern analysis with timeline aggregation
-
-## Recently Implemented Improvements
-
-> **Latest Update:** January 23, 2026
-> **Previous Update:** January 3, 2026
-
-### January 23, 2026: Creative Europe, Multi-Programme & Quality Tools
-
-Major expansion with 11 new tools, bringing total to 34:
-
-**Creative Europe Programme Support:**
-- `check_creative_europe_eligibility`: Organization eligibility by strand/action
-- `calculate_creative_europe_budget`: Budget calculations with funding rates
-- `search_creative_europe_templates`: Document search for CE guidance
-- Full Neo4j graph integration with strand/action/region nodes
-
-**Multi-Programme Search:**
-- `search_all_programmes`: Cross-programme funding search
-- `recommend_programmes`: AI-powered programme recommendations
-- `get_programme_info`: Unified programme information
-
-**Proposal Quality Scoring:**
-- `score_proposal_section`: Section evaluation (0-5 score)
-- `score_full_proposal`: Full proposal evaluation (0-15 score)
-- `quick_quality_check`: Fast draft feedback
-- `validate_budget`: Budget rule compliance checking
-
-**Geographic Analysis:**
-- `analyze_geographic_diversification`: Consortium geographic diversity analysis
-
-### December 19, 2025: V1/V2 Removal
-
-V1 and V2 architectures have been completely removed from the codebase. The system now uses only:
-- **V3**: Conversation routes (`/api/v3/conversation/*`) - Simplified agentic architecture
-- **V4**: Proposal session routes - Unified AI Proposal Writer
-
-**Files Removed:**
-- Route files: `routes.py`, `conversation_routes.py`, `conversation_routes_v2.py`
-- Service files: `rag_service.py`, `enhanced_rag_service.py`, `celery_app.py`, `ai_agent.py`, `ai_intent_service.py`, `tool_orchestrator.py`, and others
-- Test files: Various V1/V2 test files
-- Config files: `docker-compose-v2.yml`, `requirements-v2.txt`
-
-All previous improvements have been implemented. See details below:
-
-| # | Improvement | Status | Files Created |
-|---|-------------|--------|---------------|
-| 1 | Plan caching for repeated query patterns | ✅ Implemented | `app/services/cache/query_plan_cache.py` |
-| 2 | Parallel execution within agentic iterations | ✅ Implemented | `app/services/cache/speculative_executor.py` |
-| 3 | Add more tools (budget calculator, timeline generator) | ✅ Implemented | `app/services/tools/budget_calculator.py`, `app/services/tools/timeline_generator.py` |
-| 4 | Implement tool usage analytics | ✅ Implemented | `app/services/analytics/tool_analytics_service.py`, `migration/008_tool_analytics.sql` |
-| 5 | Add user feedback loop for quality improvement | ✅ Implemented | `app/services/feedback/feedback_service.py`, `app/api/feedback_routes.py`, `migration/009_user_feedback.sql` |
-| 6 | Incremental embedding updates for new projects | ✅ Implemented | `app/services/embedding/incremental_embedding_service.py`, Celery tasks in `celery_app.py` |
-| 7 | V3 project formatter enhancements (publications, deliverables) | ✅ Implemented | Enhanced `app/services/response/v3_response_formatter.py`, new methods in `cordis_repository.py` |
-| 8 | Partner Discovery hybrid Graph+SQL architecture | ✅ Implemented | Enhanced `app/services/tools/partner_discovery.py` |
-| 9 | Budget Benchmark hybrid Graph+SQL architecture | ✅ Implemented | Enhanced `app/services/tools/budget_benchmark.py` |
-| 10 | Creative Europe Programme Tools (3 tools) | ✅ Implemented | `app/services/tools/creative_europe_*.py` |
-| 11 | Multi-Programme Tools (4 tools) | ✅ Implemented | `app/services/tools/multi_programme_search.py` |
-| 12 | Proposal Quality Scoring Tools (4 tools) | ✅ Implemented | `app/services/tools/proposal_scoring.py` |
-| 13 | Geographic Diversification Tool | ✅ Implemented | `app/services/tools/geographic_diversification.py` |
-| 14 | Creative Europe Neo4j Graph Integration | ✅ Implemented | `scripts/ingest_creative_europe_to_neo4j.py` |
-
-### Implementation Details
-
-**1. Plan Caching (QueryPlanCache)**
-- Redis-based caching for query plans
-- Pattern extraction: normalizes queries like "find hydrogen calls" → "{topic} calls"
-- Cache TTL: configurable, default 1 hour
-- Integrated with ToolAwareAgent for automatic plan reuse
-
-**2. Speculative Execution (SpeculativeExecutor)**
-- Pre-executes likely tools based on query patterns
-- Uses asyncio for parallel I/O operations
-- Reduces latency by 30-50% for common query patterns
-- Automatic cleanup of unused speculative results
-
-**3. New Tools**
-- `calculate_budget`: Generates detailed budget breakdowns (personnel, equipment, travel, subcontracting)
-- `generate_timeline`: Creates project timelines with work packages, deliverables, milestones
-- Both tools include Horizon Europe-specific benchmarks and recommendations
-
-**4. Tool Analytics**
-- Tracks tool usage, latency, success rates
-- Database tables: `tool_usage_analytics`, `tool_performance_metrics`, `tool_combination_analytics`
-- Buffered writes to minimize database overhead
-- Views for 24h performance metrics and popular tool combinations
-
-**5. User Feedback**
-- API endpoints at `/api/feedback/*`
-- Collects ratings (1-5), comments, and per-tool feedback
-- Database tables: `response_feedback`, `feedback_insights`
-- AI-powered improvement suggestions based on feedback patterns
-
-**6. Incremental Embeddings**
-- Celery task `update_embeddings` for background processing
-- Detects new, failed, or changed projects needing embeddings
-- Uses Google's text-embedding-004 model (768-dim vectors)
-- Processes in batches of 50 with configurable limits
-
-**7. V3 Formatter Enhancements**
-- `_format_single_project()` now includes publications, deliverables, impact metrics
-- New repository methods: `get_project_publications()`, `get_project_deliverables()`, `get_project_impact_metrics()`
-- Rich formatting with 📚 Publications and 📦 Deliverables sections
-
-**8. Partner Discovery Hybrid Graph+SQL Architecture (December 9, 2025)**
-- Combines Neo4j graph traversal with PostgreSQL keyword search for optimal results
-- **Graph Service**: Cluster-based discovery, 2-hop partners (partners of partners), collaboration networks
-- **SQL Service**: Full-text keyword search with complete project details
-- **RRF Fusion**: Reciprocal Rank Fusion (k=60) merges results from both sources
-- **Score Boosts**: Partners in both sources (+0.005), well-connected 2-hop partners (+0.002)
-- **SQL Enrichment**: Graph-only partners automatically enriched with SQL project details
-- **Cluster Inference**: Keywords mapped to Horizon Europe clusters (CLUSTER-1 to CLUSTER-6)
-- New methods: `_find_partners_hybrid()`, `_find_partners_graph()`, `_find_partners_sql()`, `_find_2hop_partners()`, `_merge_partner_results()`, `_enrich_graph_partners_with_sql()`, `_infer_clusters_from_keywords()`, `get_collaboration_network()`
-
-**9. Budget Benchmark Hybrid Graph+SQL Architecture (December 9, 2025)**
-- Combines Neo4j pre-aggregated statistics with PostgreSQL keyword filtering for comprehensive benchmarks
-- **Graph Service**: Pre-aggregated cluster statistics, budget ranges, consortium patterns
-- **SQL Service**: Keyword filtering, sample projects, detailed breakdowns, org type/country stats
-- **Weighted Fusion**: Merges results weighted by project count for accurate statistics
-- **Parallel Queries**: Graph, SQL, consortium context, and breakdown queries run concurrently
-- **New Breakdowns**: Budget by organization type (HES, REC, PRC, PUB, OTH), budget by country
-- **Cluster Inference**: Keywords mapped to Horizon Europe clusters automatically
-- New methods: `_get_benchmark_hybrid()`, `_get_benchmark_graph()`, `_get_benchmark_sql()`, `_merge_benchmark_results()`, `_get_budget_by_org_type()`, `_get_budget_by_country()`, `_get_consortium_context()`, `get_budget_trends()`, `get_benchmark_comparison()`
-
-### Tool Count Update
-
-The system now has **34 tools** available (increased from 23):
-- **Added for Creative Europe**: `check_creative_europe_eligibility`, `calculate_creative_europe_budget`, `search_creative_europe_templates`
-- **Added for Multi-Programme**: `search_all_programmes`, `recommend_programmes`, `get_programme_info`
-- **Added for Proposal Quality**: `score_proposal_section`, `score_full_proposal`, `quick_quality_check`, `validate_budget`
-- **Added for Geographic Analysis**: `analyze_geographic_diversification`
-
-### Creative Europe Integration (January 2026)
-
-Full integration of Creative Europe programme support:
-
-**Phase 1: Document Ingestion**
-- Ingested Work Programmes 2021-2026
-- Ingested CulturEU Funding Guide
-- Strand overviews and green aspects assessment guide
-- Full coverage of eligibility, budget rules, evaluation criteria
-
-**Phase 2: API Sync**
-- Synced 128+ Creative Europe funding calls from EU Portal API
-- CREA-CULT, CREA-MEDIA, CREA-CROSS topics
-- Automatic status tracking and deadline monitoring
-
-**Phase 3: Creative Europe Tools**
-- `check_creative_europe_eligibility`: Organization eligibility by strand and action type
-- `calculate_creative_europe_budget`: Budget calculations with funding rates and caps
-- `search_creative_europe_templates`: Document search with strand/action filtering
-
-**Phase 4: Neo4j Graph Integration**
-- Added Creative Europe reference data to Neo4j graph database
-- New node types: `CreativeEuropeAction`, `CreativeEuropeStrand`, `CreativeEuropeRegion`
-- New relationships: `BELONGS_TO_STRAND`, `ALLOWS_COORDINATOR_FROM`, `ALLOWS_PARTNER_FROM`, `MEMBER_OF`
-- Graph-based eligibility checking for action/country rules
-
-**Neo4j Creative Europe Schema:**
-```
-(CreativeEuropeAction) -[:BELONGS_TO_STRAND]-> (CreativeEuropeStrand)
-                       -[:ALLOWS_COORDINATOR_FROM]-> (CreativeEuropeRegion)
-                       -[:ALLOWS_PARTNER_FROM]-> (CreativeEuropeRegion)
-(Country) -[:MEMBER_OF]-> (CreativeEuropeRegion)
-```
-
-**New Graph Methods in `graph_service.py`:**
-- `get_creative_europe_actions(strand, action_type)` - Get actions with metadata
-- `get_creative_europe_strands()` - Get all strands with action counts
-- `check_creative_europe_country_eligibility(country_code, action_code)` - Country-based eligibility
-- `get_creative_europe_action_details(action_code)` - Detailed action requirements
-
-**Files Created:**
-- `app/services/tools/creative_europe_eligibility.py`
-- `app/services/tools/creative_europe_budget_calculator.py`
-- `app/services/tools/creative_europe_template_search.py`
-- `scripts/ingest_creative_europe_documents.py`
-- `scripts/sync_creative_europe_calls.py`
-- `scripts/ingest_creative_europe_to_neo4j.py`
-
-### Multi-Programme Integration (January 2026)
-
-Cross-programme search and recommendation capabilities:
-
-**Features:**
-- Search across all 6 EU funding programmes in one query
-- AI-powered programme recommendations based on project description
-- Unified programme information endpoint
-
-**New Tools:**
-- `search_all_programmes`: Cross-programme funding search
-- `recommend_programmes`: AI recommendations for best-fit programmes
-- `get_programme_info`: Detailed programme information
-
-**Supported Programmes:**
-- Horizon Europe (€95.5B)
-- Erasmus+ (€26.2B)
-- Creative Europe (€2.44B)
-- EU4Health (€5.3B)
-- Digital Europe (€7.5B)
-- LIFE (€5.4B)
-
-### Proposal Quality Scoring (January 2026)
-
-New tools for proposal quality evaluation:
-
-**Features:**
-- Section-by-section scoring using EU evaluation criteria
-- Full proposal evaluation with funding probability
-- Budget validation against EU funding rules
-- Quick quality checks for draft feedback
-
-**New Tools:**
-- `score_proposal_section`: Evaluate single sections (0-5 score)
-- `score_full_proposal`: Full proposal evaluation (0-15 score)
-- `quick_quality_check`: Fast draft feedback
-- `validate_budget`: Budget rule compliance checking
-
-### Geographic Diversification Analysis (January 2026)
-
-New tool for consortium geographic analysis:
-
-**Features:**
-- Analyze geographic diversity by European region groups
-- Coverage statistics across 8 default country groups
-- Identify underrepresented regions
-- Consortium building recommendations
-
-**New Tool:**
-- `analyze_geographic_diversification`: Geographic diversity analysis
-
-### Erasmus+ Integration (January 2026)
-
-Full integration of Erasmus+ programme support:
-
-**Phase 1: Document Ingestion**
-- Ingested Erasmus+ Programme Guide 2026 (537 document chunks)
-- Ingested Annual Work Programme 2026
-- Full coverage of eligibility, budget rules, quality criteria, all Key Actions
-
-**Phase 2: API Sync**
-- Synced 277 Erasmus+ funding calls from EU Portal API
-- 216 closed, 51 open, 10 upcoming calls
-- Automatic status tracking and deadline monitoring
-
-**Phase 3: Erasmus+ Tools**
-- `check_erasmus_eligibility`: Organization/participant eligibility by KA and sector
-- `calculate_erasmus_budget`: Lump sum calculations with unit costs and travel bands
-- `search_erasmus_templates`: Programme Guide search with section detection
-
-**Phase 4: Template Infrastructure**
-- Created template ingestion script (`scripts/ingest_erasmus_templates.py`)
-- Directory structure for templates by Key Action and sector
-- Automatic categorization by document type
-
-**Phase 5: Neo4j Graph Integration**
-- Added Erasmus+ reference data to Neo4j graph database
-- New node types: `ErasmusAction`, `ErasmusSector`, `PartnerRegion`
-- New relationships: `AVAILABLE_IN`, `REQUIRES_COORDINATOR_FROM`, `ALLOWS_PARTNERS_FROM`, `MEMBER_OF`
-- Graph-based eligibility checking for dynamic action/country rules
-- Hybrid mode: Neo4j enriches hardcoded rules with budget/duration data
-
-**Neo4j Erasmus+ Schema:**
-```
-(ErasmusAction) -[:AVAILABLE_IN]-> (ErasmusSector)
-              -[:REQUIRES_COORDINATOR_FROM]-> (PartnerRegion)
-              -[:ALLOWS_PARTNERS_FROM]-> (PartnerRegion)
-(Country) -[:MEMBER_OF]-> (PartnerRegion)
-```
-
-**New Graph Methods in `graph_service.py`:**
-- `get_erasmus_actions(key_action, sector)` - Get actions with metadata
-- `get_erasmus_sectors()` - Get all sectors with action counts
-- `check_erasmus_country_eligibility(country_code, action_code)` - Country-based eligibility
-- `get_erasmus_action_details(action_code)` - Detailed action requirements
-- `find_eligible_erasmus_actions(country_code, sector, role)` - Find eligible actions
-- `get_partner_regions()` - Get all partner regions with countries
-
-**Files Created:**
-- `app/services/tools/erasmus_eligibility.py`
-- `app/services/tools/erasmus_budget_calculator.py`
-- `app/services/tools/erasmus_template_search.py`
-- `scripts/ingest_erasmus_documents.py`
-- `scripts/sync_erasmus_calls_from_api.py`
-- `scripts/ingest_erasmus_templates.py`
-- `scripts/ingest_erasmus_to_neo4j.py` - Populate Neo4j with Erasmus+ reference data
