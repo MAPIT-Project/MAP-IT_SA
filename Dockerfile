@@ -2,6 +2,13 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
+# Install system dependencies required for building lxml and other packages
+RUN apt-get update && apt-get install -y \
+    libxml2-dev \
+    libxslt1-dev \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy requirements first for better caching
 COPY requirements.txt .
 
