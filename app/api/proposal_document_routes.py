@@ -197,6 +197,47 @@ async def get_proposal_document(proposal_id: int):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
+@router.delete("/{proposal_id}")
+async def delete_proposal(proposal_id: int):
+    """
+    Delete a proposal and its sections.
+    """
+    try:
+        db_pool = get_db_pool()
+        if not db_pool:
+            raise HTTPException(status_code=503, detail="Database not available")
+
+        conn = db_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                # Try to delete sections first (in case ON DELETE CASCADE is missing)
+                cursor.execute(
+                    "DELETE FROM proposal_sections WHERE proposal_id = %s", (proposal_id,)
+                )
+
+                # Delete proposal
+                cursor.execute("DELETE FROM proposals WHERE id = %s RETURNING id", (proposal_id,))
+
+                if not cursor.fetchone():
+                    conn.rollback()
+                    raise HTTPException(status_code=404, detail="Proposal not found")
+
+                conn.commit()
+                return {"message": "Proposal deleted successfully"}
+
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            db_pool.putconn(conn)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting proposal: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
 @router.get("/{proposal_id}/section/{section_id}", response_model=ProposalSectionResponse)
 async def get_proposal_section(proposal_id: int, section_id: str):
     """
@@ -530,7 +571,7 @@ class ProposalCreateRequest(BaseModel):
     """Request model for creating a new proposal"""
 
     call_id: str
-    proposal_title: str
+    proposal_title: str | None = None
     proposal_acronym: str | None = None
     proposal_type: str | None = "RIA"
     user_id: str | None = None
@@ -741,7 +782,35 @@ async def create_proposal(request: ProposalCreateRequest):
         cursor = conn.cursor()
 
         try:
+            from ..services.call_document_service import CallDocumentService
+
+            # Determine proposal type and other details from call documents
+            call_doc_service = CallDocumentService(db_pool)
+            call_doc_service.get_call_documents(request.call_id)
+
+            # Get metadata to fill missing fields
+            metadata = call_doc_service.get_call_metadata(request.call_id)
+
+            title = request.proposal_title
+            acronym = request.proposal_acronym
             proposal_type = request.proposal_type or "RIA"
+
+            if metadata:
+                title = title or metadata.get("title") or "New Proposal"
+                acronym = acronym or f"PROJ-{request.call_id.split('-')[-1]}"
+
+                types_of_action = metadata.get("types_of_action", [])
+                if types_of_action:
+                    action_str = types_of_action[0]
+                    if "RIA" in action_str:
+                        proposal_type = "RIA"
+                    elif "IA" in action_str:
+                        proposal_type = "IA"
+                    elif "CSA" in action_str:
+                        proposal_type = "CSA"
+            else:
+                title = title or "New Proposal"
+                acronym = acronym or "NEWPROJ"
 
             # Insert the proposal
             cursor.execute(
@@ -753,8 +822,8 @@ async def create_proposal(request: ProposalCreateRequest):
             """,
                 (
                     request.call_id,
-                    request.proposal_title,
-                    request.proposal_acronym or "",
+                    title,
+                    acronym,
                     proposal_type,
                     request.user_id,
                 ),
@@ -790,8 +859,8 @@ async def create_proposal(request: ProposalCreateRequest):
                 "proposal": {
                     "proposal_id": proposal_id,
                     "call_id": request.call_id,
-                    "proposal_title": request.proposal_title,
-                    "proposal_acronym": request.proposal_acronym or "",
+                    "proposal_title": title,
+                    "proposal_acronym": acronym,
                     "proposal_type": proposal_type,
                     "status": "draft",
                     "created_at": created_at.isoformat() if created_at else "",

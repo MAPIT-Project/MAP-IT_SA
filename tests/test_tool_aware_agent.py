@@ -20,6 +20,9 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Pre-import ToolAwareAgent to prevent Pydantic settings reload issues
+from app.services.agents.tool_aware_agent import ToolAwareAgent
+
 # Import google.generativeai so it exists in sys.modules before patching
 try:
     import google.generativeai as genai
@@ -52,7 +55,6 @@ class TestToolAwareAgentInitialization:
 
     def test_agent_initialization(self):
         """Test basic agent initialization."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -60,7 +62,6 @@ class TestToolAwareAgentInitialization:
 
     def test_max_iterations_configurable(self):
         """Test max iterations is configurable."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent(max_iterations=3)
 
@@ -68,7 +69,6 @@ class TestToolAwareAgentInitialization:
 
     def test_default_max_iterations(self):
         """Test default max iterations."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -80,7 +80,6 @@ class TestToolDefinitions:
 
     def test_tool_definitions_exist(self):
         """Test that tool definitions are available."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -89,7 +88,6 @@ class TestToolDefinitions:
 
     def test_search_funding_calls_tool(self):
         """Test search_funding_calls tool is defined."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -99,7 +97,6 @@ class TestToolDefinitions:
 
     def test_search_projects_tool(self):
         """Test search_projects tool is defined."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         ToolAwareAgent()
 
@@ -113,7 +110,6 @@ class TestQueryProcessing:
     @pytest.fixture
     def mock_agent(self):
         """Create mock agent for testing."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -171,7 +167,6 @@ class TestReActLoop:
 
     def test_iteration_count_tracked(self):
         """Test iteration count is tracked."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
         mock_response = MagicMock()
@@ -189,7 +184,6 @@ class TestReActLoop:
 
     def test_max_iterations_respected(self):
         """Test max iterations limit is respected."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent(max_iterations=2)
 
@@ -217,7 +211,6 @@ class TestContextHandling:
 
     def test_conversation_context_included(self):
         """Test conversation context is included in processing."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
         mock_response = MagicMock()
@@ -243,7 +236,6 @@ class TestContextHandling:
 
     def test_conversation_history_used(self):
         """Test conversation history is used."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
         mock_response = MagicMock()
@@ -274,7 +266,6 @@ class TestToolExecution:
 
     def test_tool_results_recorded(self):
         """Test tool results are recorded."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -296,7 +287,6 @@ class TestToolExecution:
 
     def test_sources_used_tracked(self):
         """Test sources used are tracked."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
         mock_response = MagicMock()
@@ -318,7 +308,6 @@ class TestReasoningSteps:
 
     def test_reasoning_steps_recorded(self):
         """Test reasoning steps are recorded."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
         mock_response = MagicMock()
@@ -338,7 +327,6 @@ class TestReasoningSteps:
 
     def test_reasoning_steps_include_thought(self):
         """Test reasoning steps include thought."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -369,7 +357,6 @@ class TestErrorHandling:
 
     def test_handles_llm_error(self):
         """Test handling LLM errors gracefully."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -386,7 +373,6 @@ class TestErrorHandling:
 
     def test_handles_tool_error(self):
         """Test handling tool execution errors."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
         mock_response = MagicMock()
@@ -413,7 +399,6 @@ class TestResponseSynthesis:
 
     def test_answer_generated(self):
         """Test answer is generated."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
         mock_response = MagicMock()
@@ -431,7 +416,6 @@ class TestResponseSynthesis:
 
     def test_answer_not_empty(self):
         """Test answer is not empty."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
         mock_response = MagicMock()
@@ -454,7 +438,6 @@ class TestQueryPlanCacheIntegration:
 
     def test_cache_checked_before_planning(self):
         """Test cache is checked before planning."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -484,7 +467,6 @@ class TestToolCount:
 
     def test_agent_has_tools(self):
         """Test agent has tools available."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -498,7 +480,6 @@ class TestSpeculativeExecutorIntegration:
 
     def test_speculative_executor_available(self):
         """Test speculative executor is available."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -510,7 +491,6 @@ class TestEdgeCases:
 
     def test_empty_query(self):
         """Test handling empty query."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
         mock_response = MagicMock()
@@ -528,7 +508,6 @@ class TestEdgeCases:
 
     def test_very_long_query(self):
         """Test handling very long query."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
         mock_response = MagicMock()
@@ -554,7 +533,6 @@ class TestQualityAnalysisIntegration:
 
     def test_agent_has_quality_analyzer(self):
         """Test that agent initializes quality analyzer by default."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -564,7 +542,6 @@ class TestQualityAnalysisIntegration:
 
     def test_agent_quality_analyzer_can_be_disabled(self):
         """Test that quality analyzer can be disabled."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent(enable_quality_analysis=False)
 
@@ -573,7 +550,6 @@ class TestQualityAnalysisIntegration:
 
     def test_analyze_response_quality_method_exists(self):
         """Test that _analyze_response_quality method exists."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -582,7 +558,6 @@ class TestQualityAnalysisIntegration:
 
     def test_analyze_response_quality_returns_dict(self):
         """Test that _analyze_response_quality returns a dict or None."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -604,7 +579,6 @@ class TestQualityAnalysisIntegration:
 
     def test_analyze_response_quality_with_deflection(self):
         """Test quality analysis detects deflection responses."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 
@@ -622,7 +596,6 @@ class TestQualityAnalysisIntegration:
 
     def test_process_query_includes_quality_analysis(self):
         """Test that process_query includes quality_analysis in result."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
         mock_response = MagicMock()
@@ -657,7 +630,6 @@ class TestQualityAnalysisIntegration:
 
     def test_quality_analysis_handles_tool_results(self):
         """Test quality analysis with tool results."""
-        from app.services.agents.tool_aware_agent import ToolAwareAgent
 
         agent = ToolAwareAgent()
 

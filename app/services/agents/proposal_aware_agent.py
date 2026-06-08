@@ -19,6 +19,7 @@ from collections.abc import AsyncGenerator
 from datetime import datetime
 from typing import Any
 
+from .prompts import REASONING_PROMPT
 from .tool_aware_agent import AgentPlan, ReasoningStep, Tool, ToolAwareAgent, ToolCall, ToolCategory
 
 logger = logging.getLogger(__name__)
@@ -325,8 +326,9 @@ When the user asks to "evaluate" or "score" a section:
             Full prompt string
         """
         # Build the standard prompt
-        base_prompt = self.REASONING_PROMPT.format(
-            built_in_knowledge=self.BUILT_IN_KNOWLEDGE,
+        selected_knowledge = self._select_knowledge_sections(query, context)
+        base_prompt = REASONING_PROMPT.format(
+            built_in_knowledge=selected_knowledge,
             tools_description=self._get_tools_description(),
             context=context,
             query=query,
@@ -396,6 +398,28 @@ When the user asks to "evaluate" or "score" a section:
             Dict with answer, reasoning steps, sources, and any sections affected
         """
         start_time = datetime.now()
+
+        # Try to append call metadata context
+        try:
+            if self.session_manager and session_id:
+                session = await self.session_manager.get_session(session_id)
+                if session and session.document and session.document.call_id:
+                    from ..call_document_service import CallDocumentService
+
+                    call_doc_service = CallDocumentService(self.session_manager.db_pool)
+                    call_metadata = call_doc_service.get_call_metadata(session.document.call_id)
+                    if call_metadata:
+                        call_context_str = "\n\n### Call Metadata Context\n"
+                        for k, v in call_metadata.items():
+                            if v and k not in [
+                                "raw_api_response",
+                                "api_data_url",
+                                "eligibility_conditions_html",
+                            ]:
+                                call_context_str += f"- **{k}**: {v}\n"
+                        proposal_context += call_context_str
+        except Exception as e:
+            logger.warning(f"Could not load call metadata for context: {e}")
 
         # Store session context for tool execution
         self._current_session_id = session_id

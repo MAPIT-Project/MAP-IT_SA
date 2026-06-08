@@ -44,9 +44,9 @@ router = APIRouter(prefix="/api/proposal", tags=["Proposal Writing"])
 
 class ProposalCreate(BaseModel):
     call_id: str = Field(..., description="Call identifier")
-    title: str = Field(..., description="Proposal title")
+    title: str | None = Field(None, description="Proposal title")
     acronym: str | None = Field(None, description="Proposal acronym")
-    project_idea: str = Field(..., description="Brief project description")
+    project_idea: str | None = Field(None, description="Brief project description")
     research_area: str | None = None
     duration_months: int | None = 36
     estimated_budget: float | None = None
@@ -140,10 +140,34 @@ async def create_proposal(proposal: ProposalCreate, db_pool=Depends(get_db_pool)
 
         # Determine proposal type from call documents
         call_doc_service = CallDocumentService(db_pool)
-        await call_doc_service.get_call_documents(proposal.call_id)
+        call_doc_service.get_call_documents(proposal.call_id)
 
-        # Simple type detection (can be enhanced)
+        # Get metadata to fill missing fields
+        metadata = call_doc_service.get_call_metadata(proposal.call_id)
+
+        title = proposal.title
+        acronym = proposal.acronym
+        project_idea = proposal.project_idea
         proposal_type = "RIA"  # Default
+
+        if metadata:
+            title = title or metadata.get("title") or "New Proposal"
+            project_idea = project_idea or metadata.get("summary") or ""
+            acronym = acronym or f"PROJ-{proposal.call_id.split('-')[-1]}"
+
+            types_of_action = metadata.get("types_of_action", [])
+            if types_of_action:
+                action_str = types_of_action[0]
+                if "RIA" in action_str:
+                    proposal_type = "RIA"
+                elif "IA" in action_str:
+                    proposal_type = "IA"
+                elif "CSA" in action_str:
+                    proposal_type = "CSA"
+        else:
+            title = title or "New Proposal"
+            acronym = acronym or "NEWPROJ"
+            project_idea = project_idea or ""
 
         # Insert proposal
         cursor.execute(
@@ -158,10 +182,10 @@ async def create_proposal(proposal: ProposalCreate, db_pool=Depends(get_db_pool)
         """,
             (
                 proposal.call_id,
-                proposal.title,
-                proposal.acronym,
+                title,
+                acronym,
                 proposal_type,
-                proposal.project_idea,
+                project_idea,
                 proposal.research_area,
                 proposal.duration_months,
                 proposal.estimated_budget,
