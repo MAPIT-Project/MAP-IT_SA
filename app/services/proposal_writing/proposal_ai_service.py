@@ -57,7 +57,7 @@ class ProposalAIService:
         import google.generativeai as genai
 
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        self._fallback_model = genai.GenerativeModel("gemini-2.0-flash-lite")
+        self._fallback_model = genai.GenerativeModel("gemini-3-flash-preview")
         self._multi_provider = None
         logger.info("Using fallback direct Gemini connection")
 

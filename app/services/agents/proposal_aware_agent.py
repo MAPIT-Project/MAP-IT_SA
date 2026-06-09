@@ -972,7 +972,10 @@ When the user asks to "evaluate" or "score" a section:
         try:
             from ..tools.proposal_tools import get_proposal_tool_executor
 
-            executor = get_proposal_tool_executor(session_manager=self.session_manager)
+            executor = get_proposal_tool_executor(
+                session_manager=self.session_manager,
+                db_pool=getattr(self.session_manager, "db_pool", None),
+            )
             return await executor.execute_tool(
                 tool_name=tool_name,
                 parameters=parameters,

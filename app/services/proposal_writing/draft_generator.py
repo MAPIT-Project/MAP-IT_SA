@@ -28,7 +28,7 @@ class ProposalDraftGenerator:
 
         # Initialize Gemini
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        self.model = genai.GenerativeModel("gemini-2.0-flash-lite")
+        self.model = genai.GenerativeModel("gemini-3-flash-preview")
 
     async def generate_section_draft(
         self, call_id: str, section_id: str, user_context: dict[str, Any]

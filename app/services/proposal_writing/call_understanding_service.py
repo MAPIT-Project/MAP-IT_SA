@@ -351,7 +351,7 @@ class CallUnderstandingService:
 
     def __init__(self):
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        self.model = genai.GenerativeModel("gemini-2.0-flash-lite")
+        self.model = genai.GenerativeModel("gemini-3-flash-preview")
         self._cache: dict[str, CallUnderstanding] = {}
 
     async def understand_call(

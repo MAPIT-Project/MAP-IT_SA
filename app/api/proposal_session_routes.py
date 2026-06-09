@@ -580,7 +580,9 @@ async def generate_section(session_id: str, section_id: str, request: SectionGen
                 # Use the agent's tool directly
                 from ..services.tools.proposal_tools import get_proposal_tool_executor
 
-                executor = get_proposal_tool_executor(session_manager=manager)
+                executor = get_proposal_tool_executor(
+                    session_manager=manager, db_pool=getattr(manager, "db_pool", None)
+                )
 
                 result = await executor.execute_tool(
                     tool_name="generate_section_draft",
@@ -645,7 +647,9 @@ async def evaluate_section(session_id: str, section_id: str):
 
         from ..services.tools.proposal_tools import get_proposal_tool_executor
 
-        executor = get_proposal_tool_executor(session_manager=manager)
+        executor = get_proposal_tool_executor(
+            session_manager=manager, db_pool=getattr(manager, "db_pool", None)
+        )
 
         result = await executor.execute_tool(
             tool_name="evaluate_section",
@@ -683,7 +687,9 @@ async def analyze_section_gaps(session_id: str, section_id: str):
 
         from ..services.tools.proposal_tools import get_proposal_tool_executor
 
-        executor = get_proposal_tool_executor(session_manager=manager)
+        executor = get_proposal_tool_executor(
+            session_manager=manager, db_pool=getattr(manager, "db_pool", None)
+        )
 
         result = await executor.execute_tool(
             tool_name="analyze_gaps",

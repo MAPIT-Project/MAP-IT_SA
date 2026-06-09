@@ -178,13 +178,19 @@ class ProposalToolExecutor:
 
         try:
             # Call the actual service
-            result = await service.generate_section(
-                call_id=call_id, section_id=section_id, guidance=guidance, target_words=word_target
+            user_context = {"project_idea": guidance, "target_words": word_target}
+            result = await service.generate_section_draft(
+                call_id=call_id, section_id=section_id, user_context=user_context
             )
+
+            content = result.get("draft_text", "")
+            if not content:
+                content = result.get("content", "")
+
             return {
                 "section_id": section_id,
-                "content": result.get("content", ""),
-                "word_count": len(result.get("content", "").split()),
+                "content": content,
+                "word_count": len(content.split()),
                 "generated": True,
                 "sources_used": result.get("sources", []),
             }

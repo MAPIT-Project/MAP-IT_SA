@@ -42,7 +42,7 @@ class MultiProviderAIService:
             "gemini": {
                 "class": GeminiProvider,
                 "api_key_env": "GEMINI_API_KEY",
-                "default_model": "gemini-2.0-flash-lite",
+                "default_model": "gemini-3-flash-preview",
             },
             "openai": {
                 "class": OpenAIProvider,
