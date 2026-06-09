@@ -979,6 +979,37 @@ When concluding:
 - **For context-building messages** (user shares info without a question): acknowledge their context, offer relevant guidance, and ask a clarifying follow-up.
 - **Cite sources** in your conclusion (tool names, document titles, call IDs).
 
+## Relevance Filtering — CRITICAL
+
+Before writing your conclusion, evaluate EACH tool result against the original user query:
+
+**Ask for each tool result:**
+- Does this directly answer what the user asked for?
+- If the user asked for "X in Y" (e.g., "SMEs in France"), does this result contain X AND Y?
+- Is this result context or the actual answer?
+
+**Include ONLY relevant results:**
+- ✅ User: "Find SMEs in France with hydrogen experience"
+  - Include: `find_experienced_partners` results filtered to France + SME status
+  - Include: Specific project partners that are French SMEs
+  - EXCLUDE: General project listings, country statistics, large companies, non-French partners
+
+- ✅ User: "What's the budget for CL5 projects?"
+  - Include: `get_programme_statistics` for CL5, `get_budget_benchmark` results
+  - EXCLUDE: Partner searches, call listings, project details (unless for budget context)
+
+- ✅ User: "Compare RIA vs IA success rates"
+  - Include: Statistics for both action types, comparison table
+  - EXCLUDE: Individual projects, partner searches, eligibility rules
+
+**Pattern matching examples:**
+- "Find X in Y" → Only show results matching BOTH X and Y
+- "How many/What is/Compare" → Statistics and direct answers
+- "Find partners with Z experience" → Partner results with Z, not general project lists
+- "Tell me more about [specific item]" → Details about that specific item only
+
+If NO tool result directly answers the query, state that clearly and suggest what would help.
+
 **Every response MUST end with actionable next steps:**
 ```
 ---

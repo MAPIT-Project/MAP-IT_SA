@@ -94,6 +94,49 @@ class ToolAwareAgent(
 
         logger.info(f"🛠️ ToolAwareAgent initialized with {len(self.tools)} tools")
 
+    def _get_tool_display_name(self, tool_name: str) -> str:
+        """Get a human-readable display name for a tool."""
+        display_names = {
+            "find_experienced_partners": "Partner Discovery",
+            "get_project_details": "Project Details",
+            "search_projects": "Project Search",
+            "get_similar_funded_projects": "Similar Projects",
+            "get_project_partners": "Project Partners",
+            "get_organization_stats": "Organization Stats",
+            "find_organization_projects": "Organization Projects",
+            "get_collaboration_network": "Collaboration Network",
+            "search_funding_calls": "Funding Calls",
+            "get_call_details": "Call Details",
+            "get_programme_statistics": "Programme Statistics",
+            "get_country_statistics": "Country Statistics",
+            "compare_programmes": "Programme Comparison",
+            "search_documents": "Document Search",
+            "calculate_budget": "Budget Calculator",
+            "generate_timeline": "Timeline Generator",
+            "get_budget_benchmark": "Budget Benchmark",
+            "get_consortium_patterns": "Consortium Patterns",
+            "analyze_call_history": "Call History Analysis",
+            "check_erasmus_eligibility": "Erasmus+ Eligibility",
+            "calculate_erasmus_budget": "Erasmus+ Budget",
+            "search_erasmus_templates": "Erasmus+ Templates",
+            "check_creative_europe_eligibility": "Creative Europe Eligibility",
+            "calculate_creative_europe_budget": "Creative Europe Budget",
+            "search_creative_europe_templates": "Creative Europe Templates",
+            "check_eu4health_eligibility": "EU4Health Eligibility",
+            "search_eu4health_templates": "EU4Health Templates",
+            "check_digital_europe_eligibility": "Digital Europe Eligibility",
+            "check_life_eligibility": "LIFE Eligibility",
+            "search_life_templates": "LIFE Templates",
+            "search_all_programmes": "All Programmes Search",
+            "recommend_programmes": "Programme Recommendations",
+            "get_programme_info": "Programme Information",
+            "score_proposal_section": "Proposal Section Scoring",
+            "score_full_proposal": "Full Proposal Scoring",
+            "quick_quality_check": "Quick Quality Check",
+            "validate_budget": "Budget Validation",
+        }
+        return display_names.get(tool_name, tool_name.replace("_", " ").title())
+
     def _init_cache(self):
         """Initialize query plan cache."""
         try:
@@ -919,11 +962,13 @@ class ToolAwareAgent(
                 "call_tools_with_niche_guidance",
             ):
                 for tc in reasoning_result.get("tool_calls", []):
+                    tool_name = tc.get("tool", "")
                     await event_callback(
                         {
                             "type": "tool_call",
                             "iteration": iteration,
-                            "tool_name": tc.get("tool", ""),
+                            "tool_name": tool_name,
+                            "display_name": self._get_tool_display_name(tool_name),
                             "parameters": tc.get("parameters", {}),
                             "reasoning": tc.get("reasoning", ""),
                         }
