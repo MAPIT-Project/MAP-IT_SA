@@ -59,20 +59,30 @@ class ProposalAwareAgent(ToolAwareAgent):
 
 {proposal_context}
 
+{document_structure}
+
+{active_section_guidance}
+
 ## Proposal Writing Guidelines
 
-When helping with proposals:
-1. **Be specific** - Reference the call requirements and evaluation criteria
-2. **Be structured** - Follow EU proposal conventions (clear objectives, methodology, etc.)
-3. **Be measurable** - Include KPIs, metrics, and verifiable outcomes
-4. **Be concise** - EU evaluators value clarity over length
-5. **Use tool results** - Incorporate insights from similar projects and budget benchmarks
+You are an expert EU Horizon Europe proposal writer. Your drafts must read as if written
+by a senior grant consultant with a >80% success rate. Follow these principles:
+
+1. **Follow the official EU template exactly** — Each section has specific instructions from the
+   European Commission. The instructions for the active section are provided above. Follow them precisely.
+2. **Write for evaluators** — EU proposals are scored by 3-5 independent experts. They spend ~30min
+   per section. Use clear structure, bullet points, bold key terms, and numbered lists.
+3. **Be specific and quantifiable** — Include KPIs, TRL levels, person-months, budget figures,
+   and concrete metrics. Vague statements score poorly.
+4. **Reference the call topic** — Directly address the Expected Outcomes and Scope from the call text.
+5. **Use evidence** — Reference similar funded projects, scientific literature, and market data.
+6. **Be concise** — Respect page limits. Every sentence must earn its place.
 
 When generating content for a section:
-- Focus on the SPECIFIC section (e.g., objectives, methodology)
-- Match the expected structure for that section type
-- Aim for impactful, evaluator-friendly language
-- Reference the call's expected outcomes
+- Follow the OFFICIAL EU INSTRUCTIONS provided in the active section guidance above
+- Match the expected structure and cover ALL required points
+- Use professional, evaluator-friendly academic language
+- Include tables, figures descriptions, and structured lists where the template requires them
 
 When the user asks to "write" or "generate" a section:
 - Use generate_section_draft tool
@@ -80,11 +90,12 @@ When the user asks to "write" or "generate" a section:
 
 When the user asks to "improve" or "enhance" content:
 - Use improve_section tool
-- Explain what was improved
+- Explain what was improved and why it scores better
 
 When the user asks to "evaluate" or "score" a section:
 - Use evaluate_section tool
-- Provide the score and detailed feedback
+- Score against the OFFICIAL evaluation criteria for that section
+- Provide actionable feedback
 """
 
     def __init__(self, max_iterations: int = 5, session_manager=None):
@@ -313,7 +324,7 @@ When the user asks to "evaluate" or "score" a section:
         tool_results: dict[str, Any],
     ) -> str:
         """
-        Build the full prompt with proposal context.
+        Build the full prompt with proposal context and official EU section guidance.
 
         Args:
             query: User query
@@ -336,9 +347,34 @@ When the user asks to "evaluate" or "score" a section:
             tool_results=self._format_tool_results(tool_results),
         )
 
+        # Resolve document structure and active section guidance from templates
+        document_structure = ""
+        active_section_guidance = ""
+        try:
+            from ..templates.he_templates import (
+                get_all_sections_overview,
+                get_full_section_guidance,
+            )
+
+            proposal_type = self._extract_proposal_type(proposal_context)
+            document_structure = get_all_sections_overview(proposal_type)
+
+            # Determine active section from the proposal context or the user query
+            active_section_id = self._detect_active_section(query, proposal_context)
+            if active_section_id:
+                active_section_guidance = get_full_section_guidance(
+                    proposal_type, active_section_id
+                )
+                if active_section_guidance:
+                    logger.info(f"📋 Injecting EU guidance for section: {active_section_id}")
+        except Exception as e:
+            logger.warning(f"Could not load template guidance: {e}")
+
         # Inject proposal context before the current user message
         proposal_section = self.PROPOSAL_CONTEXT_TEMPLATE.format(
-            proposal_context=proposal_context or "No active proposal context"
+            proposal_context=proposal_context or "No active proposal context",
+            document_structure=document_structure,
+            active_section_guidance=active_section_guidance,
         )
 
         # Insert proposal context after the main instructions
@@ -348,6 +384,53 @@ When the user asks to "evaluate" or "score" a section:
         else:
             # Fallback: append proposal context
             return base_prompt + "\n\n" + proposal_section
+
+    def _extract_proposal_type(self, proposal_context: str) -> str:
+        """Extract proposal type from the proposal context string."""
+        for line in proposal_context.split("\n"):
+            if "**Type:**" in line:
+                # e.g. "**Type:** RIA"
+                return line.split("**Type:**")[-1].strip()
+        return "RIA"  # Default
+
+    def _detect_active_section(self, query: str, proposal_context: str) -> str | None:
+        """
+        Detect which section the user is working on from the active section context
+        or by matching keywords in the user query dynamically from the template.
+        """
+        # 1. Check if the proposal context has an explicit active section
+        for line in proposal_context.split("\n"):
+            if "### Active Section:" in line:
+                break
+
+        # 2. Try to detect from the user's query dynamically based on active template
+        query_lower = query.lower()
+        proposal_type = self._extract_proposal_type(proposal_context)
+
+        try:
+            from ..templates.he_templates import get_template_by_type
+
+            template = get_template_by_type(proposal_type)
+        except Exception:
+            template = {}
+
+        best_match = None
+        best_count = 0
+
+        for section_id, data in template.items():
+            keywords = data.get("keywords", [])
+            # Also extract lowercase words from the section name
+            name_words = [
+                w.strip(".,()").lower() for w in data.get("name", "").split() if len(w) > 2
+            ]
+            all_kws = set(keywords + name_words + [section_id])
+
+            match_count = sum(1 for kw in all_kws if kw in query_lower)
+            if match_count > best_count:
+                best_count = match_count
+                best_match = section_id
+
+        return best_match
 
     def _format_previous_steps(self, steps: list[ReasoningStep]) -> str:
         """Format previous reasoning steps for the prompt."""
@@ -487,8 +570,12 @@ When the user asks to "evaluate" or "score" a section:
                     if tc.success:
                         all_tool_results[f"{tc.tool_name}_{iteration}"] = tc.result
                         # Track sections affected by this tool
-                        if tc.parameters.get("section_id"):
-                            sections_affected.append(tc.parameters["section_id"])
+                        # Defensive: check both parameters and result for section_id
+                        section_id = tc.parameters.get("section_id")
+                        if not section_id and isinstance(tc.result, dict):
+                            section_id = tc.result.get("section_id")
+                        if section_id:
+                            sections_affected.append(section_id)
 
                 step.observation = self._summarize_tool_results(step.tool_calls)
                 step.next_action_needed = reasoning_result.get("needs_more_info", True)
@@ -512,8 +599,14 @@ When the user asks to "evaluate" or "score" a section:
             used_tools = {tc.tool_name for step in plan.reasoning_steps for tc in step.tool_calls}
             self.speculative_executor.cancel_unused_speculation(used_tools)
 
+        # Use proposal-specific response formatting
+        sections_affected_unique = list(set(sections_affected))
+        answer = plan.final_answer or self._build_proposal_response(
+            plan, all_tool_results, sections_affected_unique, proposal_intent
+        )
+
         return {
-            "answer": plan.final_answer or self._build_fallback_answer(plan),
+            "answer": answer,
             "success": plan.final_answer is not None,
             "reasoning_steps": [
                 {
@@ -527,7 +620,7 @@ When the user asks to "evaluate" or "score" a section:
             ],
             "sources_used": list(all_tool_results.keys()),
             "tool_results": all_tool_results,
-            "sections_affected": list(set(sections_affected)),
+            "sections_affected": sections_affected_unique,
             "complexity": plan.complexity,
             "iterations": iteration,
             "confidence": plan.confidence,
@@ -637,7 +730,10 @@ When the user asks to "evaluate" or "score" a section:
                 # Execute tools
                 step.tool_calls = await self._execute_tool_calls_with_proposal(tool_calls)
 
-                # Yield tool results and section updates
+                # Phase 1: Yield tool results
+                # Phase 2: Yield section updates (separated to avoid ordering issues)
+                pending_section_updates = []
+
                 for tc in step.tool_calls:
                     result_count = self._count_results(tc.result) if tc.success else 0
                     yield {
@@ -651,24 +747,53 @@ When the user asks to "evaluate" or "score" a section:
                     if tc.success:
                         all_tool_results[f"{tc.tool_name}_{iteration}"] = tc.result
 
-                        # Yield section update for writing tools
-                        section_id = tc.parameters.get("section_id")
-                        if section_id and tc.tool_name in (
+                        # Collect section updates for writing tools
+                        if tc.tool_name in (
                             "generate_section_draft",
                             "improve_section",
                             "rewrite_section",
                         ):
-                            sections_affected.append(section_id)
-                            yield {
-                                "type": "section_update",
-                                "section_id": section_id,
-                                "tool_name": tc.tool_name,
-                                "content": (
+                            # Defensive: extract section_id from parameters OR result
+                            section_id = tc.parameters.get("section_id")
+                            if not section_id and isinstance(tc.result, dict):
+                                section_id = tc.result.get("section_id")
+
+                            if section_id:
+                                content = (
                                     tc.result.get("content", "")
                                     if isinstance(tc.result, dict)
                                     else str(tc.result)
-                                ),
-                            }
+                                )
+                                pending_section_updates.append(
+                                    {
+                                        "section_id": section_id,
+                                        "tool_name": tc.tool_name,
+                                        "content": content,
+                                    }
+                                )
+                                logger.info(
+                                    f"📝 [ProposalAgent] Section update queued: "
+                                    f"{section_id} ({len(content)} chars) "
+                                    f"via {tc.tool_name}"
+                                )
+                            else:
+                                logger.warning(
+                                    f"⚠️ [ProposalAgent] Writing tool {tc.tool_name} "
+                                    f"succeeded but no section_id found in "
+                                    f"parameters={tc.parameters} or "
+                                    f"result keys={list(tc.result.keys()) if isinstance(tc.result, dict) else 'N/A'}"
+                                )
+
+                # Phase 2: Emit all section updates after tool results
+                for su in pending_section_updates:
+                    sections_affected.append(su["section_id"])
+                    yield {
+                        "type": "section_update",
+                        "section_id": su["section_id"],
+                        "tool_name": su["tool_name"],
+                        "content": su["content"],
+                    }
+                    logger.info(f"📝 [ProposalAgent] Section update emitted: {su['section_id']}")
 
                 step.observation = self._summarize_tool_results(step.tool_calls)
                 step.next_action_needed = reasoning_result.get("needs_more_info", True)
@@ -683,15 +808,21 @@ When the user asks to "evaluate" or "score" a section:
             if not step.next_action_needed:
                 break
 
-        # Yield final result
+        # Yield final result with proposal-specific response formatting
         total_time = (datetime.now() - start_time).total_seconds() * 1000
+        sections_affected_unique = list(set(sections_affected))
+
+        # Use proposal-specific response instead of generic fallback
+        answer = plan.final_answer or self._build_proposal_response(
+            plan, all_tool_results, sections_affected_unique, proposal_intent
+        )
 
         yield {
             "type": "agent_complete",
             "result": {
-                "answer": plan.final_answer or self._build_fallback_answer(plan),
+                "answer": answer,
                 "success": plan.final_answer is not None,
-                "sections_affected": list(set(sections_affected)),
+                "sections_affected": sections_affected_unique,
                 "iterations": iteration,
                 "confidence": plan.confidence,
                 "total_time_ms": total_time,
@@ -842,9 +973,28 @@ When the user asks to "evaluate" or "score" a section:
         """
         query_lower = query.lower()
 
-        # Writing intents
-        if any(kw in query_lower for kw in ["write", "draft", "generate", "create"]):
-            if "section" in query_lower or "objectives" in query_lower:
+        # Writing intents — broader matching for proposal section generation
+        writing_keywords = ["write", "draft", "generate", "create", "compose", "prepare"]
+        section_keywords = [
+            "section",
+            "objectives",
+            "methodology",
+            "ambition",
+            "impact",
+            "dissemination",
+            "work plan",
+            "consortium",
+            "budget",
+            "excellence",
+            "implementation",
+            "proposal",
+            "next logical",
+            "state of the art",
+            "beyond",
+            "pathways",
+        ]
+        if any(kw in query_lower for kw in writing_keywords):
+            if any(sk in query_lower for sk in section_keywords):
                 return "generate_section"
 
         # Improvement intents
@@ -868,3 +1018,210 @@ When the user asks to "evaluate" or "score" a section:
             return "check_compliance"
 
         return None
+
+    # =========================================================================
+    # Proposal-Specific Response Formatting
+    # =========================================================================
+
+    def _build_proposal_response(
+        self,
+        plan: AgentPlan,
+        all_tool_results: dict[str, Any],
+        sections_affected: list[str],
+        proposal_intent: str | None,
+    ) -> str:
+        """
+        Build a proposal-specific response that summarizes what was done.
+
+        Unlike the generic _build_fallback_answer (which dumps raw project tables
+        and formatted research), this produces a concise, actionable summary
+        appropriate for the proposal writing context.
+
+        Args:
+            plan: The agent's execution plan
+            all_tool_results: All tool results collected during execution
+            sections_affected: List of section IDs that were updated
+            proposal_intent: Detected proposal intent
+
+        Returns:
+            A concise, proposal-focused response string
+        """
+        parts = []
+
+        # 1. Summarize sections that were drafted/updated
+        if sections_affected:
+            section_names = []
+            for sid in sections_affected:
+                # Convert "excellence.objectives" → "Objectives (Excellence)"
+                section_parts = sid.split(".")
+                if len(section_parts) == 2:
+                    category = section_parts[0].replace("_", " ").title()
+                    name = section_parts[1].replace("_", " ").title()
+                    section_names.append(f"**{name}** ({category})")
+                else:
+                    section_names.append(f"**{sid.replace('_', ' ').title()}**")
+
+            action_verb = self._get_action_verb(proposal_intent)
+            if len(section_names) == 1:
+                parts.append(f"I've {action_verb} the {section_names[0]} section.")
+            else:
+                listing = ", ".join(section_names[:-1]) + f" and {section_names[-1]}"
+                parts.append(f"I've {action_verb} the following sections: {listing}.")
+
+        # 2. Summarize what sources were used (briefly)
+        sources_summary = self._summarize_sources_used(all_tool_results)
+        if sources_summary:
+            parts.append(f"\n**Sources used:** {sources_summary}")
+
+        # 3. Summarize section content highlights
+        content_highlights = self._extract_content_highlights(all_tool_results)
+        if content_highlights:
+            parts.append("\n**What was covered:**")
+            for highlight in content_highlights:
+                parts.append(f"- {highlight}")
+
+        # 4. Actionable next steps
+        next_steps = self._suggest_next_steps(sections_affected, proposal_intent)
+        if next_steps:
+            parts.append("\n**Suggested next steps:**")
+            for step in next_steps:
+                parts.append(f"- {step}")
+
+        if parts:
+            return "\n".join(parts)
+
+        # Fallback if nothing meaningful was collected
+        return self._build_minimal_proposal_fallback(plan)
+
+    def _get_action_verb(self, proposal_intent: str | None) -> str:
+        """Get the appropriate action verb based on intent."""
+        verbs = {
+            "generate_section": "drafted",
+            "improve_section": "improved",
+            "rewrite_section": "rewritten",
+            "evaluate_section": "evaluated",
+            "analyze_gaps": "analyzed gaps in",
+            "check_compliance": "checked compliance for",
+        }
+        return verbs.get(proposal_intent, "updated")
+
+    def _summarize_sources_used(self, all_tool_results: dict[str, Any]) -> str:
+        """Create a brief summary of sources consulted."""
+        source_parts = []
+
+        for _key, result in all_tool_results.items():
+            if not isinstance(result, dict):
+                continue
+
+            # Call details
+            if "call_id" in result or "topic_code" in result:
+                call_id = result.get("call_id") or result.get("topic_code", "")
+                title = result.get("title", "")
+                if call_id:
+                    source_parts.append(
+                        f"Call details for {call_id}" + (f" ({title})" if title else "")
+                    )
+
+            # Similar projects
+            elif "similar_projects" in result:
+                count = len(result.get("similar_projects", []))
+                matches = result.get("matches_found", count)
+                if matches > 0:
+                    source_parts.append(f"{matches} similar funded projects")
+
+            # Project details
+            elif "acronym" in result and "partners" in result:
+                acronym = result.get("acronym", "")
+                partner_count = len(result.get("partners", []))
+                if acronym:
+                    source_parts.append(f"{acronym} project details ({partner_count} partners)")
+
+        if not source_parts:
+            return ""
+        return ", ".join(source_parts[:4])  # Limit to 4 sources
+
+    def _extract_content_highlights(self, all_tool_results: dict[str, Any]) -> list[str]:
+        """Extract brief highlights from generated/updated content."""
+        highlights = []
+
+        for _key, result in all_tool_results.items():
+            if not isinstance(result, dict):
+                continue
+
+            # Content from section drafts
+            if "content" in result and "section_id" in result:
+                content = result.get("content", "")
+                section_id = result.get("section_id", "")
+                word_count = len(content.split()) if content else 0
+
+                if word_count > 0:
+                    section_name = (
+                        section_id.split(".")[-1].replace("_", " ").title()
+                        if "." in section_id
+                        else section_id.replace("_", " ").title()
+                    )
+                    highlights.append(f"{section_name}: {word_count} words generated")
+
+        return highlights[:5]  # Limit highlights
+
+    def _suggest_next_steps(
+        self, sections_affected: list[str], proposal_intent: str | None
+    ) -> list[str]:
+        """Suggest next steps based on what was done."""
+        steps = []
+
+        if proposal_intent == "generate_section":
+            steps.append(
+                "Review the generated content and refine it to match your project's specifics"
+            )
+            steps.append("Replace placeholder text (marked with [...]) with your concrete details")
+            if sections_affected:
+                # Suggest the next logical section using the actual template dynamically
+                try:
+                    proposal_context = getattr(self, "_current_proposal_context", "")
+                    proposal_type = self._extract_proposal_type(proposal_context)
+                    from ..templates.he_templates import get_template_by_type
+
+                    template = get_template_by_type(proposal_type)
+                    section_order = list(template.keys())
+                except Exception:
+                    section_order = []
+                last_section = sections_affected[-1] if sections_affected else ""
+                try:
+                    idx = section_order.index(last_section)
+                    if idx + 1 < len(section_order):
+                        next_section = section_order[idx + 1]
+                        next_name = (
+                            template[next_section]["name"]
+                            if next_section in template
+                            else next_section
+                        )
+                        steps.append(f"Ask me to draft the next section: **{next_name}**")
+                except ValueError:
+                    pass
+
+        elif proposal_intent == "improve_section":
+            steps.append("Compare the improved version with the original")
+            steps.append("Consider running an evaluation to check the score")
+
+        elif proposal_intent == "evaluate_section":
+            steps.append("Address the identified weaknesses")
+            steps.append("Ask me to improve specific areas")
+
+        return steps[:3]  # Limit to 3 suggestions
+
+    def _build_minimal_proposal_fallback(self, plan: AgentPlan) -> str:
+        """Build a minimal fallback when no structured response is available."""
+        if plan.reasoning_steps:
+            # Use the last thought as context
+            last_thought = plan.reasoning_steps[-1].thought
+            if last_thought:
+                return (
+                    f"I processed your request. Here's what I found:\n\n"
+                    f"{last_thought}\n\n"
+                    f"Let me know if you'd like me to take any specific action."
+                )
+
+        return (
+            "I've processed your request. " "Please let me know what you'd like me to work on next."
+        )

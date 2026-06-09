@@ -693,68 +693,70 @@ async def list_proposals(
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
+from ..services.templates.he_templates import get_template_by_type
+
+
+def detect_proposal_type(call_id: str, types_of_action: list[str] = None) -> str:
+    """
+    Detect the correct proposal type (ERC, MSCA-PF, MSCA-DN, EIC-Pathfinder,
+    EIC-Transition, EIC-Accelerator, CSA, IA, RIA) based on call ID keywords and metadata.
+    """
+    call_id_upper = call_id.upper() if call_id else ""
+
+    if "ERC" in call_id_upper:
+        return "ERC"
+    if "MSCA-" in call_id_upper or "MSCA_PF" in call_id_upper:
+        if "-DN" in call_id_upper or "_DN" in call_id_upper:
+            return "MSCA-DN"
+        return "MSCA-PF"
+    if "PATHFINDER" in call_id_upper:
+        return "EIC-PATHFINDER"
+    if "TRANSITION" in call_id_upper:
+        return "EIC-TRANSITION"
+    if "ACCELERATOR" in call_id_upper:
+        return "EIC-ACCELERATOR"
+    if "CSA" in call_id_upper:
+        return "CSA"
+
+    if types_of_action:
+        for action in types_of_action:
+            action_upper = action.upper()
+            if "MSCA-PF" in action_upper or "MSCA POSTDOCTORAL" in action_upper:
+                return "MSCA-PF"
+            if "MSCA-DN" in action_upper or "MSCA DOCTORAL" in action_upper:
+                return "MSCA-DN"
+            if "ERC" in action_upper:
+                return "ERC"
+            if "PATHFINDER" in action_upper:
+                return "EIC-PATHFINDER"
+            if "TRANSITION" in action_upper:
+                return "EIC-TRANSITION"
+            if "ACCELERATOR" in action_upper:
+                return "EIC-ACCELERATOR"
+            if "CSA" in action_upper:
+                return "CSA"
+            if "RIA" in action_upper:
+                return "RIA"
+            if "IA" in action_upper:
+                return "IA"
+
+    return "RIA"
+
+
 def get_template_sections(proposal_type: str) -> list[tuple]:
     """
     Get the correct section structure based on proposal type.
-    Uses official Horizon Europe Part B templates.
+    Uses official Horizon Europe Part B templates from he_templates.py.
     """
-    proposal_type = (proposal_type or "RIA").upper()
+    template = get_template_by_type(proposal_type)
 
-    if proposal_type in ["RIA", "IA"]:
-        # Standard RIA/IA template (Part B)
-        return [
-            ("excellence.objectives", "Objectives and ambition", 1),
-            ("excellence.methodology", "Methodology", 2),
-            ("excellence.beyond_sota", "Beyond the state of the art", 3),
-            ("impact.pathways", "Pathways to impact", 4),
-            ("impact.dissemination", "Dissemination and exploitation", 5),
-            ("implementation.work_plan", "Work plan and resources", 6),
-            ("implementation.consortium", "Consortium and management", 7),
-        ]
+    sections_list = []
+    order = 1
+    for sec_id, data in template.items():
+        sections_list.append((sec_id, data["name"], order))
+        order += 1
 
-    elif proposal_type == "CSA":
-        # Coordination and Support Action template
-        return [
-            ("excellence.objectives", "Objectives and activities", 1),
-            ("excellence.added_value", "European added value", 2),
-            ("impact.outcomes", "Expected outcomes", 3),
-            ("implementation.work_plan", "Work plan", 4),
-        ]
-
-    elif proposal_type in ["ERC-STG", "ERC-COG", "ERC-ADG"]:
-        # ERC template (different structure)
-        return [
-            ("excellence.groundbreaking", "Groundbreaking nature of the research", 1),
-            ("excellence.methodology", "Methodology", 2),
-            ("excellence.resources", "Resources", 3),
-            ("pi.cv", "Principal Investigator CV", 4),
-            ("pi.track_record", "Track record", 5),
-        ]
-
-    elif proposal_type in ["MSCA-PF", "MSCA-DN"]:
-        # MSCA template
-        return [
-            ("excellence.quality", "Quality and pertinence of the project", 1),
-            ("excellence.training", "Quality and appropriateness of the training", 2),
-            ("impact.career", "Career development", 3),
-            ("impact.contribution", "Contribution to EU policy objectives", 4),
-            ("implementation.workplan", "Work packages and methodology", 5),
-            ("implementation.institutional", "Institutional environment", 6),
-        ]
-
-    elif proposal_type in ["EIC-ACCELERATOR", "EIC-PATHFINDER"]:
-        # EIC template
-        return [
-            ("excellence.breakthrough", "Excellence - Breakthrough innovation", 1),
-            ("excellence.approach", "Excellence - Approach", 2),
-            ("impact.market", "Impact - Market potential", 3),
-            ("impact.scale_up", "Impact - Scale-up potential", 4),
-            ("implementation.team", "Implementation - Team", 5),
-            ("implementation.resources", "Implementation - Resources", 6),
-        ]
-
-    # Default to RIA template
-    return get_template_sections("RIA")
+    return sections_list
 
 
 @router.post("", response_model=dict[str, Any])
@@ -793,21 +795,37 @@ async def create_proposal(request: ProposalCreateRequest):
 
             title = request.proposal_title
             acronym = request.proposal_acronym
-            proposal_type = request.proposal_type or "RIA"
+
+            # Fetch types of action from metadata
+            types_of_action = metadata.get("types_of_action", []) if metadata else []
+
+            # Dynamic detection
+            detected_type = detect_proposal_type(request.call_id, types_of_action)
+
+            # Respect user request if valid and not the default "RIA" when a specific type is detected.
+            proposal_type = request.proposal_type
+            supported_types = {
+                "RIA",
+                "IA",
+                "CSA",
+                "ERC",
+                "MSCA-PF",
+                "MSCA-DN",
+                "EIC-PATHFINDER",
+                "EIC-TRANSITION",
+                "EIC-ACCELERATOR",
+            }
+            if detected_type != "RIA":
+                # Override if user didn't specify or specified default RIA
+                if not proposal_type or proposal_type == "RIA":
+                    proposal_type = detected_type
+            else:
+                if not proposal_type or proposal_type not in supported_types:
+                    proposal_type = "RIA"
 
             if metadata:
                 title = title or metadata.get("title") or "New Proposal"
                 acronym = acronym or f"PROJ-{request.call_id.split('-')[-1]}"
-
-                types_of_action = metadata.get("types_of_action", [])
-                if types_of_action:
-                    action_str = types_of_action[0]
-                    if "RIA" in action_str:
-                        proposal_type = "RIA"
-                    elif "IA" in action_str:
-                        proposal_type = "IA"
-                    elif "CSA" in action_str:
-                        proposal_type = "CSA"
             else:
                 title = title or "New Proposal"
                 acronym = acronym or "NEWPROJ"

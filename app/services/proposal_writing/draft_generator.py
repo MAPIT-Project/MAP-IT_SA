@@ -128,17 +128,29 @@ class ProposalDraftGenerator:
         Build the AI prompt for draft generation using dynamic call understanding.
         """
 
-        section_names = {
-            "excellence.objectives": "Objectives and Ambition",
-            "excellence.methodology": "Methodology",
-            "excellence.beyond_sota": "Beyond the State of the Art",
-            "impact.pathways": "Pathways to Impact",
-            "impact.dissemination": "Dissemination and Exploitation",
-            "implementation.work_plan": "Work Plan and Resources",
-            "implementation.consortium": "Consortium and Management",
-        }
+        # Get section name dynamically based on proposal type
+        from ..templates.he_templates import get_template_by_type
 
-        section_name = section_names.get(section_id, section_id)
+        call_id_upper = call_id.upper() if call_id else ""
+        proposal_type = "RIA"
+        if "ERC" in call_id_upper:
+            proposal_type = "ERC"
+        elif "MSCA-" in call_id_upper or "MSCA_PF" in call_id_upper:
+            if "-DN" in call_id_upper or "_DN" in call_id_upper:
+                proposal_type = "MSCA-DN"
+            else:
+                proposal_type = "MSCA-PF"
+        elif "PATHFINDER" in call_id_upper:
+            proposal_type = "EIC-PATHFINDER"
+        elif "TRANSITION" in call_id_upper:
+            proposal_type = "EIC-TRANSITION"
+        elif "ACCELERATOR" in call_id_upper:
+            proposal_type = "EIC-ACCELERATOR"
+        elif "CSA" in call_id_upper:
+            proposal_type = "CSA"
+
+        template = get_template_by_type(proposal_type)
+        section_name = template.get(section_id, {}).get("name", section_id)
 
         # Get call-specific metadata
         call_metadata = self._get_call_metadata(call_id)

@@ -114,6 +114,27 @@ class ProposalSessionManager:
         Returns:
             New ProposalSessionState instance
         """
+        # Fetch actual proposal details (type, title, call_id) from the database if they exist
+        conn = self.db_pool.getconn()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    "SELECT proposal_type, proposal_title, call_identifier FROM proposals WHERE id = %s",
+                    (proposal_id,),
+                )
+                row = cur.fetchone()
+                if row:
+                    if row.get("proposal_type"):
+                        proposal_type = row["proposal_type"]
+                    if row.get("proposal_title"):
+                        title = row["proposal_title"]
+                    if row.get("call_identifier"):
+                        call_id = row["call_identifier"]
+        except Exception as e:
+            logger.warning(f"Could not load proposal info from db: {e}")
+        finally:
+            self.db_pool.putconn(conn)
+
         # Create session with default structure
         session = ProposalSessionState.create_new(
             user_id=user_id,
@@ -653,16 +674,20 @@ class ProposalSessionManager:
                 )
                 rows = cur.fetchall()
 
-                for row in rows:
-                    section_id = row["section_id"]
-                    if section_id in session.document.sections:
-                        section = session.document.sections[section_id]
-                        section.content = row["section_content"] or ""
-                        section.word_count = row["word_count"] or 0
-                        section.quality_score = (
-                            float(row["quality_score"]) * 5 if row["quality_score"] else None
-                        )  # Convert 0-1 to 0-5
-                        section.version = row["version"] or 1
+                if rows:
+                    session.document.sections.clear()
+                    for row in rows:
+                        section_id = row["section_id"]
+                        section = SectionState(
+                            section_id=section_id,
+                            section_name=row["section_name"] or "",
+                            content=row["section_content"] or "",
+                            word_count=row["word_count"] or 0,
+                            quality_score=(
+                                float(row["quality_score"]) * 5 if row["quality_score"] else None
+                            ),  # Convert 0-1 to 0-5
+                            version=row["version"] or 1,
+                        )
 
                         # Update status based on content
                         if section.word_count >= 100:
@@ -671,6 +696,8 @@ class ProposalSessionManager:
                             section.status = SectionStatus.DRAFT
                         else:
                             section.status = SectionStatus.EMPTY
+
+                        session.document.sections[section_id] = section
 
                 session.document._recalculate_totals()
                 logger.info(

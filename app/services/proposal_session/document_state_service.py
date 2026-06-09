@@ -79,21 +79,15 @@ class DocumentStateService:
         Get standard section structure for a proposal type.
 
         Args:
-            proposal_type: Type of proposal (RIA, IA, CSA, ERC)
+            proposal_type: Type of proposal (RIA, IA, CSA, ERC, MSCA-PF, MSCA-DN, EIC-PATHFINDER, EIC-TRANSITION, EIC-ACCELERATOR)
 
         Returns:
             List of (section_id, section_name) tuples
         """
-        proposal_type = proposal_type.upper()
-        if proposal_type in ("RIA", "IA"):
-            return self.STANDARD_SECTIONS_RIA
-        elif proposal_type == "CSA":
-            return self.STANDARD_SECTIONS_CSA
-        elif proposal_type == "ERC":
-            return self.STANDARD_SECTIONS_ERC
-        else:
-            # Default to RIA structure
-            return self.STANDARD_SECTIONS_RIA
+        from ..templates.he_templates import get_template_by_type
+
+        template = get_template_by_type(proposal_type)
+        return [(sec_id, data["name"]) for sec_id, data in template.items()]
 
     def initialize_document_sections(
         self, document: ProposalDocument, proposal_type: str = "RIA"

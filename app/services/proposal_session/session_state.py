@@ -297,21 +297,14 @@ class ProposalSessionState:
             updated_at=datetime.now(UTC),
         )
 
-        # Initialize standard sections for RIA/IA proposals
-        standard_sections = [
-            ("excellence.objectives", "Objectives and ambition"),
-            ("excellence.methodology", "Methodology"),
-            ("excellence.beyond_sota", "Beyond the state of the art"),
-            ("impact.pathways", "Pathways to impact"),
-            ("impact.dissemination", "Dissemination and exploitation"),
-            ("implementation.work_plan", "Work plan and resources"),
-            ("implementation.consortium", "Consortium and management"),
-        ]
+        # Initialize standard sections based on proposal type
+        from ..templates.he_templates import get_template_by_type
 
-        for section_id, section_name in standard_sections:
+        template = get_template_by_type(proposal_type)
+        for section_id, data in template.items():
             document.sections[section_id] = SectionState(
                 section_id=section_id,
-                section_name=section_name,
+                section_name=data["name"],
             )
 
         # Initialize conversation
