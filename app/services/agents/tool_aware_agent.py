@@ -1591,6 +1591,8 @@ class ToolAwareAgent(
         selected_knowledge = self._select_knowledge_sections(query, context)
 
         # Build prompt
+        current_date = datetime.now().strftime("%d %B %Y")
+        current_year = datetime.now().year
         prompt = REASONING_PROMPT.format(
             built_in_knowledge=selected_knowledge,
             tools_description=self._get_tools_description(),
@@ -1598,6 +1600,8 @@ class ToolAwareAgent(
             context=enhanced_context,
             previous_steps=steps_text or "This is the first step",
             tool_results=results_text or "No tool results yet",
+            current_date=current_date,
+            current_year=current_year,
         )
 
         # LLM timeout in seconds (configurable via env, default 30s)

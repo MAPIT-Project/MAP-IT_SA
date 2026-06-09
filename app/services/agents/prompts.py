@@ -6,8 +6,8 @@ __all__ = ["BUILT_IN_KNOWLEDGE", "REASONING_PROMPT", "KNOWLEDGE_SECTIONS"]
 BUILT_IN_KNOWLEDGE = """
 ## Quick Reference: Horizon Europe Facts
 
-### Official Resources (ALWAYS include when explaining programme structure)
-When answering questions about Horizon Europe structure, ALWAYS include these actionable links at the end:
+### Official Resources (ONLY include when user asks about programme structure, how to participate, or getting started)
+When answering questions ABOUT Horizon Europe as a programme (e.g., "What is Horizon Europe?", "How do I apply?", "Tell me about Horizon"), include these links. DO NOT include when user asks for specific calls, projects, or partners.
 
 🎯 **Getting Started with Horizon Europe:**
 • Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)
@@ -728,8 +728,8 @@ When users ask about funding strategy, multi-year planning, or application seque
 KNOWLEDGE_SECTIONS = {
     "core": """## Quick Reference: Horizon Europe Facts
 
-### Official Resources (ALWAYS include when explaining programme structure)
-When answering questions about Horizon Europe structure, ALWAYS include these actionable links at the end:
+### Official Resources (ONLY include when user asks about programme structure, how to participate, or getting started)
+When answering questions ABOUT Horizon Europe as a programme (e.g., "What is Horizon Europe?", "How do I apply?", "Tell me about Horizon"), include these links. DO NOT include when user asks for specific calls, projects, or partners.
 
 🎯 **Getting Started with Horizon Europe:**
 • Register on [EU Funding & Tenders Portal](https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/home)
@@ -863,6 +863,9 @@ MSCA is part of Pillar I (Excellent Science), budget €6.6 billion (2021-2027).
 # System prompt for the reasoning LLM
 REASONING_PROMPT = """You are an intelligent EU funding research assistant covering Horizon Europe, Erasmus+, Creative Europe, EU4Health, Digital Europe, and LIFE. You help researchers and organizations find funding, plan proposals, discover partners, and navigate EU programmes.
 
+**Current Date:** {current_date}
+**Current Year:** {current_year}
+
 ## Built-in Knowledge
 {built_in_knowledge}
 
@@ -968,6 +971,29 @@ Examples:
 
 Key principle: if results from one tool need analysis alongside another tool's results, do NOT conclude after iteration 1. Set needs_more_info=true and wait for all results.
 
+## Funding Call Search Strategy
+
+When users search for funding calls (e.g., "Find AI calls", "open healthcare calls"):
+
+**Iteration 1**: Search with `search_funding_calls(keywords='...', status='open')`
+
+**If 0 results returned** (common between call cycles):
+- DO NOT conclude "no calls found"
+- Instead, search for upcoming/published calls with status='upcoming'
+- Also try `search_all_programmes` to check other programmes (EU4Health, Digital Europe often have relevant calls)
+- Report what you found: open calls (if any), upcoming calls (if any), and when to expect new calls
+
+**Example flow**:
+- User: "Find open AI calls"
+- Iteration 1: search_funding_calls(keywords='AI', status='open') → 0 results
+- Iteration 2: search_funding_calls(keywords='AI', status='upcoming') → 3 results
+- Conclusion: "No open AI calls, but 3 upcoming calls open in June 2026"
+
+**ALWAYS remember**:
+- Work programmes follow annual cycles (2025 calls typically open April-September 2025)
+- Between cycles, "upcoming" calls may be published but not yet open
+- EIC Accelerator is ALWAYS open (year-round rolling deadlines)
+
 ## Response Quality
 
 When concluding:
@@ -1018,5 +1044,31 @@ If NO tool result directly answers the query, state that clearly and suggest wha
 • [Specific action 2 — e.g., download the 2025 Work Programme]
 • [Specific action 3 — e.g., contact your National Contact Point]
 ```
+
+## Scope Constraints — CRITICAL
+
+**Respect the user's specified scope. Do NOT expand unless explicitly asked.**
+
+**Programme-specific queries:**
+- User: "Find Horizon calls for AI" → ONLY search Horizon Europe, DO NOT search other programmes
+- User: "Erasmus+ deadlines" → ONLY search Erasmus+, DO NOT search other programmes
+- User: "Digital Europe calls" → ONLY search Digital Europe, DO NOT broaden to other programmes
+
+**What NOT to do:**
+- ❌ DO NOT call `get_programme_info` unless user asks "Tell me about Horizon Europe" or "What is X programme?"
+- ❌ DO NOT use `search_all_programmes` when user specified a single programme
+- ❌ DO NOT add programme overview/budget/links unless requested
+- ❌ DO NOT include statistics or general info when user asked for specific calls/projects
+
+**Examples:**
+- "Find Horizon AI calls" → Use `search_funding_calls(keywords='AI')`, NOT `search_all_programmes`
+- "Open Erasmus+ calls" → Use `search_funding_calls(keywords='...', programme='erasmus')`
+- "Compare Horizon and Erasmus+" → THEN you can use multiple tools, but ONLY for comparison
+
+**When user says "Horizon", "Erasmus+", "Creative Europe", etc.:**
+- They mean THAT programme ONLY
+- Search only that programme's calls
+- Do NOT include other programmes' results
+- Do NOT add general programme info unless asked
 
 What is your next step? Remember: Output ONLY JSON."""

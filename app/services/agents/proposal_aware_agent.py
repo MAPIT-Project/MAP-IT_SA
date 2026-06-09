@@ -354,6 +354,9 @@ When the user asks to "evaluate" or "score" a section:
         """
         # Build the standard prompt
         selected_knowledge = self._select_knowledge_sections(query, context)
+
+        current_date = datetime.now().strftime("%d %B %Y")
+        current_year = datetime.now().year
         base_prompt = REASONING_PROMPT.format(
             built_in_knowledge=selected_knowledge,
             tools_description=self._get_tools_description(),
@@ -361,6 +364,8 @@ When the user asks to "evaluate" or "score" a section:
             query=query,
             previous_steps=self._format_previous_steps(previous_steps),
             tool_results=self._format_tool_results(tool_results),
+            current_date=current_date,
+            current_year=current_year,
         )
 
         # Resolve document structure and active section guidance from templates

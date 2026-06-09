@@ -36,7 +36,7 @@ async def search_funding_calls_execute(
 
     Args:
         keywords: Search keywords (string or list of strings).
-        status: Call status filter - "open" or "closed" (default "open").
+        status: Call status filter - "open", "upcoming", "closed", or "all" (default "open").
         year: Optional year filter.
         cluster: Optional cluster filter.
 
@@ -52,20 +52,52 @@ async def search_funding_calls_execute(
         if isinstance(keywords, list):
             keywords = " ".join(keywords)
 
+        # Determine include_closed based on status
+        # - "open": show only open calls (exclude closed)
+        # - "upcoming": show only upcoming calls (exclude closed and open)
+        # - "closed": show only closed calls
+        # - "all": show all calls
+        include_closed = status in ("closed", "upcoming", "all")
+
         # LocalCallSearchService.search_calls uses 'num_results' not 'limit'
         results = call_service.search_calls(
             query=keywords,
-            num_results=15,
-            include_closed=(status == "closed"),
+            num_results=50,  # Get more results to filter by status
+            include_closed=include_closed,
             year_filter=str(year) if year else None,
             cluster=cluster,
         )
 
         calls = results.get("calls", [])
 
+        # Filter by status if requested
+        # The enrichment service adds status, so we need to filter after getting results
+        filtered_calls = []
+        for c in calls:
+            call_status = c.get("status", "unknown")
+
+            if status == "open":
+                # Include only open calls
+                if call_status == "open":
+                    filtered_calls.append(c)
+            elif status == "upcoming":
+                # Include only upcoming calls (published but not yet open)
+                if call_status == "upcoming":
+                    filtered_calls.append(c)
+            elif status == "closed":
+                # Include only closed calls
+                if call_status == "closed":
+                    filtered_calls.append(c)
+            elif status == "all":
+                # Include all calls (closed, open, upcoming)
+                filtered_calls.append(c)
+            else:
+                # Unknown status - include all
+                filtered_calls.append(c)
+
         # Pass through ALL available fields for rich formatting
         return {
-            "calls_found": len(calls),
+            "calls_found": len(filtered_calls),
             "calls": [
                 {
                     "call_id": c.get("topic_code", ""),  # topic_code is the actual call ID
@@ -81,7 +113,7 @@ async def search_funding_calls_execute(
                     "work_programme": c.get("work_programme", ""),
                     "call_year": c.get("call_year", ""),
                 }
-                for c in calls[:15]
+                for c in filtered_calls[:15]
             ],
         }
     except Exception as e:
