@@ -309,6 +309,34 @@ class ProposalSessionManager:
 
         return session.document.get_section(section_id)
 
+    async def update_section_status(
+        self,
+        session_id: str,
+        section_id: str,
+        status: SectionStatus,
+    ) -> bool:
+        """
+        Update the status of a section explicitly (e.g. to COMPLETE).
+        """
+        session = await self.get_session(session_id)
+        if not session:
+            return False
+
+        section = session.document.get_section(section_id)
+        if not section:
+            return False
+
+        section.status = status
+
+        # Recalculate completion percentage based on new status
+        session.document._recalculate_totals()
+
+        # Persist the updated session state
+        session.update_activity()
+        await self._persist_session(session)
+        self._cache_session(session)
+        return True
+
     async def lock_section(
         self,
         session_id: str,

@@ -147,6 +147,8 @@ class ProposalToolExecutor:
                 return await self._get_suggestions(parameters, proposal_context)
             elif tool_name == "focus_section":
                 return await self._focus_section(parameters, session_id)
+            elif tool_name == "mark_section_status":
+                return await self._mark_section_status(parameters, session_id)
             elif tool_name == "get_document_overview":
                 return await self._get_document_overview(session_id)
             else:
@@ -501,6 +503,38 @@ class ProposalToolExecutor:
                 logger.error(f"Failed to focus section: {e}")
                 return {"section_id": section_id, "focused": False, "error": str(e)}
         return {"section_id": section_id, "focused": True, "note": "No session manager available"}
+
+    async def _mark_section_status(
+        self, parameters: dict[str, Any], session_id: str | None
+    ) -> dict[str, Any]:
+        """Update the status of a section."""
+        section_id = parameters.get("section_id", "")
+        status_str = parameters.get("status", "complete").lower()
+
+        if self.session_manager and session_id:
+            try:
+                from ..proposal_session.session_state import SectionStatus
+
+                # Map string to enum
+                status_map = {
+                    "empty": SectionStatus.EMPTY,
+                    "draft": SectionStatus.DRAFT,
+                    "in_review": SectionStatus.IN_REVIEW,
+                    "complete": SectionStatus.COMPLETE,
+                }
+                status = status_map.get(status_str, SectionStatus.COMPLETE)
+
+                success = await self.session_manager.update_section_status(
+                    session_id, section_id, status
+                )
+                return {"section_id": section_id, "status": status.value, "updated": success}
+            except Exception as e:
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to update section status: {e}")
+                return {"section_id": section_id, "updated": False, "error": str(e)}
+        return {"section_id": section_id, "updated": True, "note": "No session manager available"}
 
     async def _get_document_overview(self, session_id: str | None) -> dict[str, Any]:
         """Get the document overview for the session."""

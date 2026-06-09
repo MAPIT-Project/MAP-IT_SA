@@ -81,6 +81,7 @@ class SessionResponse(BaseModel):
     proposal_id: int
     call_id: str
     title: str
+    proposal_type: str
     status: str
     active_section_id: str | None
     completion_percentage: float
@@ -100,6 +101,12 @@ class SectionUpdateRequest(BaseModel):
     """Request to update section content."""
 
     content: str = Field(..., description="New section content")
+
+
+class SectionStatusRequest(BaseModel):
+    """Request to update section status."""
+
+    status: str = Field(..., description="New section status ('complete', 'draft', etc.)")
 
 
 class SectionGenerateRequest(BaseModel):
@@ -218,6 +225,7 @@ async def create_session(
             proposal_id=session.document.proposal_id,
             call_id=session.document.call_id,
             title=session.document.title,
+            proposal_type=session.document.proposal_type,
             status=session.status.value,
             active_section_id=session.active_section_id,
             completion_percentage=session.document.completion_percentage,
@@ -248,6 +256,7 @@ async def get_session(session_id: str):
             proposal_id=session.document.proposal_id,
             call_id=session.document.call_id,
             title=session.document.title,
+            proposal_type=session.document.proposal_type,
             status=session.status.value,
             active_section_id=session.active_section_id,
             completion_percentage=session.document.completion_percentage,
@@ -500,6 +509,44 @@ async def update_section(session_id: str, section_id: str, request: SectionUpdat
         raise
     except Exception as e:
         logger.error(f"Failed to update section: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.patch("/{session_id}/section/{section_id}/status")
+async def update_section_status(session_id: str, section_id: str, request: SectionStatusRequest):
+    """
+    Update section status directly (user edit).
+    """
+    try:
+        manager = get_session_manager()
+
+        from ..services.proposal_session.session_state import SectionStatus
+
+        status_map = {
+            "empty": SectionStatus.EMPTY,
+            "draft": SectionStatus.DRAFT,
+            "in_review": SectionStatus.IN_REVIEW,
+            "complete": SectionStatus.COMPLETE,
+        }
+        status = status_map.get(request.status.lower(), SectionStatus.DRAFT)
+
+        success = await manager.update_section_status(
+            session_id=session_id, section_id=section_id, status=status
+        )
+
+        if not success:
+            raise HTTPException(status_code=400, detail="Failed to update section status")
+
+        return {
+            "success": True,
+            "section_id": section_id,
+            "status": status.value,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update section status: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 

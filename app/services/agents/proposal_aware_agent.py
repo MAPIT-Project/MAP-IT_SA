@@ -301,6 +301,22 @@ When the user asks to "evaluate" or "score" a section:
             )
         )
 
+        # Mark Section Status
+        self.register_tool(
+            Tool(
+                name="mark_section_status",
+                description=("Mark a section's progress status (e.g., as 'complete' when done)."),
+                category=ToolCategory.DOCUMENTS,
+                parameters={
+                    "section_id": "Section ID to update",
+                    "status": "The new status ('complete', 'in_review', 'draft', 'empty')",
+                },
+                examples=[
+                    "mark_section_status(section_id='excellence.objectives', status='complete')",
+                ],
+            )
+        )
+
         # Document overview
         self.register_tool(
             Tool(
