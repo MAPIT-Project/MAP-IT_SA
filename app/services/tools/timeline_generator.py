@@ -1135,7 +1135,7 @@ class TimelineGeneratorTool:
                     seen_acronyms.add(ex["acronym"])
 
             if all_examples:
-                response["similar_projects"] = all_examples[:5]
+                response["example_projects"] = all_examples[:5]
 
         return response
 

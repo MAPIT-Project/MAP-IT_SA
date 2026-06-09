@@ -146,7 +146,7 @@ Returns: Eligibility status, top organizations in that country, and participatio
                 parameters={
                     "cluster": "Optional: Cluster code (e.g., 'CL4', 'CL5', 'EIC')",
                     "action_type": "Optional: Action type (e.g., 'RIA', 'IA', 'CSA', 'ERC-STG')",
-                    "topic_keywords": "Optional: Keywords to filter projects (e.g., 'AI', 'hydrogen')",
+                    "topic_keywords": "Optional: SHORT, SPECIFIC technical keywords to filter projects (e.g., 'AI', 'hydrogen'). NEVER pass the full user query or long sentences. Max 2-3 words.",
                     "year": "Optional: Filter by funding year",
                 },
                 examples=[
@@ -166,7 +166,7 @@ Returns: Eligibility status, top organizations in that country, and participatio
                 parameters={
                     "cluster": "Optional: Cluster code (e.g., 'CL4', 'CL5', 'EIC')",
                     "action_type": "Optional: Action type (e.g., 'RIA', 'IA', 'CSA')",
-                    "topic_keywords": "Optional: Keywords to filter projects",
+                    "topic_keywords": "Optional: SHORT, SPECIFIC keywords to filter projects. NEVER pass full sentences or the full user prompt.",
                 },
                 examples=[
                     "get_consortium_patterns(cluster='CL4', action_type='RIA')",
@@ -231,7 +231,7 @@ Returns: Organizations with their project count, funding received, coordination 
 **DO NOT use search_documents for finding partners - use this tool instead!**""",
                 category=ToolCategory.PROJECTS,
                 parameters={
-                    "topic_keywords": "Required: Keywords describing the research area (e.g., 'quantum computing')",
+                    "topic_keywords": "Required: SHORT, SPECIFIC keywords describing the research area (e.g., 'quantum computing', 'hydrogen energy'). NEVER pass full sentences.",
                     "country": "Optional: Country name or code (e.g., 'Germany', 'DE')",
                     "organization_type": "Optional: HES, REC, PRC, SME, university, research",
                     "cluster": "Optional: Cluster code (CL2, CL4, CL5, etc.)",
@@ -268,7 +268,7 @@ Returns: Organizations with their project count, funding received, coordination 
 **PREFER THIS OVER search_projects WHEN**: The topic is conceptual, thematic, or trend-related. Semantic search understands meaning and finds conceptually related projects even without exact keyword matches.""",
                 category=ToolCategory.PROJECTS,
                 parameters={
-                    "description": "Required: Concept, topic description, or proposal idea to find similar projects for (min 20 chars)",
+                    "description": "Required: Concept or topic to find similar projects for. Extract the core idea (e.g. 'sustainable aviation fuels'). DO NOT pass the entire user instruction/prompt.",
                     "cluster": "Optional: Cluster code filter (CL4, CL5, EIC, etc.)",
                     "action_type": "Optional: Action type filter (RIA, IA, CSA)",
                     "min_budget": "Optional: Minimum EU contribution filter",
@@ -300,7 +300,7 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
                 parameters={
                     "topic_pattern": "Optional: Topic code pattern (e.g., 'HORIZON-CL4-2023')",
                     "cluster": "Optional: Cluster code (CL4, CL5, EIC, etc.)",
-                    "keywords": "Optional: Keywords to search in call titles/descriptions",
+                    "keywords": "Optional: SHORT, SPECIFIC keywords to search in call titles/descriptions. DO NOT pass full sentences.",
                     "year_from": "Optional: Starting year filter",
                     "year_to": "Optional: Ending year filter",
                     "action_types": "Optional: List of action types (RIA, IA, CSA)",
@@ -387,7 +387,7 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
                 description="Search for open or upcoming funding calls",
                 category=ToolCategory.CALLS,
                 parameters={
-                    "keywords": "Keywords to search for",
+                    "keywords": "SHORT, SPECIFIC keywords to search for. DO NOT pass full sentences.",
                     "status": "Optional: 'open', 'upcoming', 'closed'",
                     "year": "Optional: specific year",
                 },
@@ -437,7 +437,7 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
 This is the PRIMARY tool for finding projects by SPECIFIC keyword matching. For broad/conceptual topics, use get_similar_funded_projects instead.""",
                 category=ToolCategory.PROJECTS,
                 parameters={
-                    "keywords": "Required: Keywords/topic to search for (e.g., 'machine learning healthcare', 'quantum computing', 'green hydrogen')",
+                    "keywords": "Required: SHORT, SPECIFIC technical keywords (e.g., 'machine learning healthcare', 'quantum computing'). NEVER pass the full user query or long instructions.",
                     "programme": "Optional: Filter by programme (Horizon Europe, EIC, ERC, etc.)",
                     "country": "Optional: Filter by coordinator/participant country",
                     "limit": "Optional: Number of results (default 10)",
@@ -667,7 +667,7 @@ Use this when user asks about funding in a general area (education, health, cult
 or wants to compare options across different EU programmes.""",
                 category=ToolCategory.PROGRAMMES,
                 parameters={
-                    "keywords": "Required: Search keywords (e.g., 'renewable energy', 'youth mobility', 'digital health')",
+                    "keywords": "Required: SHORT, SPECIFIC search keywords (e.g., 'renewable energy'). DO NOT pass full sentences.",
                     "programmes": "Optional: List of programmes to search (e.g., ['horizon_europe', 'erasmus_plus']). If not specified, searches all.",
                     "status": "Optional: Filter by status ('open', 'upcoming')",
                     "year": "Optional: Filter by call year",
