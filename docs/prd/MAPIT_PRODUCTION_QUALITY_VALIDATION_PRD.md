@@ -1,3 +1,7 @@
+> ⚠️ **ARCHIVED — 20 juli 2026** — Dit document is historisch en niet meer actueel.
+> Zie [START_HERE.md](../../../START_HERE.md) voor actuele documentatie.
+> Reden: deze validatie-PRD is opgevolgd door de V3-versie en de actuele kwaliteitsrapporten.
+
 # MAPIT Production Quality Validation PRD
 
 > **Purpose**: Validate ALL conversation scenarios against the live API with comprehensive quality checks

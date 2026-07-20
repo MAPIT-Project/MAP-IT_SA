@@ -1,3 +1,7 @@
+> ⚠️ **ARCHIVED — 20 juli 2026** — Dit document is historisch en niet meer actueel.
+> Zie [START_HERE.md](../../../START_HERE.md) voor actuele documentatie.
+> Reden: dit is een oudere, volledig onafgevinkte duplicaat-PRD die is opgevolgd door de conversation-stabilitydocumentatie.
+
 # MAPIT Conversation Stability PRD
 
 > **Purpose**: Systematically test and fix conversation flow stability issues using automated sub-agents

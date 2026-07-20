@@ -1,3 +1,7 @@
+> ⚠️ **ARCHIVED — 20 juli 2026** — Dit document is historisch en niet meer actueel.
+> Zie [START_HERE.md](../../START_HERE.md) voor actuele documentatie.
+> Reden: de beschreven Celery-stack, worker-entrypoint en aparte Compose-configuratie bestaan niet in deze repository.
+
 # Celery-Based Concurrent Processing Setup
 
 This setup enables true concurrent processing of RAG queries using Celery workers with Redis as the message broker. The system connects to your **existing Supabase database** that contains the CORDIS project data.
