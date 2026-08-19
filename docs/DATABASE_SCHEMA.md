@@ -1,39 +1,39 @@
-# Databaseschema en data-architectuur
+# Database schema and data architecture
 
-**Status:** geverifieerde documentatiesnapshot
+**Status:** verified documentation snapshot
 
-**Snapshotdatum:** 20 juli 2026
+**Snapshot date:** 20 July 2026
 
-**Bronnen:** `migration/schema.sql`, `migration/*.sql`, `webapp-ui/supabase_cli/schema.sql`, de frontend-Drizzle-migraties en read-only catalogusqueries tegen de draaiende lokale Supabase- en Neo4j-instances
+**Sources:** `migration/schema.sql`, `migration/*.sql`, `webapp-ui/supabase_cli/schema.sql`, the frontend Drizzle migrations and read-only catalog queries against the running local Supabase and Neo4j instances
 
-MAPIT gebruikt PostgreSQL/Supabase voor relationele data, pgvector voor embeddings en Neo4j voor relatie-intensieve analyses. Dit document onderscheidt bewust drie werkelijkheden: de Git-schemafiles, de lokale database op de snapshotdatum en de actieve applicatiecode. Die zijn nog niet volledig gelijk.
+MAPIT uses PostgreSQL/Supabase for relational data, pgvector for embeddings and Neo4j for relationship-intensive analyses. This document deliberately distinguishes three realities: the Git schema files, the local database at the snapshot date, and the active application code. They are not yet completely equal.
 
-Zie [DATA_INGESTION.md](guides/DATA_INGESTION.md) voor herstel en data-bootstrap en [SECURITY_REGISTER.md](../../SECURITY_REGISTER.md) voor de beveiligingsimpact van de beperkte RLS-dekking.
+See [DATA_INGESTION.md](guides/DATA_INGESTION.md) for recovery and data bootstrap and [SECURITY_REGISTER.md](../../SECURITY_REGISTER.md) for the security impact of the limited RLS coverage.
 
-## Samenvatting en authority
+## Summary and authority
 
-| Onderdeel | Actuele status |
+| Part | Current status |
 |---|---|
-| PostgreSQL | Lokale Supabase draaide PostgreSQL 15.8 met pgvector 0.8.0. |
-| `public` | 35 basistabellen, 15 views en 17 MAPIT-functies in de lokale snapshot. |
-| Schema-snapshot | `MAP-IT_SA/migration/schema.sql` is de meest volledige getrackte MAPIT-snapshot. `webapp-ui/supabase_cli/schema.sql` is inhoudelijk dezelfde pg_dump; de waargenomen diff bestaat alleen uit whitespace. |
-| Migratie-authority | **Niet vastgesteld.** De repository bevat parallelle snapshots, backend-SQL en frontend-Drizzle-migraties, maar geen betrouwbare end-to-end migration ledger. |
-| RLS | Alleen `document_chunks` en `horizon_documents` hebben RLS aan; 33 andere `public`-tabellen niet. |
-| Realtime | Alleen `public.message` staat in `supabase_realtime`. |
-| Embeddings | Actieve code en lokale DB gebruiken 3072 dimensies; de getrackte volledige schema-snapshot gebruikt nog 768 voor documenten, calls en cache. |
+| PostgreSQL | Local Supabase was running PostgreSQL 15.8 with pgvector 0.8.0. |
+| `public` | 35 base tables, 15 views and 17 MAPIT functions in the local snapshot. |
+| Schema snapshot | `MAP-IT_SA/migration/schema.sql` is the most fully tracked MAPIT snapshot. `webapp-ui/supabase_cli/schema.sql` is substantively the same pg_dump; the observed diff consists only of whitespace. |
+| Migration authority | **Not established.** The repository contains parallel snapshots, backend SQL and frontend Drizzle migrations, but no reliable end-to-end migration ledger. |
+| RLS | Only `document_chunks` and `horizon_documents` have RLS on; 33 other `public` tables do not. |
+| Real-time | Only `public.message` is in `supabase_realtime`. |
+| Embeddings | Active code and local DB use 3072 dimensions; the tracked full schema snapshot still uses 768 for documents, calls and cache. |
 
-`migration/schema.sql` is daarom de **documentatiebaseline**, niet een bewezen incrementele migratie. Gebruik het niet alsof het migration 000 is zonder een restoretest op een lege Supabase-instance: het bevat ook Supabase-beheerschema's, owners, grants en platformobjecten.
+`migration/schema.sql` is therefore the **documentation baseline**, not a proven incremental migration. Do not use it as if it were migration 000 without a restore test on an empty Supabase instance: it also contains Supabase management schemes, owners, grants and platform objects.
 
-## Reproduceerbare catalogusqueries
+## Reproducible catalog queries
 
-Voer vanuit `MAP-IT_SA/` uit met de lokale standaard-URL of een expliciete read-only productie-URL:
+From `MAP-IT_SA/`, run with the local default URL or an explicit read-only production URL:
 
 ```bash
 export DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1
 ```
 
-### Object- en extensiecounts
+### Object and extension counts
 
 ```sql
 SELECT version();
@@ -55,9 +55,9 @@ WHERE table_schema = 'public'
 ORDER BY table_name;
 ```
 
-### Exacte row counts van alle public-tabellen
+### Exact row counts of all public tables
 
-Onderstaande `\gexec` is een `psql`-metacommand en voert voor elke tabel een afzonderlijke exacte `count(*)` uit:
+The `\gexec` below is a `psql` metacommand and outputs a separate exact `count(*)` for each table:
 
 ```sql
 SELECT format(
@@ -70,7 +70,7 @@ ORDER BY tablename
 \gexec
 ```
 
-### Kolommen, constraints en drift
+### Columns, constraints and drift
 
 ```sql
 SELECT table_name, ordinal_position, column_name, data_type,
@@ -98,69 +98,69 @@ WHERE tc.constraint_type='FOREIGN KEY'
 ORDER BY tc.table_name, kcu.ordinal_position;
 ```
 
-## Public-tabellen, aantallen, RLS en publication
+## Public tables, numbers, RLS and publication
 
-De aantallen hieronder zijn exact uit de lokale database op 20 juli 2026. Ze zijn observatiebewijs, geen seedcontract. `uit` betekent dat `relrowsecurity=false`; daardoor zijn er ook geen effectieve tabelpolicies. `message` is de enige MAPIT-tabel in de Realtime-publication.
+The numbers below are exact from the local database at 20 July 2026. They are observational evidence, not a seed contract. `off` means `relrowsecurity=false`; therefore there are no effective table policies. `message` is the only MAPIT table in the Realtime publication.
 
-| Domein | Tabel | Doel | Rows | RLS | Realtime |
+| Domain | Table | Target | Rows | RLS | Real-time |
 |---|---|---|---:|---|---|
-| Calls/documenten | `call_document_mappings` | Koppelt een call-identifier aan een gedeeld document | 67 | uit | nee |
-| Calls/documenten | `call_metadata` | Callregels en call-specifieke metadata | 6 | uit | nee |
-| Citations | `citations` | Geregistreerde bronverwijzingen | 12 | uit | nee |
-| Identiteit | `client` | Applicatieprofiel; `auth_id` is logisch gekoppeld aan Supabase Auth | 2 | uit | nee |
-| Collaboration | `client_collaboration` | Many-to-many-lidmaatschap en rol | 1 | uit | nee |
-| Collaboration | `collaboration` | Gedeelde workspace | 1 | uit | nee |
-| Proposal V4 | `compliance_checks` | Compliance-uitkomsten per voorstel | 0 | uit | nee |
-| Conversation | `conversation` | Frontend-conversatiecontainer | 7 | uit | nee |
-| Analytics | `conversation_analytics` | Vraag, antwoord, tools, timing en status | 4.885 | uit | nee |
-| Memory | `conversation_facts` | Uit gesprekken geëxtraheerde feiten | 112 | uit | nee |
-| Memory | `conversation_memory` | Langetermijngeheugen per gesprek/gebruiker | 43 | uit | nee |
-| RAG | `document_chunks` | Tekstchunks, full-textkolom en vector | 38.697 | **aan** | nee |
-| RAG | `embedding_cache` | Hash-naar-vector-cache | 0 | uit | nee |
-| Projects | `entity_cards` | Gecachete organisatie-/entiteitskaarten | 1.696 | uit | nee |
-| Calls | `funding_calls` | Multi-programme funding calls en vectors | 2.758 | uit | nee |
-| RAG | `horizon_documents` | Brondocumentregister | 144 | **aan** | nee |
-| Proposal V4 | `improvement_suggestions` | Verbetersuggesties voor voorstel/sectie | 0 | uit | nee |
-| Conversation | `message` | Frontend-chatberichten | 16 | uit | **ja** |
-| Projects | `organizations` | CORDIS-participatieregels; dezelfde organisatie kan herhalen | 89.348 | uit | nee |
-| Projects | `project_embeddings` | Projectvectors en embeddingstatus | 13.850 | uit | nee |
-| Projects | `projects` | CORDIS-projectmetadata | 13.865 | uit | nee |
-| Proposal V4 | `proposal_activity_log` | Voorstelactiviteiten | 0 | uit | nee |
-| Proposal V4 | `proposal_budgets` | Budgetregels per voorstel/partner | 0 | uit | nee |
-| Proposal V4 | `proposal_consortium` | Conceptconsortiumleden | 0 | uit | nee |
-| Proposal V4 | `proposal_examples` | Herbruikbare voorbeeldsecties | 0 | uit | nee |
-| Proposal V4 | `proposal_sections` | Versies en kwaliteit van voorstelteksten | 32 | uit | nee |
-| Proposal V4 | `proposal_sessions` | Actieve V4-sessies | 4 | uit | nee |
-| Proposal V4 | `proposals` | Voorstelmetadata | 2 | uit | nee |
-| Feedback | `response_feedback` | Rating en vrije feedback op antwoorden | 2 | uit | nee |
-| Schema | `schema_migrations` | Handmatige applicatieversies; geen volledige ledger | 2 | uit | nee |
-| Proposal V4 | `section_criteria_mapping` | Evaluatiecriteria per sectie | 0 | uit | nee |
-| Shared RAG | `shared_document_chunks` | Chunks van gedeelde/call-documenten | 13.147 | uit | nee |
-| Shared RAG | `shared_documents` | Gedeelde programmadocumenten | 54 | uit | nee |
-| Analytics | `tool_combination_analytics` | Toolcombinaties en succesratio | 1 | uit | nee |
-| Analytics | `tool_usage_analytics` | Toolcalls, timing en resultaatstatus | 5.372 | uit | nee |
+| Calls/documents | `call_document_mappings` | Links a call identifier to a shared document | 67 | off | no |
+| Calls/documents | `call_metadata` | Call rules and call-specific metadata | 6 | off | no |
+| Citations | `citations` | Registered source references | 12 | from | no |
+| Identity | `client` | Application profile; `auth_id` is logically linked to Supabase Auth | 2 | from | no |
+| Collaboration | `client_collaboration` | Many-to-many membership and role | 1 | off | no |
+| Collaboration | `collaboration` | Shared workspace | 1 | off | no |
+| Proposal V4 | `compliance_checks` | Compliance outcomes per proposal | 0 | off | no |
+| Conversation | `conversation` | Frontend Conversation Container | 7 | off | no |
+| Analytics | `conversation_analytics` | Question, answer, tools, timing and status | 4.885 | off | no |
+| Memory | `conversation_facts` | Facts extracted from conversations | 112 | out | no |
+| Memory | `conversation_memory` | Long-term memory per call/user | 43 | off | no |
+| RAG | `document_chunks` | Text chunks, full text column and vector | 38.697 | **on** | no |
+| RAG | `embedding_cache` | Hash-to-vector cache | 0 | off | no |
+| Projects | `entity_cards` | Cached organization/entity cards | 1.696 | off | no |
+| Calls | `funding_calls` | Multi-program funding calls and vectors | 2.758 | off | no |
+| RAG | `horizon_documents` | Source document register | 144 | **on** | no |
+| Proposal V4 | `improvement_suggestions` | Improvement suggestions for proposal/section | 0 | off | no |
+| Conversation | `message` | Frontend Chat Messages | 16 | off | **ja** |
+| Projects | `organizations` | CORDIS participation rules; the same organization can repeat | 89.348 | off | no |
+| Projects | `project_embeddings` | Project vectors and embedding status | 13.850 | off | no |
+| Projects | `projects` | CORDIS project metadata | 13.865 | off | no |
+| Proposal V4 | `proposal_activity_log` | Proposal activities | 0 | out | no |
+| Proposal V4 | `proposal_budgets` | Budget rules per proposal/partner | 0 | off | no |
+| Proposal V4 | `proposal_consortium` | Concept consortium members | 0 | out | no |
+| Proposal V4 | `proposal_examples` | Reusable sample sections | 0 | off | no |
+| Proposal V4 | `proposal_sections` | Versions and quality of proposal texts | 32 | off | no |
+| Proposal V4 | `proposal_sessions` | Active V4 sessions | 4 | off | no |
+| Proposal V4 | `proposals` | Proposal metadata | 2 | off | no |
+| Feedback | `response_feedback` | Rating and free feedback on answers | 2 | off | no |
+| Schema | `schema_migrations` | Manual application versions; no full ledger | 2 | off | no |
+| Proposal V4 | `section_criteria_mapping` | Evaluation criteria per section | 0 | off | no |
+| Shared RAG | `shared_document_chunks` | Chunks of shared/call documents | 13.147 | off | no |
+| Shared RAG | `shared_documents` | Shared program documents | 54 | off | no |
+| Analytics | `tool_combination_analytics` | Tool combinations and success rate | 1 | off | no |
+| Analytics | `tool_usage_analytics` | Tool calls, timing and result status | 5.372 | off | no |
 
-### RLS-policies
+### RLS Policies
 
-Er bestaan precies vier MAPIT-policies:
+There are exactly four MAPIT policies:
 
-| Tabel | Policy | Operatie | Predicate |
+| Table | Policy | Operation | Predicate |
 |---|---|---|---|
 | `horizon_documents` | `Public documents are viewable by everyone` | `SELECT` | `status = 'active'` |
 | `horizon_documents` | `Service role can manage all documents` | `ALL` | `auth.role() = 'service_role'` |
-| `document_chunks` | `Public chunks are viewable by everyone` | `SELECT` | Het parentdocument bestaat en heeft `status='active'` |
+| `document_chunks` | `Public chunks are viewable by everyone` | `SELECT` | The parent document exists and has `status='active'` |
 | `document_chunks` | `Service role can manage all chunks` | `ALL` | `auth.role() = 'service_role'` |
 
-Dit is minimale dekking. Vooral `client`, collaboration-, conversation-, message- en proposal-tabellen hebben geen database-afgedwongen tenantisolatie. Views zijn niet in bovenstaande tabel opgenomen; hun toegangssemantiek en grants moeten apart worden getest voordat zij via PostgREST worden blootgesteld.
+This is minimal coverage. In particular, `client`, collaboration, conversation, message, and proposal tables do not have database-enforced tenant isolation. Views are not included in the table above; their access semantics and grants must be tested separately before being exposed via PostgREST.
 
 ### Publications
 
-De catalogus bevat twee publications:
+The catalog contains two publications:
 
-- `supabase_realtime` publiceert `INSERT`, `UPDATE`, `DELETE` en `TRUNCATE` voor alleen `public.message`.
-- `supabase_realtime_messages_publication` publiceert dezelfde operaties voor het interne `realtime.messages`.
+- `supabase_realtime` publishes `INSERT`, `UPDATE`, `DELETE`, and `TRUNCATE` for `public.message` only.
+- `supabase_realtime_messages_publication` publishes the same operations for the internal `realtime.messages`.
 
-Controlequery:
+Control query:
 
 ```sql
 SELECT p.pubname, n.nspname AS schema_name, c.relname AS table_name
@@ -173,44 +173,44 @@ ORDER BY p.pubname, schema_name, table_name;
 
 ## Views
 
-| View | Definitie/doel |
+| View | Definition/purpose |
 |---|---|
-| `active_funding_calls` | `funding_calls` met status `open` of `upcoming`, op deadline |
-| `call_document_chunks_view` | Join van call-documentmapping, gedeeld document en chunks |
-| `horizon_europe_calls` | `funding_calls` met `programme='horizon_europe'` |
-| `proposal_overview` | Sectie-, partner-, landen-, budget- en issue-aggregaties per proposal |
-| `section_quality_summary` | Criteria, scores en open suggesties per actuele sectie |
-| `session_activity_summary` | Actieve/completed sessions per dag in de laatste 30 dagen |
-| `v_conversation_analytics_24h` | Gebruik, confidence, latency en fouten over 24 uur |
-| `v_embedding_coverage` | Projecten met/zonder projectembedding |
-| `v_embedding_stats` | Aantallen en timestamps per model/status |
-| `v_feedback_metrics_7d` | Rating- en feedbackaggregaten over zeven dagen |
-| `v_popular_tool_combos` | Topcombinaties met meer dan vijf voorkomens |
-| `v_question_patterns` | Heuristische vraagcategorieën over 30 dagen |
-| `v_tool_feedback` | Koppelt feedback aan gebruikte tools |
-| `v_tool_performance_24h` | Toollatency en fouten over 24 uur |
-| `v_tool_usage_analytics` | Totale toolgebruik- en succesaggregaten |
+| `active_funding_calls` | `funding_calls` with status `open` or `upcoming`, on deadline |
+| `call_document_chunks_view` | Join of call document mapping, shared document and chunks |
+| `horizon_europe_calls` | `funding_calls` with `programme='horizon_europe'` |
+| `proposal_overview` | Section, partner, country, budget and issue aggregations per proposal |
+| `section_quality_summary` | Criteria, scores and open suggestions per current section |
+| `session_activity_summary` | Active/completed sessions per day in the last 30 days |
+| `v_conversation_analytics_24h` | Usage, confidence, latency and errors over 24 hours |
+| `v_embedding_coverage` | Projects with/without project embedding |
+| `v_embedding_stats` | Numbers and timestamps per model/status |
+| `v_feedback_metrics_7d` | Seven-day rating and feedback aggregates |
+| `v_popular_tool_combos` | Top combinations with more than five occurrences |
+| `v_question_patterns` | Heuristic question categories about 30 days |
+| `v_tool_feedback` | Links feedback to used tools |
+| `v_tool_performance_24h` | Tool latency and errors over 24 hours |
+| `v_tool_usage_analytics` | Total tool usage and success aggregates |
 
-## Functies, RPC's en triggers
+## Functions, RPCs and Triggers
 
-De volledige snapshot bevat zeventien MAPIT-functies in `public`. Tien zijn rechtstreeks aanroepbare query-/businessfuncties; zeven zijn triggerfuncties.
+The full snapshot contains seventeen MAPIT functions in `public`. Ten are directly callable query/business functions; seven are trigger functions.
 
-| Functie | Belangrijkste input | Resultaat/doel |
+| Function | Main input | Result/goal |
 |---|---|---|
-| `calculate_completion_percentage` | `p_proposal_id integer` | Percentage proposal completion |
-| `cleanup_expired_sessions` | `expiry_hours integer default 24` | Markeert oude actieve proposalsessions als `expired` en retourneert aantal |
-| `get_chunks_for_call` | call-identifier, optionele tekst, limiet | Gedeelde chunks met relevance score |
-| `get_current_sections` | proposal-ID | Actuele secties en kwaliteit |
-| `get_document_stats` | geen | Document/chunk-statistieken |
-| `hybrid_search` | vector, querytekst, count, vectorgewicht | Vector- plus full-textscore op `document_chunks` |
-| `keyword_search` | tekst, limiet, documenttype, jaar | Full-textdocumentzoekresultaten |
-| `search_calls_semantic` | vector en filters | Semantische funding-callresultaten |
-| `search_documents` | vector en filters | Semantische documentresultaten |
-| `search_funding_calls` | tekst en programma/status/type/cluster/jaarfilters | Full-text callresultaten |
+| `calculate_completion_percentage` | `p_proposal_id integer` | Proposal completion percentage |
+| `cleanup_expired_sessions` | `expiry_hours integer default 24` | Marks old active proposal sessions as `expired` and returns quantity |
+| `get_chunks_for_call` | call identifier, optional text, limit | Shared chunks with relevance score |
+| `get_current_sections` | proposal ID | Current sections and quality |
+| `get_document_stats` | none | Document/chunk statistics |
+| `hybrid_search` | vector, query text, count, vector weight | Vector plus full text score on `document_chunks` |
+| `keyword_search` | text, limit, document type, year | Full-text document search results |
+| `search_calls_semantic` | vector and filters | Semantic funding call results |
+| `search_documents` | vector and filters | Semantic document results |
+| `search_funding_calls` | text and program/status/type/cluster/year filters | Full-text call results |
 
-Triggerfuncties: `calculate_requested_funding`, `calculate_word_count`, `update_funding_calls_timestamp`, `update_project_embeddings_timestamp`, `update_proposal_completion`, `update_proposal_timestamp` en `update_session_activity`.
+Trigger functions: `calculate_requested_funding`, `calculate_word_count`, `update_funding_calls_timestamp`, `update_project_embeddings_timestamp`, `update_proposal_completion`, `update_proposal_timestamp` and `update_session_activity`.
 
-De bijbehorende triggers werken op `funding_calls`, `project_embeddings`, `proposal_budgets`, `proposal_sections`, `proposal_sessions` en `proposals`. Verifieer signatures uit de catalogus in plaats van clienttypes te raden:
+The corresponding triggers work on `funding_calls`, `project_embeddings`, `proposal_budgets`, `proposal_sections`, `proposal_sessions` and `proposals`. Verify signatures from the catalog instead of guessing client types:
 
 ```sql
 SELECT p.proname,
@@ -222,26 +222,26 @@ WHERE n.nspname='public'
 ORDER BY p.proname;
 ```
 
-Let op: de SQL-functies declareren `query_embedding vector` zonder dimensietypmod. De gebruikte kolomdimensie bepaalt alsnog of afstandsoperaties geldig zijn; een 768-vector tegen een 3072-kolom faalt.
+Note that the SQL functions declare `query_embedding vector` without a dimension type mod. The column dimension used still determines whether distance operations are valid; a 768 vector against a 3072 column fails.
 
-## Embeddingtransitie 768 → 3072
+## Embedding transition 768 → 3072
 
-### Geobserveerde matrix
+### Observed matrix
 
-| Opslag | `migration/schema.sql` | Lokale DB 20-07-2026 | Code/default | Model/provenance |
+| Storage | `migration/schema.sql` | Local DB 20-07-2026 | Code/default | Model/provenance |
 |---|---:|---:|---:|---|
 | `project_embeddings.title_embedding` | 3072 | 3072 | 3072 | `gemini-embedding-001` |
 | `project_embeddings.objective_embedding` | 3072 | 3072 | 3072 | `gemini-embedding-001` |
 | `project_embeddings.combined_embedding` | 3072 | 3072 | 3072 | `gemini-embedding-001` |
-| `document_chunks.embedding` | **768** | **3072** | 3072 | Lokale rijen dragen nog `embedding_model='text-embedding-004'`; metadata is dus inconsistent |
-| `funding_calls.embedding` | **768** | **3072** | 3072 | Re-embedding vereist na kolomvervanging |
-| `embedding_cache.embedding` | **768** | **3072** | 3072 | Migratie leegt cache; lokaal 0 rijen |
+| `document_chunks.embedding` | **768** | **3072** | 3072 | Local rows still carry `embedding_model='text-embedding-004'`; metadata is therefore inconsistent |
+| `funding_calls.embedding` | **768** | **3072** | 3072 | Re-embedding required after column replacement |
+| `embedding_cache.embedding` | **768** | **3072** | 3072 | Migration clears cache; local 0 rows |
 
-Actieve configuratie staat in `app/core/config.py` en `app/services/embedding_service.py`: `models/gemini-embedding-001` met `output_dimensionality=3072`. `migration/002_upgrade_embeddings_to_3072.sql` dropt en herschept de drie 768-kolommen en truncateert `embedding_cache`. Daardoor gaan bestaande vectors verloren.
+Active configuration is in `app/core/config.py` and `app/services/embedding_service.py`: `models/gemini-embedding-001` with `output_dimensionality=3072`. `migration/002_upgrade_embeddings_to_3072.sql` drops and recreates the three 768 columns and truncates `embedding_cache`. As a result, existing vectors are lost.
 
-De lokale database heeft na de transitie geen ANN-vectorindex op `document_chunks`, `funding_calls` of `project_embeddings`; de oude IVFFlat-indexen uit `migration/schema.sql` zijn verdwenen. Zoekopdrachten vallen daarmee terug op exacte/sequentiële afstandsberekening. `migration/001_init_schema.sql` probeert bovendien een HNSW-index op een `vector(3072)` te maken; standaard pgvector-indexering met type `vector` ondersteunt maximaal 2.000 dimensies en die bootstrap is daarom niet als werkende route aangetoond.
+The local database does not have a ANN vector index on `document_chunks`, `funding_calls`, or `project_embeddings` after the transition; the old IVFFlat indexes from `migration/schema.sql` are gone. Searches therefore fall back to exact/sequential distance calculation. `migration/001_init_schema.sql` additionally attempts to create a HNSW index on a `vector(3072)`; standard pgvector indexing with type `vector` supports a maximum of 2.000 dimensions and that bootstrap has therefore not been demonstrated as a working route.
 
-Controleer altijd schema én data:
+Always check schedule and dates:
 
 ```sql
 SELECT c.table_name, c.column_name,
@@ -271,60 +271,60 @@ WHERE schemaname='public'
 ORDER BY tablename,indexname;
 ```
 
-## Migratieledger en volgorde
+## Migration ledger and sequence
 
-### Belangrijk: er is nog geen geldige lineaire keten
+### Important: There is no valid linear chain yet
 
-De nummers suggereren een volgorde die niet bestaat. `schema.sql` is een volledige snapshot waarin frontend-, proposal-, analytics- en feedbackobjecten al zitten. `001_init_schema.sql` is een kleiner alternatief schema met conflicterende types. `008` en `009` zijn losse additieve scripts, terwijl de frontend parallel eigen Drizzle-migraties heeft. Voer deze bestanden daarom **niet allemaal achter elkaar** uit.
+The numbers suggest an order that does not exist. `schema.sql` is a complete snapshot that already contains frontend, proposal, analytics and feedback objects. `001_init_schema.sql` is a smaller alternative scheme with conflicting types. `008` and `009` are separate additive scripts, while the frontend has its own Drizzle migrations in parallel. Therefore, do not run these files ** all in succession**.
 
-| Logische positie | Bestand | Git-status op 20-07-2026 | Relatie en risico | Na volledige `schema.sql` uitvoeren? |
+| Logical position | File | Git status at 20-07-2026 | Relationship and risk | After complete `schema.sql` run? |
 |---:|---|---|---|---|
-| 0 | `webapp-ui/supabase_cli` / `supabase start` | tracked config | Maakt Supabase-platformschema's en services | prerequisite, geen MAPIT-migratie |
-| 1A | `migration/schema.sql` | tracked | Volledige pg_dump-snapshot: 35 public-tabellen/15 views plus Supabase-internals; document/call/cachevectors nog 768 | baseline-alternatief |
-| 1A' | `webapp-ui/supabase_cli/schema.sql` | tracked | Semantisch duplicaat van 1A; alleen whitespace verschilt | **nee**, kies één snapshot |
-| 1B | `migration/001_init_schema.sql` | tracked | Klein alternatief met negen tabellen; mist appdomeinen; gebruikt o.a. `projects.id varchar`, anders dan lokale DB/Drizzle | **nee** |
-| 1C | `webapp-ui/src/lib/server/db/migrations/0000…0004` | tracked | Parallel frontendpad voor client/collaboration/conversation/message plus projects/orgs; `0002` bevat handmatige PK-waarschuwing | **nee**, objecten zitten al in snapshot |
-| 2 | `migration/008_tool_analytics.sql` | tracked | Maakt drie analyticstabellen; al aanwezig in snapshot | nee |
-| 3 | `migration/009_user_feedback.sql` | tracked | Maakt `response_feedback` én `feedback_insights`; snapshot bevat alleen eerste | nee; zou een later verwijderde tabel terugbrengen |
-| 4 | `migration/cleanup_unused_tables.sql` | tracked, destructief | Dropt zestien tabellen, waaronder `feedback_insights`; snapshot weerspiegelt deze cleanup grotendeels | nee |
-| 5 | `migration/002_upgrade_embeddings_to_3072.sql` | **niet tracked** | Moet logisch na de 768-snapshot; dropt vectors, leegt cache en vereist re-embedding | alleen na review, backup en commit |
+| 0 | `webapp-ui/supabase_cli` / `supabase start` | tracked config | Creates Supabase platform schemas and services | prerequisite, no MAPIT migration |
+| 1A | `migration/schema.sql` | tracked | Full pg_dump snapshot: 35 public tables/15 views plus Supabase internals; document/call/cache vectors still 768 | baseline alternative |
+| 1A' | `webapp-ui/supabase_cli/schema.sql` | tracked | Semantic duplicate of 1A; only whitespace differs | **no**, choose one snapshot |
+| 1B | `migration/001_init_schema.sql` | tracked | Small alternative with nine tables; missing app domains; uses, among other things, `projects.id varchar`, other than local DB/Drizzle | **no** |
+| 1C | `webapp-ui/src/lib/server/db/migrations/0000…0004` | tracked | Parallel frontend path for client/collaboration/conversation/message plus projects/orgs; `0002` contains manual PK warning | **no**, objects are already in snapshot |
+| 2 | `migration/008_tool_analytics.sql` | tracked | Creates three analytics tables; already present in snapshot | no |
+| 3 | `migration/009_user_feedback.sql` | tracked | Creates `response_feedback` and `feedback_insights`; snapshot contains only first | no; would bring back a later deleted table |
+| 4 | `migration/cleanup_unused_tables.sql` | tracked, destructive | Drops sixteen tables, including `feedback_insights`; snapshot largely reflects this cleanup | no |
+| 5 | `migration/002_upgrade_embeddings_to_3072.sql` | **not tracked** | Should make sense after the 768 snapshot; drops vectors, clears cache and requires re-embedding | only after review, backup and commit |
 
-De dichtstbijzijnde reconstructie van de lokale staat is dus: een geteste volledige snapshot als baseline, daarna de 3072-migratie, daarna volledige re-embedding. Dit is een beschrijving van de geobserveerde staat, nog geen ondersteund productiecommando.
+So the closest reconstruction of the local state is: a tested full snapshot as a baseline, then the 3072 migration, then full re-embedding. This is a description of the observed state, not yet a supported production command.
 
-De tabellen `public.schema_migrations` en `drizzle.__drizzle_migrations` bewijzen geen volledige keten. Lokaal bevatte `public.schema_migrations` alleen `v2.0.1_citations_table` en `022_cleanup_unused_tables`; Drizzle bevatte één hash. De overige huidige objecten zijn daar niet herleidbaar als toegepaste stappen.
+The tables `public.schema_migrations` and `drizzle.__drizzle_migrations` do not prove a complete chain. Locally, `public.schema_migrations` contained only `v2.0.1_citations_table` and `022_cleanup_unused_tables`; Drizzle contained one hash. The other current objects cannot be traced back there as applied steps.
 
-### Vereiste remediatie
+### Required remediation
 
-1. Kies één owner en één schema-authority.
-2. Maak een echte `supabase/migrations/<timestamp>_*.sql`-keten vanaf een lege instance.
-3. Neem 3072-DDL, RPC-signatures, RLS, publications en grants in die keten op.
-4. Leg per migratie checksum, applied-at, rollback/forward-fix en datamigratie vast.
-5. Laat CI een lege database migreren en de objectcounts en dimensies vergelijken.
+1. Choose one owner and one schema authority.
+2. Create a real `supabase/migrations/<timestamp>_*.sql` chain from an empty instance.
+3. Include 3072-DDL, RPC signatures, RLS, publications and grants in that chain.
+4. Record checksum, applied-at, rollback/forward-fix and data migration per migration.
+5. Let CI migrate an empty database and compare the object counts and dimensions.
 
-## Tekstuele ERD
+## Textual ERD
 
-Onderstaande pijlen zijn fysieke foreign keys in de lokale catalogus, tenzij expliciet als “logisch” gemarkeerd.
+The arrows below are physical foreign keys in the local catalog, unless explicitly marked as “logical”.
 
 ```text
-Supabase Auth / gebruikers
-  auth.users.id - - - client.auth_id                  (logisch; geen FK)
-  client.id - - - conversation.user_id                (logisch; geen actuele FK)
+Supabase Auth / users
+  auth.users.id - - - client.auth_id                  (logical; no FK)
+  client.id - - - conversation.user_id                (logical; no current FK)
   client.id <----- client_collaboration.client_id
   collaboration.id <----- client_collaboration.collaboration_id
   collaboration.id <----- conversation.collaboration_id
   conversation.id <----- message.conversation_id
-  client.id - - - message.user_id                     (logisch; geen actuele FK)
+  client.id - - - message.user_id                     (logical; no current FK)
 
 CORDIS / embeddings
   projects.id <----- project_embeddings.project_id    (ON DELETE CASCADE)
-  projects.id - - - organizations."projectID"          (logisch; geen actuele FK)
+  projects.id - - - organizations."projectID"          (logical; no current FK)
 
 Document-RAG
   horizon_documents.id <----- document_chunks.document_id
   shared_documents.id <----- shared_document_chunks.document_id
   shared_documents.id <----- call_document_mappings.document_id
   funding_calls.call_identifier - - - call_document_mappings.call_identifier
-                                                    (logische stringkoppeling)
+                                                    (logical string link)
 
 Proposal V4
   proposals.id <----- proposal_sessions.proposal_id
@@ -343,16 +343,16 @@ Analytics / memory
   conversation_analytics.conversation_id - - - conversation.id
   response_feedback.conversation_id - - - conversation.id
   conversation_facts/conversation_memory - - - conversation/user
-                                                    (logische IDs, geen FK)
+                                                    (logical IDs, no FK)
 ```
 
-Belangrijke consequentie: meerdere ownership- en tenantrelaties bestaan alleen als conventie in applicatiecode. De database voorkomt geen orphan rows voor onder andere organization→project, client→conversation en user→message.
+Important consequence: multiple ownership and tenant relationships only exist as a convention in application code. The database does not prevent orphan rows for organization→project, client→conversation and user→message, among others.
 
-## Neo4j-graafschema
+## Neo4j graph scheme
 
-### Actuele CORDIS-kern
+### Current CORDIS core
 
-De draaiende lokale graaf bevatte op 20 juli 2026:
+The running local graph contained on 20 July 2026:
 
 | Label | Nodes |
 |---|---:|
@@ -364,7 +364,7 @@ De draaiende lokale graaf bevatte op 20 juli 2026:
 | `Cluster` | 6 |
 | `EntityType` | 5 |
 
-| Relatietype | Relaties |
+| Relationship type | Relationships |
 |---|---:|
 | `PARTICIPATES_IN` | 89.263 |
 | `PARTNERS_WITH` | 74.262 |
@@ -373,7 +373,7 @@ De draaiende lokale graaf bevatte op 20 juli 2026:
 | `LOCATED_IN` | 25.089 |
 | `IS_TYPE` | 25.009 |
 
-Kernmodel:
+Core model:
 
 ```text
 (Organization)-[:PARTICIPATES_IN {role, ecContribution}]->(Project)
@@ -384,15 +384,15 @@ Kernmodel:
 (Project)-[:TARGETS]->(Cluster|Programme)
 ```
 
-Dit corrigeert de oude documentatieclaim `(Project)-[:BELONGS_TO]->(Topic)`: het actuele CORDIS-ingestscript gebruikt `FUNDED_UNDER`.
+This corrects the old documentation claim `(Project)-[:BELONGS_TO]->(Topic)`: the current CORDIS ingest script uses `FUNDED_UNDER`.
 
-### Programmatische referentiegrafen
+### Programmatic reference graphs
 
-De scripts voegen daarnaast labels toe voor `ErasmusAction`, `ErasmusSector`, `PartnerRegion`, `CreativeEuropeAction`, `CreativeEuropeStrand`, `CreativeEuropeRegion`, `DigitalEuropeAction`, `DigitalEuropeObjective`, `DigitalEuropeRegion`, `EU4HealthAction`, `EU4HealthStrand`, `EU4HealthRegion`, `LIFEProjectType`, `LIFESubprogramme` en `LIFERegion`. Relaties omvatten onder andere `PART_OF`, `BELONGS_TO_STRAND`, `BELONGS_TO_OBJECTIVE`, `AVAILABLE_IN`, `REQUIRES_COORDINATOR_FROM`, `ALLOWS_PARTNERS_FROM`, `ALLOWS_PARTICIPATION_FROM`, `ALLOWS_COUNTRIES` en `MEMBER_OF`.
+The scripts also add labels for `ErasmusAction`, `ErasmusSector`, `PartnerRegion`, `CreativeEuropeAction`, `CreativeEuropeStrand`, `CreativeEuropeRegion`, `DigitalEuropeAction`, `DigitalEuropeObjective`, `DigitalEuropeRegion`, `EU4HealthAction`, `EU4HealthStrand`, `EU4HealthRegion`, `LIFEProjectType`, `LIFESubprogramme` and `LIFERegion`. Relationships include `PART_OF`, `BELONGS_TO_STRAND`, `BELONGS_TO_OBJECTIVE`, `AVAILABLE_IN`, `REQUIRES_COORDINATOR_FROM`, `ALLOWS_PARTNERS_FROM`, `ALLOWS_PARTICIPATION_FROM`, `ALLOWS_COUNTRIES`, and `MEMBER_OF`.
 
-Deze nodes ontbraken in de lokale graafsnapshot; de scripts waren daar dus niet aantoonbaar toegepast. Hun inhoud komt uit hardcoded Python-constanten en heeft geen databaseprovenance of geldigheidsdatum.
+These nodes were missing from the local graph snapshot; the scripts were therefore not demonstrably applied there. Their content comes from hardcoded Python constants and has no database provenance or validity date.
 
-Reproduceerbare tellingen:
+Reproducible counts:
 
 ```cypher
 MATCH (n)
@@ -405,14 +405,14 @@ RETURN type(r) AS relationship, count(*) AS relationships
 ORDER BY relationship;
 ```
 
-## Snapshotacceptatie
+## Snapshot acceptance
 
-Een database is pas compatibel met de huidige applicatie wanneer minimaal het volgende waar is:
+A database is only compatible with the current application when at least the following is true:
 
-- 35 verwachte public-tabellen en 15 views zijn aanwezig, of een expliciet nieuwere migratieversie verklaart het verschil.
-- Alle actieve embeddingkolommen zijn 3072-dimensionaal en queryvectors worden met hetzelfde model/dimensie gemaakt.
-- Row counts, embeddingcoverage en bronmanifest zijn vastgelegd; historische aantallen worden niet blind afgedwongen.
-- RLS- en publicationstatus zijn bewust beoordeeld. De huidige minimale RLS is een bekend securityrisico, geen gewenste norm.
-- De fysieke foreign keys uit de ERD bestaan en logische relaties hebben applicatie- of contracttests.
-- PostgreSQL- en Neo4j-dataversies horen bij elkaar; project- en participatiecounts zijn verklaard.
-- Een restore op een lege staging-instance en een rollback/forward-fix zijn daadwerkelijk getest.
+- 35 expected public tables and 15 views are present, or an explicitly newer migration version explains the difference.
+- All active embedding columns are 3072 dimensional and query vectors are created with the same model/dimension.
+- Row counts, embedding coverage and source manifest are recorded; historical numbers are not blindly enforced.
+- RLS and publication status have been deliberately assessed. The current minimum RLS is a known security risk, not a desired standard.
+- The physical foreign keys from the ERD consist and logical relationships have application or contract tests.
+- PostgreSQL and Neo4j data versions belong together; project and participation counts have been explained.
+- EA restore on an empty staging instance and a rollback/forward fix have actually been tested.

@@ -1,6 +1,6 @@
-> ⚠️ **ARCHIVED — 20 juli 2026** — Dit document is historisch en niet meer actueel.
-> Zie [START_HERE.md](../../../START_HERE.md) voor actuele documentatie.
-> Reden: dit is een oudere, volledig onafgevinkte duplicaat-PRD die is opgevolgd door de conversation-stabilitydocumentatie.
+> ⚠️ **ARCHIVED — 20 July 2026** — This document is historical and no longer current.
+> See [START_HERE.md](../../../START_HERE.md) for current documentation.
+> Reason: this is an older, entirely unchecked duplicate PRD that has been superseded by the conversation stability documentation.
 
 # MAPIT Conversation Stability PRD
 

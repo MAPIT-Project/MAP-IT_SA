@@ -1,30 +1,30 @@
 # Backend developer setup
 
-**Laatst geverifieerd:** 20 juli 2026
+**Last verified:** 20 July 2026
 **Repository:** `MAP-IT_SA`
 
-Dit document beschrijft de backendsetup en de werkelijk beschikbare Make-/Dockercommando's. Voor
-het full-stackpad, frontendconfiguratie en de servicevolgorde begin je bij
+This document describes the backend setup and the actual Make/Docker commands available. For
+the full stack path, frontend configuration and service order you start with
 [START_HERE.md](../../START_HERE.md).
 
-> **Databasestatus:** een verse clone heeft nog geen reproduceerbare volledige data- en
-> migratiebaseline. Voer `migration/schema.sql`, `migration/001_init_schema.sql`, de Drizzle-files
-> en `002_upgrade_embeddings_to_3072.sql` niet blind achter elkaar uit: ze zijn geen consistente
-> ordered chain. Zie [databaseschema](../docs/DATABASE_SCHEMA.md) en
-> [data-ingestion](../docs/guides/DATA_INGESTION.md).
+> **Database status:** a fresh clone does not yet have reproducible complete data and
+> migrationbaseline. Enter `migration/schema.sql`, `migration/001_init_schema.sql`, the Drizzle files
+ZZZPROTECTED0ZZ and `002_upgrade_embeddings_to_3072.sql` do not run blindly one after the other: they are not consistent
+> ordered chain. See [database schema](../docs/DATABASE_SCHEMA.md) and
+> [data ingestion](../docs/guides/DATA_INGESTION.md).
 
-## 1. Vereisten
+## 1. Requirements
 
-- Python 3.11 of hoger. De lokale toolconfig richt zich op 3.11; de Dockerfile gebruikt Python 3.13.
-- Docker Engine met de Compose V2-plugin (`docker compose`).
-- Supabase CLI en PostgreSQL-clienttools (`psql`, eventueel `pg_restore`).
-- Een geldige Gemini API-sleutel voor de standaardprovider en, voor embeddings, een Google
-  embedding key of dezelfde Gemini-key.
-- De frontendrepo `webapp-ui` naast deze repo als je lokale Supabase gebruikt.
+- Python 3.11 or higher. The local tool config targets 3.11; the Dockerfile uses Python 3.13.
+- Docker Engine with the Compose V2 plugin (`docker compose`).
+- Supabase CLI and PostgreSQL client tools (`psql`, possibly `pg_restore`).
+- A valid Gemini API key for the default provider and, for embeddings, a Google
+embedding key or the same Gemini key.
+- The frontend repo `webapp-ui` next to this repo if you use local Supabase.
 
-## 2. Pythonomgeving
+## 2. Python environment
 
-Vanuit `MAP-IT_SA`:
+From `MAP-IT_SA`:
 
 ```bash
 ./scripts/setup.sh
@@ -32,25 +32,25 @@ source venv/bin/activate
 make install-dev
 ```
 
-De virtualenv heet **`venv`**, omdat `scripts/setup.sh` exact die directory maakt. Het script:
+The virtualenv is called **`venv`**, because `scripts/setup.sh` creates exactly that directory. The script:
 
-1. maakt `venv` als deze nog niet bestaat;
-2. activeert de omgeving binnen het script;
-3. werkt `pip` bij;
-4. installeert alleen `requirements.txt`;
-5. kopieert `.env.example` naar `.env` als `.env` ontbreekt.
+1. creates `venv` if it does not already exist;
+2. activates the environment within the script;
+3. updates `pip`;
+4.  only installs `requirements.txt`;
+5. copies `.env.example` to `.env` if `.env` is missing.
 
-De activatie uit een subprocess blijft niet in je huidige shell actief; voer daarom daarna zelf
-`source venv/bin/activate` uit. `make install-dev` installeert aanvullend
+The activation from a subprocess does not remain active in your current shell; therefore feed yourself afterwards
+`source venv/bin/activate` off. `make install-dev` installs additionally
 `requirements-dev.txt`.
 
-## 3. Backendconfiguratie
+## 3. Backend configuration
 
-Bewerk `.env`, maar commit het bestand nooit. `app/core/config.py` vereist bij import minimaal een
-niet-lege `DATABASE_URL`, `SUPABASE_URL` en `SUPABASE_SERVICE_KEY`. Voor een functionele chat zijn
-ook een AI-provider en de bijbehorende modelconfig nodig.
+Edit `.env`, but never commit the file. `app/core/config.py` requires at least one for import
+non-empty `DATABASE_URL`, `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`. Being for a functional chat
+also need an AI provider and the associated model config.
 
-Voor een **lokaal Pythonproces** met Supabase/Redis/Neo4j op de host:
+For a **local Python process** with Supabase/Redis/Neo4j on the host:
 
 ```dotenv
 DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres
@@ -67,24 +67,24 @@ REDIS_URL=redis://localhost:16379/0
 JWT_SECRET_KEY=<willekeurige gedeelde secret>
 ```
 
-Voor de **Compose-API** worden `DATABASE_URL`, `SUPABASE_URL`, `NEO4J_URI`, `REDIS_URL` en de
-Redis-host/poort door `docker-compose.yml` overschreven met Docker-servicenamen. Keys, modellen en
-embeddinginstellingen komen wel uit `.env`.
+For the **Compose-API**, `DATABASE_URL`, `SUPABASE_URL`, `NEO4J_URI`, `REDIS_URL` and
+Redis host/port overwritten by `docker-compose.yml` with Docker service names. Keys, models and
+embedding settings do come from `.env`.
 
-Genereer een lokale JWT-secret met:
+Generate a local JWT-secret with:
 
 ```bash
 python3 -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-De huidige V3/V4-routes gebruiken de aanwezige authdependency niet en vertrouwen nog op standaard-
-identiteiten. Deze secret inrichten maakt die routes dus nog niet veilig; dit is vastgelegd in het
-[API-contract](../../API_CONTRACT.md) en [securityregister](../../SECURITY_REGISTER.md).
+The current V3/V4 routes do not use the existing authdependency and still rely on standard
+identities. Setting up this secret does not make those routes safe; this is recorded in it
+[API contract](../../API_CONTRACT.md) and [security register](../../SECURITY_REGISTER.md).
 
-## 4. Supabase en het externe Docker-netwerk
+## 4. Supabase and the external Docker network
 
-Backend-Compose declareert `supabase_network_supabase_cli` als een **extern** netwerk en maakt dit
-niet zelf. Start daarom eerst Supabase vanuit exact deze map:
+Backend-Compose declares `supabase_network_supabase_cli` as a **external** network and creates this
+not yourself. Therefore, first start Supabase from exactly this folder:
 
 ```bash
 cd ../webapp-ui/supabase_cli
@@ -94,35 +94,35 @@ docker network inspect supabase_network_supabase_cli >/dev/null
 cd ../../MAP-IT_SA
 ```
 
-Waarom deze map: de CLI vindt daar `supabase/config.toml` met
-`project_id = "supabase_cli"`. De resulterende containernamen zijn onder meer
-`supabase_db_supabase_cli` en `supabase_kong_supabase_cli`; precies die namen gebruikt Compose.
-Voer niet opnieuw `supabase init` uit.
+Why this folder: the CLI finds there `supabase/config.toml` with
+`project_id = "supabase_cli"`. The resulting container names include
+`supabase_db_supabase_cli` and `supabase_kong_supabase_cli`; Compose uses exactly those names.
+Do not run `supabase init` again.
 
-Lokale hoofdpoorten zijn API `54321`, PostgreSQL `54322` en Studio `54323`.
+Local main ports are API `54321`, PostgreSQL `54322` and Studio `54323`.
 
-## 5. Database en data
+## 5. Database and data
 
-Gebruik voor een overdrachtsomgeving een versieerde, volledige databasebaseline met checksum. De
-repository bevat die op dit moment niet:
+For a transfer environment, use a versioned, full database baseline with checksum. The
+repository does not currently contain it:
 
-- `neo4j_backup/project_embeddings.dump` kan in een bestaande werkmap voorkomen, maar
-  `/neo4j_backup/` is Git-ignored;
-- de gecontroleerde dump bevat alleen `TABLE DATA public project_embeddings`, geen schema,
-  projecten of organisaties;
-- `data/cordis` is Git-ignored en ontbreekt in een verse clone;
-- `migration/schema.sql` en `webapp-ui/supabase_cli/schema.sql` zijn snapshots van een hele
-  Supabase-database en bevatten ongecommentarieerde regels die met `pg_dump:` beginnen;
-- `001_init_schema.sql` en de frontend Drizzle-migraties spreken elkaar tegen over typen van
-  `projects` en `organizations`;
-- de 768-naar-3072-migratie is nog geen bewezen onderdeel van een getrackte keten.
+- `neo4j_backup/project_embeddings.dump` may exist in an existing workbook, but
+`/neo4j_backup/` is Git-ignored;
+- the checked dump contains only `TABLE DATA public project_embeddings`, no schema,
+projects or organizations;
+- `data/cordis` is Git-ignored and missing from a fresh clone;
+- `migration/schema.sql` and `webapp-ui/supabase_cli/schema.sql` are snapshots of an entire
+Supabase database and contain uncommented lines starting with `pg_dump:`;
+- `001_init_schema.sql` and the frontend Drizzle migrations contradict each other about types of
+`projects` and `organizations`;
+- the 768-to-3072 migration is not yet a proven part of a tracked chain.
 
-Vraag daarom een goedgekeurde full dump aan of gebruik het raw-ingestpad. De exacte restore-,
-ingest- en verificatiestappen staan in [DATA_INGESTION.md](../docs/guides/DATA_INGESTION.md). De
-bedoelde volgorde is Supabase → schema baseline → nieuwere migraties → relationele data →
-documentchunks/calls → embeddings met de juiste dimensie.
+Therefore, request an approved full dump or use the raw ingestion path. The exact restore,
+ingestion and verification steps are in [DATA_INGESTION.md](../docs/guides/DATA_INGESTION.md). The
+intended order is Supabase → schema baseline → newer migrations → relational data →
+document chunks/calls → embeddings with the correct dimension.
 
-Controleer na restore in elk geval:
+In any case, check after restore:
 
 ```bash
 export MAPIT_DATABASE_URL='postgresql://postgres:postgres@localhost:54322/postgres'
@@ -135,21 +135,21 @@ psql "$MAPIT_DATABASE_URL" -c \
    UNION ALL SELECT 'document_chunks', count(*) FROM document_chunks;"
 ```
 
-## 6. Redis en Neo4j starten
+## 6. Starting Redis and Neo4j
 
 ```bash
 docker compose up -d redis neo4j
 docker compose ps
 ```
 
-Hostpoorten zijn Redis `16379`, Neo4j Browser `17474` en Bolt `17687`. Binnen het Compose-netwerk
-blijven dat respectievelijk `6379`, `7474` en `7687`.
+Host ports are Redis `16379`, Neo4j Browser `17474` and Bolt `17687`. Within the Compose network
+remain `6379`, `7474` and `7687` respectively.
 
-### Ingecheckte Neo4j-dump laden
+### Loading checked Neo4j dump
 
-`neo4j_backup/neo4j.dump` is wel Git-getrackt. Gebruik `docker cp`, omdat Neo4j de bindmount
-`neo4j/import` vaak UID `7474` en modus `0700` geeft, waardoor je hostgebruiker daar geen toegang
-meer toe heeft:
+`neo4j_backup/neo4j.dump` is Git tracked. Use `docker cp`, because Neo4j is the bind mount
+`neo4j/import` often gives UID `7474` and mode `0700`, which prevents your host user from accessing them
+has more:
 
 ```bash
 docker cp neo4j_backup/neo4j.dump mapit-neo4j:/var/lib/neo4j/import/neo4j.dump
@@ -160,41 +160,41 @@ docker compose start neo4j
 docker compose ps
 ```
 
-Als hosttools of pytest nog `Permission denied` op `neo4j/import` geven, herstel alleen die map:
+If hosttools or pytest still give `Permission denied` on `neo4j/import`, restore only that folder:
 
 ```bash
 sudo chown -R "$(id -u):$(id -g)" neo4j/import
 chmod 755 neo4j/import
 ```
 
-Voer geen brede `chown` op de repository of Docker-volumes uit.
+Do not run wide `chown` on the repository or Docker volumes.
 
-## 7. Wat de Make-targets werkelijk doen
+## 7. What the Make targets actually do
 
-| Target | Exact gedrag | Bereikbaar op |
+| Target | Exact behavior | Accessible on |
 |---|---|---|
-| `make run` | `uvicorn main:app --host 0.0.0.0 --port 8000` in de actieve hostomgeving | `http://localhost:8000` |
-| `make run-reload` | hetzelfde met `--reload` | `http://localhost:8000` |
-| `make docker-up` | alleen `docker compose up -d`; start Redis, Neo4j én een API-container | API `18000`, Redis `16379`, Neo4j `17474`/`17687` |
-| `make docker-down` | `docker compose down` | stopt de Compose-stack; named volumes blijven normaal bestaan |
-| `make install` | installeert `requirements.txt` via de actieve `pip` | n.v.t. |
-| `make install-dev` | `make install`, daarna `requirements-dev.txt` | n.v.t. |
-| `make test` | `pytest -q` | huidige baseline kan al bij collectie falen op `neo4j/import`-permissions |
-| `make lint` | `ruff check app tests .` | n.v.t. |
+| `make run` | `uvicorn main:app --host 0.0.0.0 --port 8000` in the active host environment | `http://localhost:8000` |
+| `make run-reload` | same with `--reload` | `http://localhost:8000` |
+| `make docker-up` | only `docker compose up -d`; start Redis, Neo4j and a API container | API `18000`, Redis `16379`, Neo4j `17474`/`17687` |
+| `make docker-down` | `docker compose down` | stops the Compose stack; named volumes persist normally |
+| `make install` | installs `requirements.txt` via the active `pip` | n/a. |
+| `make install-dev` | `make install`, then `requirements-dev.txt` | n/a. |
+| `make test` | `pytest -q` | current baseline can already fail upon collection on `neo4j/import` permissions |
+| `make lint` | `ruff check app tests .` | n.a. |
 
-### Ondersteunde startmodi
+### Supported starting modes
 
-**Standaard full-stackmodus — alles in Compose:**
+**Standard full stack mode — all in Compose:**
 
 ```bash
-# Supabase en database zijn al gestart/geladen.
+# Supabase and the database are already started/loaded.
 docker compose up -d --build
 curl -fsS http://localhost:18000/api/health/live
 ```
 
-Stel de frontend dan in met `BACKEND_URL=http://localhost:18000`.
+Then set the frontend with `BACKEND_URL=http://localhost:18000`.
 
-**Backend-debugmodus — infra in Docker, API op de host:**
+**Backend debug mode — infrastructure in Docker, API on the host:**
 
 ```bash
 docker compose up -d redis neo4j
@@ -203,12 +203,12 @@ make run-reload
 curl -fsS http://localhost:8000/api/health/live
 ```
 
-Gebruik hierbij de host-URL's uit sectie 3 en zet frontend `BACKEND_URL` op
-`http://localhost:8000`. Start in deze modus niet ook de Compose-service `api`.
+Use the host URLs from section 3 and set up frontend `BACKEND_URL`
+`http://localhost:8000`. Do not also start the Compose service `api` in this mode.
 
-## 8. Werkelijke V3- en V4-routes
+## 8. Actual V3 and V4 routes
 
-De V3-prefix in `conversation_routes_v3.py` is `/api/v3/conversation`:
+The V3 prefix in `conversation_routes_v3.py` is `/api/v3/conversation`:
 
 - `POST /api/v3/conversation/{conversation_id}/message/stream`
 - `POST /api/v3/conversation/{conversation_id}/message`
@@ -220,7 +220,7 @@ De V3-prefix in `conversation_routes_v3.py` is `/api/v3/conversation`:
 - `GET /api/v3/conversation/analytics/search`
 - `GET /api/v3/conversation/analytics/export`
 
-De V4-prefix in `proposal_session_routes.py` is **`/api/v4/proposal-session`**, niet
+The V4 prefix in `proposal_session_routes.py` is **`/api/v4/proposal-session`**, not
 `/api/v4/proposals/sessions`:
 
 - `POST /api/v4/proposal-session/create`
@@ -235,16 +235,16 @@ De V4-prefix in `proposal_session_routes.py` is **`/api/v4/proposal-session`**, 
 - `POST /api/v4/proposal-session/{session_id}/focus/{section_id}`
 - `GET /api/v4/proposal-session/health`
 
-`POST .../create` verwacht `proposal_id`, `call_id`, `title`, optioneel `proposal_type` en optioneel
-`conversation_id`; `user_id` is momenteel een queryparameter met default `default-user`. Zie voor
-schemas, events en voorbeelden het [API-contract](../../API_CONTRACT.md).
+`POST .../create` expected `proposal_id`, `call_id`, `title`, optional `proposal_type` and optional
+`conversation_id`; `user_id` is currently a query parameter with default `default-user`. See for
+schemas, events and examples the [API contract](../../API_CONTRACT.md).
 
-Let op: de gedeclareerde V4-healthroute staat in het routebestand **na**
-`GET /api/v4/proposal-session/{session_id}`. Door FastAPI/Starlette-routevolgorde kan `health`
-daardoor als `session_id` worden geïnterpreteerd. Gebruik voor algemene proceshealth de werkende
-`/api/health/live` en `/api/health` routes.
+Please note: the declared V4 health route is in the route file **na**
+`GET /api/v4/proposal-session/{session_id}`. FastAPI/Starlette route ordering allows `health`
+therefore be interpreted as `session_id`. For general process health, use the working one
+`/api/health/live` and `/api/health` routes.
 
-## 9. Verificatie
+## 9. Verification
 
 ```bash
 curl -fsS http://localhost:18000/api/health/live
@@ -252,11 +252,11 @@ curl -sS http://localhost:18000/api/health | python3 -m json.tool
 curl -sS http://localhost:18000/openapi.json -o /tmp/mapit-openapi.json
 ```
 
-Voor host-debugmodus vervang je `18000` door `8000`. `/api/health/live` bewijst alleen dat het proces
-reageert; `/api/health` controleert PostgreSQL, Neo4j, Redis, Gemini, embeddings en Supabase. Een
-`degraded` resultaat moet je per component onderzoeken.
+For host debug mode, replace `18000` with `8000`. `/api/health/live` just proves that the process
+responds; `/api/health` controls PostgreSQL, Neo4j, Redis, Gemini, embeddings and Supabase. A
+`degraded` results must be examined per component.
 
-V3-streamsmoke, na het aanmaken van een gebruiker en conversatie via de frontend:
+V3 streamsmoke, after creating a user and conversation via the frontend:
 
 ```bash
 curl -N -X POST \
@@ -265,12 +265,12 @@ curl -N -X POST \
   -d '{"message":"Noem passende open Horizon Europe-calls voor digitale gezondheid.","include_context":true}'
 ```
 
-Verwacht SSE-regels met `data:`, gevolgd door een `complete`-event. Zonder de juiste datasets of
-embeddingdimensie is dit alleen een technische smoke test, geen inhoudelijke acceptatietest.
+Expect SSE lines with `data:`, followed by a `complete` event. Without the right data sets or
+In terms of embedding dimension, this is only a technical smoke test, not a substantive acceptance test.
 
 ## 10. Troubleshooting
 
-### Extern Supabase-netwerk ontbreekt
+### External Supabase network missing
 
 ```bash
 cd ../webapp-ui/supabase_cli
@@ -278,32 +278,32 @@ supabase status || supabase start
 docker network inspect supabase_network_supabase_cli
 ```
 
-Maak niet handmatig een leeg netwerk met dezelfde naam als je de Supabase-containers werkelijk wilt
-bereiken; start Supabase zodat de juiste containers eraan gekoppeld zijn.
+Don't manually create an empty network with the same name if you really want the Supabase containers
+reaches; Start Supabase so that the correct containers are linked to it.
 
-### API gebruikt de verkeerde poort
+### API is using the wrong port
 
-- `make run` en `make run-reload`: hostpoort `8000`.
-- `make docker-up`/Compose-API: hostpoort `18000`.
-- Binnen Docker luistert FastAPI altijd op `8000`.
+- `make run` and `make run-reload`: host port `8000`.
+- `make docker-up`/Compose-API: Host port `18000`.
+- Within Docker, FastAPI is always listening on `8000`.
 
-Controleer met `docker compose ps` en pas frontend `BACKEND_URL` aan de gekozen modus aan.
+Check with `docker compose ps` and adjust frontend `BACKEND_URL` to the selected mode.
 
-### Neo4j blijft unhealthy
+### Neo4j remains unhealthy
 
-De healthcheck heeft een startperiode van 60 seconden. Bekijk daarna:
+The health check has a starting period of 60 seconds. Then check out:
 
 ```bash
 docker compose logs --tail=150 neo4j
 curl -I http://localhost:17474
 ```
 
-Controleer wachtwoordconsistentie en de permissions van uitsluitend `neo4j/import`.
+Check password consistency and permissions of `neo4j/import` only.
 
-### Vectorzoekactie faalt op dimensie
+### Vector search fails on dimension
 
-De actieve codeconfig is 3072 (`gemini-embedding-001`), maar oudere schema-snapshots hebben 768 voor
-calls/chunks/cache. Controleer het live type vóór ingest of re-embedding:
+The active code config is 3072 (`gemini-embedding-001`), but older schema snapshots have 768 for
+calls/chunks/cache. Check the live type before ingest or re-embedding:
 
 ```bash
 psql "$MAPIT_DATABASE_URL" -c \
@@ -314,10 +314,10 @@ psql "$MAPIT_DATABASE_URL" -c \
    WHERE c.table_schema='public' AND c.column_name='embedding';"
 ```
 
-Migreer niet ad hoc: volg de vastgestelde baseline in
-[DATABASE_SCHEMA.md](../docs/DATABASE_SCHEMA.md) en regenereer daarna alle getroffen embeddings.
+Don't migrate ad hoc: follow the established baseline
+[DATABASE_SCHEMA.md](../docs/DATABASE_SCHEMA.md) and then regenerate all affected embeddings.
 
-## Stoppen
+## Stop
 
 ```bash
 docker compose down
@@ -325,5 +325,5 @@ cd ../webapp-ui/supabase_cli
 supabase stop
 ```
 
-Deze commando's verwijderen normaal niet de named volumes. Een clean/resetactie is destructief en
-hoort alleen bij een bewust wegwerpbare lokale omgeving.
+These commands do not normally delete named volumes. A clean/reset action is destructive and
+belongs only to a consciously disposable local environment.

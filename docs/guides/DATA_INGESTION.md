@@ -1,38 +1,38 @@
-# Data-ingestie en data-bootstrap
+# Data ingestion and data bootstrap
 
-**Status:** actueel runbook, met bekende blockers
+**Status:** current runbook, with known blockers
 
-**Laatst geverifieerd:** 20 juli 2026
+**Last verified:** 20 July 2026
 
-**Werkmap voor alle commando's:** `MAP-IT_SA/`
+**Workbook for all commands:** `MAP-IT_SA/`
 
-Dit runbook beschrijft wat vanuit een verse clone wel en niet reproduceerbaar is. Het relationele schema, de documentencollectie, CORDIS-projecten, embeddings en de Neo4j-graaf zijn afzonderlijke datasets. Een geslaagde schema-installatie betekent daarom nog niet dat MAPIT representatieve zoekresultaten kan leveren.
+This runbook describes what is and is not reproducible from a fresh clone. The relational schema, document collection, CORDIS projects, embeddings, and Neo4j graph are separate datasets. A successful schema installation therefore does not mean that MAPIT can provide representative search results.
 
-Zie ook [DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md) voor het actuele schema- en migratiecontract en [START_HERE.md](../../../START_HERE.md) voor het starten van de services.
+See also [DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md) for the current schedule and migration contract and [START_HERE.md](../../../START_HERE.md) for starting the services.
 
-## Eerst lezen: actuele blockers
+## First read: current blockers
 
-| Blocker | Feitelijke situatie | Gevolg |
+| Blocker | Actual situation | Consequence |
 |---|---|---|
-| Geen gedistribueerde PostgreSQL-baseline | De lokaal aanwezige `mapit_dump.dump` is niet Git-tracked. `neo4j_backup/project_embeddings.dump` wordt door `.gitignore` uitgesloten en bevat volgens `pg_restore -l` uitsluitend data voor `public.project_embeddings`. | Een verse clone kan de 13.865 projecten, 89.348 organisatieparticipaties en overige relationele data niet uit de repository herstellen. |
-| Geen raw CORDIS-import naar PostgreSQL | Er is alleen `scripts/ingest_cordis_to_neo4j.py`; er is geen script dat `project.csv` en `organization.csv` naar PostgreSQL importeert. | Raw CORDIS-bestanden kunnen de graaf vullen, maar lossen de ontbrekende relationele projectdataset niet op. |
-| CORDIS-bronmap ontbreekt | `data/` is Git-ignored en `data/cordis/` ontbreekt. Het Neo4j-script verwacht daar exact `project.csv` en optioneel `organization.csv`. | De raw Neo4j-ingestie stopt direct zonder `project.csv`. |
-| Horizon-verwerkingsmappen ontbreken | `process_comprehensive_docs.py` leest `downloads/horizon_europe_comprehensive/`; `ingest_comprehensive_docs.py` leest `processed_docs/horizon_europe/ingestion_ready.jsonl`. Beide mappen ontbreken in een clone. | De scripts zijn geen enkelstaps-ingestie van `newdocs/`. De bronbestanden moeten eerst naar de verwachte structuur worden gestaged en verwerkt. |
-| Gedeelde documenten ontbreken in een clone | De vijf lokaal aanwezige PDF's onder `data/shared_documents/` vallen onder de Git-ignore voor `data/`. | `process_shared_documents.py` heeft in een verse clone geen input. De melding in dat script over `download_shared_documents.py` is niet uitvoerbaar: dat downloadscript bestaat niet. |
-| 3072-migratie niet geborgd | `migration/002_upgrade_embeddings_to_3072.sql` en de twee `reembed_*.py`-scripts zijn in de onderzochte worktree aanwezig maar niet Git-tracked. | De draaiende lokale database is 3072-dimensionaal, maar een clone van de huidige Git-baseline blijft voor document-, call- en cachevectors op 768 dimensies. |
+| No distributed PostgreSQL baseline | The local `mapit_dump.dump` is not Git tracked. `neo4j_backup/project_embeddings.dump` is excluded by `.gitignore` and according to `pg_restore -l` only contains data for `public.project_embeddings`. | A fresh clone cannot restore the 13.865 projects, 89.348 organizational participations and other relational data from the repository. |
+| No raw CORDIS import to PostgreSQL | There is only `scripts/ingest_cordis_to_neo4j.py`; there is no script that imports `project.csv` and `organization.csv` to PostgreSQL. | Raw CORDIS files can fill the graph, but do not solve the missing relational project dataset. |
+| CORDIS source folder is missing | `data/` is Git-ignored and `data/cordis/` is missing. The Neo4j script expects exactly `project.csv` and optionally `organization.csv`. | The raw Neo4j ingestion stops immediately without `project.csv`. |
+| Horizon processing folders missing | `process_comprehensive_docs.py` reads `downloads/horizon_europe_comprehensive/`; `ingest_comprehensive_docs.py` reads `processed_docs/horizon_europe/ingestion_ready.jsonl`. Both folders are missing in a clone. | The scripts are not a single-step ingestion of `newdocs/`. The source files must first be staged and processed to the expected structure. |
+| Shared documents are missing in a clone | The five locally present PDF's under `data/shared_documents/` fall under the Git-ignore for `data/`. | `process_shared_documents.py` has no input in a fresh clone. The message in that script about `download_shared_documents.py` is not executable: that download script does not exist. |
+| 3072 migration not guaranteed | `migration/002_upgrade_embeddings_to_3072.sql` and the two `reembed_*.py` scripts are present in the examined work tree but not Git tracked. | The running local database is 3072 dimensional, but a clone of the current Git baseline remains for document, call, and cache vectors on 768 dimensions. |
 
-De huidige ondersteunde overdrachtsroute is daarom: vraag de data-eigenaar om een versieerd, versleuteld PostgreSQL-artifact met manifest, of accepteer expliciet een beperkte omgeving zonder relationele CORDIS-data. Publiceer vóór overdracht minimaal artifactnaam, aanmaakdatum, schema- en dataversie, SHA-256, grootte, bronlicenties en een bevoegde contactpersoon. `Owner: TBD` is op dit moment nog een open blocker.
+The currently supported transfer route is therefore: ask the data owner for a versioned, encrypted PostgreSQL artifact with manifest, or explicitly accept a restricted environment without relational CORDIS data. Before transfer, publish at least artifact name, creation date, schema and data version, SHA-256, size, source licenses, and an authorized contact. `Owner: TBD` is currently still an open blocker.
 
-## Vereisten
+## Requirements
 
-1. Start PostgreSQL/Supabase en Neo4j volgens [START_HERE.md](../../../START_HERE.md).
-2. Activeer de door `scripts/setup.sh` gemaakte virtualenv:
+1. Start PostgreSQL/Supabase and Neo4j according to [START_HERE.md](../../../START_HERE.md).
+2. Activate the virtualenv created by `scripts/setup.sh`:
 
    ```bash
    source venv/bin/activate
    ```
 
-3. Zet minimaal de volgende variabelen in `.env` of de shell:
+3. Put at least the following variables in `.env` or the shell:
 
    ```dotenv
    DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres
@@ -46,24 +46,24 @@ De huidige ondersteunde overdrachtsroute is daarom: vraag de data-eigenaar om ee
    NEO4J_PASSWORD=<zelfde-wachtwoord-als-docker-compose>
    ```
 
-   `EmbeddingService` valt voor de API-key terug van `GOOGLE_EMBEDDING_API_KEY` op `GEMINI_API_KEY`. Voor hostprocessen gebruikt Compose Neo4j-poort `17687`; binnen het Compose-netwerk is dat `bolt://neo4j:7687`.
+`EmbeddingService` falls back from `GOOGLE_EMBEDDING_API_KEY` to `GEMINI_API_KEY` for the API key. For host processes, Compose uses Neo4j port `17687`; within the Compose network this is `bolt://neo4j:7687`.
 
-4. Controleer verbinding en vectordimensies voordat data wordt geschreven:
+4. Check connection and vector dimensions before writing data:
 
    ```bash
    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c 'select current_database(), version();'
    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "select table_name, column_name, format_type(a.atttypid,a.atttypmod) as type from information_schema.columns c join pg_class t on t.relname=c.table_name join pg_namespace n on n.oid=t.relnamespace and n.nspname=c.table_schema join pg_attribute a on a.attrelid=t.oid and a.attname=c.column_name where c.table_schema='public' and c.column_name='embedding' order by table_name;"
    ```
 
-   Ga niet verder wanneer de database `vector(768)` rapporteert terwijl de applicatie `EMBEDDING_DIMENSION=3072` gebruikt.
+Do not proceed if the database reports `vector(768)` while the application uses `EMBEDDING_DIMENSION=3072`.
 
-## Kies een bootstrapmodus
+## Choose a bootstrap mode
 
-### Modus A — volledige, goedgekeurde PostgreSQL-dump
+### Mode A — full, approved PostgreSQL dump
 
-Dit is de enige route waarmee de relationele CORDIS-baseline nu volledig kan worden gereproduceerd. De dump moet buiten Git door de data-eigenaar worden geleverd. De lokaal aangetroffen dumps zijn geen overdraagbaar artifactcontract.
+This is the only route that can now fully reproduce the relational CORDIS baseline. The dump must be provided outside of Git by the data owner. The dumps found locally are not a transferable artifact contract.
 
-Controleer vóór herstel:
+Before recovery check:
 
 ```bash
 export MAPIT_DATA_DUMP=/absoluut/pad/naar/mapit-postgres-<dataversie>.dump
@@ -72,7 +72,7 @@ sha256sum "$MAPIT_DATA_DUMP"
 pg_restore --list "$MAPIT_DATA_DUMP" | less
 ```
 
-Maak eerst een backup. Het volgende restorecommando verwijdert objecten uit de doeldatabase en is alleen bedoeld voor een lege, compatibele lokale Supabase-instance:
+Make a backup first. The following restore command removes objects from the target database and is intended only for an empty, compatible local Supabase instance:
 
 ```bash
 pg_dump --format=custom --file="pre-mapit-restore-$(date +%Y%m%d-%H%M%S).dump" "$DATABASE_URL"
@@ -80,39 +80,39 @@ pg_restore --clean --if-exists --no-acl --no-owner \
   --exit-on-error --dbname="$DATABASE_URL" "$MAPIT_DATA_DUMP"
 ```
 
-Een full dump kan Supabase-beheerschema's (`auth`, `storage`, `realtime`) bevatten. Herstel hem niet over een gedeelde of productie-instance zonder een door de eigenaar geteste restoreprocedure. `neo4j_backup/project_embeddings.dump` is geen alternatief: dat artifact bevat alleen `project_embeddings`-rijen en vereist dat de bijbehorende `projects` al bestaan.
+A full dump can contain Supabase control schemes (`auth`, `storage`, `realtime`). Do not restore it across a shared or production instance without an owner-tested restore procedure. `neo4j_backup/project_embeddings.dump` is not an alternative: that artifact contains only `project_embeddings` rows and requires that the corresponding `projects` already exist.
 
-Verwachte lokale referentie na een volledige restore, gemeten op 20 juli 2026:
+Expected local reference after a full restore, measured at 20 July 2026:
 
-| Dataset | Verwacht aantal | Verificatie |
+| Dataset | Expected quantity | Verification |
 |---|---:|---|
 | `projects` | 13.865 | `SELECT count(*) FROM projects;` |
 | `organizations` | 89.348 | `SELECT count(*) FROM organizations;` |
-| `project_embeddings` | 13.850, alle 13.850 gevuld | `SELECT count(*), count(combined_embedding) FROM project_embeddings;` |
+| `project_embeddings` | 13.850, all 13.850 filled | `SELECT count(*), count(combined_embedding) FROM project_embeddings;` |
 | `horizon_documents` | 144 | `SELECT count(*) FROM horizon_documents;` |
-| `document_chunks` | 38.697, alle 38.697 gevuld | `SELECT count(*), count(embedding) FROM document_chunks;` |
-| `shared_documents` / `shared_document_chunks` | 54 / 13.147 | Twee afzonderlijke `count(*)`-queries |
-| `funding_calls` | 2.758, alle 2.758 gevuld | `SELECT count(*), count(embedding) FROM funding_calls;` |
+| `document_chunks` | 38.697, all 38.697 filled | `SELECT count(*), count(embedding) FROM document_chunks;` |
+| `shared_documents` / `shared_document_chunks` | 54 / 13.147 | Two separate `count(*)` queries |
+| `funding_calls` | 2.758, all 2.758 filled | `SELECT count(*), count(embedding) FROM funding_calls;` |
 
-Deze aantallen zijn een lokale referentiesnapshot, geen universeel acceptatiecriterium voor toekomstige dataversies. Afwijkingen moeten door het artifactmanifest worden verklaard.
+These numbers are a local reference snapshot, not a universal acceptance criterion for future data releases. Deviations must be explained by the artifact manifest.
 
-### Modus B — schema plus beperkte data
+### Mode B — schedule plus restricted data
 
-Gebruik deze modus wanneer geen goedgekeurde dump beschikbaar is. Installeer het schema zoals beschreven in [DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md). Houd rekening met de daar beschreven migratiedrift: er bestaat nog geen deterministische, volledig geteste migratieketen. Zonder aanvullende import blijven relationele CORDIS-tools leeg; document-RAG en hardcoded programmareferenties kunnen wel afzonderlijk worden gevuld.
+Use this mode when an approved dump is not available. Install the scheme as described in [DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md). Please take into account the migration drift described there: there is no deterministic, fully tested migration chain yet. Without additional imports, relational CORDIS tools remain empty; document-RAG and hardcoded program references can be entered separately.
 
-## Dataset-runbooks
+## Dataset runbooks
 
-### 1. CORDIS-projecten en organisaties in PostgreSQL
+### 1. CORDIS projects and organizations in PostgreSQL
 
-| Onderdeel | Waarde |
+| Part | Value |
 |---|---|
-| Bronartifact | Volledige, door de data-eigenaar geleverde PostgreSQL-dump |
-| Raw alternatief | Niet geïmplementeerd voor PostgreSQL |
-| Vereisten | Schema dat overeenkomt met de dump; `projects.id` en `organizations."projectID"` zijn in de actuele database `integer` |
-| Verwacht | Artifactmanifest; lokale referentie 13.865 projecten en 89.348 organisatieparticipaties |
-| Idempotentie | Alleen via volledige restore naar een gecontroleerde doelinstance |
+| Source Artifact | Complete PostgreSQL dump provided by the data owner |
+| Raw alternative | Not implemented for PostgreSQL |
+| Requirements | Schema corresponding to the dump; `projects.id` and `organizations."projectID"` are in the current database `integer` |
+| Expected | Artifact Manifesto; local reference 13.865 projects and 89.348 organizational participations |
+| Idempotency | Only via full restore to a controlled target instance |
 
-Herstel Modus A en voer daarna uit:
+Restore Mode A and then run:
 
 ```bash
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
@@ -126,15 +126,15 @@ WHERE p.id IS NULL;
 SQL
 ```
 
-Stop wanneer `projects_without_title` of `organizations_without_project` onverwacht niet nul is. Er is geen repositoryscript om deze tabellen betrouwbaar opnieuw uit raw CSV op te bouwen.
+Stop when `projects_without_title` or `organizations_without_project` is unexpectedly non-zero. There is no repository script to reliably rebuild these tables from raw CSV.
 
-### 2. CORDIS-graaf in Neo4j
+### 2. CORDIS graph in Neo4j
 
-Er zijn twee routes.
+There are two routes.
 
-#### 2a. Tracked Neo4j-dump herstellen
+#### 2a. Restore tracked Neo4j dump
 
-`neo4j_backup/neo4j.dump` is Git-tracked. De SHA-256 van de op 20 juli 2026 onderzochte versie is `8363cefa4067d2320bf9fbc48cd16447616d9f8e517da59c0e111249bc5db3e2` (63.643.498 bytes). Controleer de checksum na clone.
+`neo4j_backup/neo4j.dump` is Git tracked. The SHA-256 of the version examined on 20 July 2026 is `8363cefa4067d2320bf9fbc48cd16447616d9f8e517da59c0e111249bc5db3e2` (63.643.498 bytes). Check the checksum after clone.
 
 ```bash
 sha256sum neo4j_backup/neo4j.dump
@@ -145,9 +145,9 @@ docker compose run --entrypoint neo4j-admin --rm neo4j database load \
 docker compose start neo4j
 ```
 
-`docker cp` vermijdt hosttoegang tot de bindmount. `neo4j/import/` kan door de container als een andere UID zijn aangemaakt. Bij `Permission denied`: stop de container, inspecteer eerst `ls -ld neo4j neo4j/import`, en laat de eigenaar van de ontwikkelmachine de ACL/eigendom gericht corrigeren. Gebruik geen recursieve `chmod 777`.
+`docker cp` prevents host access to the bindmount. `neo4j/import/` may have been created by the container as another UID. For `Permission denied`: stop the container, first inspect `ls -ld neo4j neo4j/import`, and have the owner of the development machine correct the ACL/property specifically. Do not use recursive `chmod 777`.
 
-De op 20 juli 2026 draaiende lokale graaf bevatte 13.865 `Project`-nodes, 25.096 unieke `Organization`-nodes en 89.263 `PARTICIPATES_IN`-relaties. Verifieer:
+The local graph running on 20 July 2026 contained 13.865 `Project` nodes, 25.096 unique `Organization` nodes, and 89.263 `PARTICIPATES_IN` relationships. Verify:
 
 ```cypher
 MATCH (p:Project) RETURN count(p) AS projects;
@@ -156,40 +156,40 @@ MATCH (:Organization)-[r:PARTICIPATES_IN]->(:Project)
 RETURN count(r) AS participations;
 ```
 
-#### 2b. Raw CORDIS-CSV ingesteren
+#### 2b. Ingest raw CORDIS-CSV
 
-Download de officiële Horizon Europe CORDIS-export die in [EU_PROGRAMME_DATA_DOWNLOADS.md](../../docs_tracked/EU_PROGRAMME_DATA_DOWNLOADS.md) wordt genoemd en leg bron-URL, downloadtijd, licentie en SHA-256 vast. Pak minimaal deze semikolon-gescheiden UTF-8-bestanden uit:
+Download the official Horizon Europe CORDIS export named in [EU_PROGRAMME_DATA_DOWNLOADS.md](../../docs_tracked/EU_PROGRAMME_DATA_DOWNLOADS.md) and record source URL, download time, license and SHA-256. Extract at least these semicolon-separated UTF-8 files:
 
 ```text
-data/cordis/project.csv       verplicht
-data/cordis/organization.csv  optioneel, maar nodig voor partner- en consortiumanalyse
+data/cordis/project.csv       required
+data/cordis/organization.csv  optional, but required for partner and consortium analysis
 ```
 
-Het script gebruikt `on_bad_lines="skip"`; het kan dus ongeldige bronregels overslaan. Vergelijk de logaantallen altijd met `wc -l` en bewaar de foutlog.
+The script uses `on_bad_lines="skip"`; thus it can skip invalid source lines. Always compare the log numbers with `wc -l` and save the error log.
 
 ```bash
 python scripts/ingest_cordis_to_neo4j.py --data-dir data/cordis
 ```
 
-Het script gebruikt `MERGE` en is grotendeels herhaalbaar. `--clear` voert echter `MATCH (n) DETACH DELETE n` uit en wist de **hele** Neo4j-database, inclusief andere programmadata. Gebruik die flag alleen na een backup en expliciete goedkeuring.
+The script uses `MERGE` and is largely repeatable. However, `--clear` runs `MATCH (n) DETACH DELETE n` and erases the **whole** Neo4j database, including other program data. Only use that flag after a backup and explicit approval.
 
-Verwacht bij dezelfde CORDIS-export als de referentiesnapshot 13.865 projecten. Het aantal unieke organisaties is lager dan het aantal regels in `organization.csv`, omdat organisaties over projecten worden gemerged; de lokale referentie is 25.096 unieke nodes en 89.263 participatierelaties.
+Expect the same CORDIS export as the reference snapshot to see 13.865 projects. The number of unique organizations is lower than the number of lines in `organization.csv`, because organizations are merged across projects; the local reference is 25.096 unique nodes and 89.263 participation relationships.
 
-### 3. Projectembeddings
+### 3. Project embeddings
 
-Actieve codeconfiguratie: `models/gemini-embedding-001`, `output_dimensionality=3072`. Het script combineert titel en objective, kapt op 2.000 tekens af en verwerkt standaard batches van 50. Het slaat alleen projecten op met een bruikbare titel en objective.
+Active code configuration: `models/gemini-embedding-001`, `output_dimensionality=3072`. The script combines title and objective, truncates characters at 2.000 and processes standard batches of 50. It only stores projects with a usable title and objective.
 
-Prerequisites: gevulde `projects`, `project_embeddings.combined_embedding vector(3072)`, `DATABASE_URL` en een Google/Gemini embedding-key.
+Prerequisites: filled `projects`, `project_embeddings.combined_embedding vector(3072)`, `DATABASE_URL` and a Google/Gemini embedding key.
 
 ```bash
-# Veilige eerste proef: maximaal 10 projecten
+# Safe first test: maximum 10 projects
 python scripts/generate_project_embeddings.py --test --verbose
 
-# Daarna alle ontbrekende/failed/pending projecten
+# Then all missing/failed/pending projects
 python scripts/generate_project_embeddings.py --batch-size 50
 ```
 
-Herstarten is bedoeld als resume: bestaande rijen met status `completed` worden overgeslagen; writes gebruiken `ON CONFLICT (project_id) DO UPDATE`.
+Restarting is intended as a resume: existing rows with status `completed` are skipped; writes use `ON CONFLICT (project_id) DO UPDATE`.
 
 ```sql
 SELECT count(*) AS eligible_projects
@@ -205,21 +205,21 @@ SELECT model_version, count(*), count(combined_embedding)
 FROM project_embeddings GROUP BY model_version;
 ```
 
-De lokale referentie is 13.850 gevulde embeddings tegenover 13.865 projecten; het verschil is niet automatisch een fout, omdat het script inhoudsfilters toepast.
+The local reference is 13.850 filled embeddings versus 13.865 projects; the difference is not automatically an error, because the script applies content filters.
 
-### 4. Programmadocumenten naar `horizon_documents` en `document_chunks`
+### 4. Program documents to `horizon_documents` and `document_chunks`
 
-De volgende input is wel Git-tracked. Run eerst `--dry-run`; dit doet aantoonbaar geen databasewrites.
+The following input is Git-tracked. First run `--dry-run`; this demonstrably does not do any database writes.
 
-| Dataset | Standaardbron | PDF's in clone op 20-07-2026 | Exact commando |
+| Dataset | Default source | PDF's in clone on 20-07-2026 | Exact command |
 |---|---|---:|---|
-| Erasmus+ | `newdocs/erasmus` (alleen PDF's direct in de map) | 2 | `python scripts/ingest_erasmus_documents.py --source-dir newdocs/erasmus` |
-| Creative Europe | `newdocs/creative_europe` (recursief) | 10 | `python scripts/ingest_creative_europe_documents.py --source-dir newdocs/creative_europe` |
-| Digital Europe | `newdocs/digital_europe` (recursief) | 7 | `python scripts/ingest_digital_europe_documents.py --source-dir newdocs/digital_europe` |
-| EU4Health | `newdocs/eu4health` (recursief) | 6 | `python scripts/ingest_eu4health_documents.py --source-dir newdocs/eu4health` |
-| LIFE | `newdocs/life` (recursief) | 4 | `python scripts/ingest_life_documents.py --source-dir newdocs/life` |
+| Erasmus+ | `newdocs/erasmus` (only PDF's directly in the folder) | 2 | `python scripts/ingest_erasmus_documents.py --source-dir newdocs/erasmus` |
+| Creative Europe | `newdocs/creative_europe` (recursive) | 10 | `python scripts/ingest_creative_europe_documents.py --source-dir newdocs/creative_europe` |
+| Digital Europe | `newdocs/digital_europe` (recursive) | 7 | `python scripts/ingest_digital_europe_documents.py --source-dir newdocs/digital_europe` |
+| EU4Health | `newdocs/eu4health` (recursive) | 6 | `python scripts/ingest_eu4health_documents.py --source-dir newdocs/eu4health` |
+| LIFE | `newdocs/life` (recursive) | 4 | `python scripts/ingest_life_documents.py --source-dir newdocs/life` |
 
-Voorbeeld:
+Example:
 
 ```bash
 python scripts/ingest_creative_europe_documents.py \
@@ -228,9 +228,9 @@ python scripts/ingest_creative_europe_documents.py \
   --source-dir newdocs/creative_europe
 ```
 
-Elke ingestie maakt per bestand één document en een data-afhankelijk aantal chunks. De script-summary moet `successful + failed = aantal gevonden PDF's` tonen. Duplicaten worden op file-hash geweigerd en als failure gerapporteerd; een volledig herhaalde run is daardoor niet schoon idempotent. Bij een gedeeltelijke fout kan al een documentrij met status `failed` bestaan. Verwijder zulke rijen niet handmatig zonder ook de afhankelijke chunks en de bronhash te controleren.
+Each ingestion creates one document and a data-dependent number of chunks per file. The script summary should show `successful + failed = number of PDFs found`. Duplicates are rejected on file hash and reported as failure; a completely repeated run is therefore not cleanly idempotent. In the case of a partial error, a document row with status `failed` may already exist. Do not delete such rows manually without also checking the dependent chunks and the source hash.
 
-Verificatie:
+Verification:
 
 ```sql
 SELECT metadata->>'programme' AS programme,
@@ -244,11 +244,11 @@ SELECT count(*) AS chunks, count(embedding) AS embedded_chunks
 FROM document_chunks;
 ```
 
-De lokale snapshot bevatte respectievelijk 2 Erasmus-, 8 Creative Europe-, 6 Digital Europe-, 6 EU4Health- en 4 LIFE-documentrecords. Dat Creative Europe lager is dan de 10 huidige bron-PDF's onderstreept dat bronbestandcount en databasecount niet als vanzelf gelijk mogen worden verondersteld.
+The local snapshot contained 2 Erasmus, 8 Creative Europe, 6 Digital Europe, 6 EU4Health and 4 LIFE document records respectively. The fact that Creative Europe is lower than the 10 current source PDF's underlines that source file count and database count should not be automatically assumed to be the same.
 
-### 5. Horizon Europe 2025-work-programmes
+### 5. Horizon Europe 2025 work programs
 
-De clone bevat 13 PDF's onder `newdocs/2025_work_programmes`, maar het tweestaps comprehensive-pad verwacht andere mappen. Een minimale staging voor precies deze collectie is:
+The clone contains 13 PDFs under `newdocs/2025_work_programmes`, but the two-step comprehensive path expects other directories. A minimum staging for exactly this collection is:
 
 ```bash
 mkdir -p downloads/horizon_europe_comprehensive/{work_programmes,programme_guides,call_pages,additional_resources}
@@ -260,17 +260,17 @@ wc -l processed_docs/horizon_europe/ingestion_ready.jsonl
 python scripts/ingest_comprehensive_docs.py --batch-size 200 --max-concurrent 10
 ```
 
-De outputcount is data- en chunkingafhankelijk; het acceptatiecriterium is dat `processing_stats.json` dertien verwerkte documenten verklaart, `ingestion_ready.jsonl` niet leeg is, en alle geschreven chunks een 3072-vector hebben. De flag `--skip-existing` van `ingest_comprehensive_docs.py` verandert de uitvoering momenteel niet; bestaande documenten worden altijd via file-path gecontroleerd. Gebruik die flag dus niet als kwaliteits- of idempotentiegarantie.
+The output count is data and chunking dependent; the acceptance criterion is that `processing_stats.json` declares thirteen processed documents, `ingestion_ready.jsonl` is not empty, and all written chunks have a 3072 vector. The flag `--skip-existing` of `ingest_comprehensive_docs.py` does not currently change the implementation; existing documents are always checked via file-path. So don't use that flag as a quality or idempotency guarantee.
 
-### 6. Gedeelde documenten
+### 6. Shared documents
 
-Prerequisites: door de eigenaar geleverde PDF's in `data/shared_documents/`, een gevulde `shared_documents`/`shared_document_chunks`-schemafamilie en `DATABASE_URL`.
+Prerequisites: owner-supplied PDFs in `data/shared_documents/`, a populated `shared_documents`/`shared_document_chunks` schema family and `DATABASE_URL`.
 
 ```bash
 python scripts/process_shared_documents.py
 ```
 
-`--force` herverwerkt ook reeds bekende file-hashes en is potentieel duplicerend/destructief voor de datakwaliteit. Zonder flag worden bekende hashes overgeslagen. De lokale niet-overdraagbare referentie bevat vijf bron-PDF's, maar de database bevatte 54 documents en 13.147 chunks; verwacht daarom geen 1-op-1-gelijkheid met de lokale map.
+`--force` also reprocesses already known file hashes and is potentially duplicative/destructive to data quality. Without a flag, known hashes are skipped. The local non-transferable reference contains five source PDFs, but the database contained 54 documents and 13.147 chunks; therefore, don't expect 1-on-1 equality with the local directory.
 
 ```sql
 SELECT count(*) FROM shared_documents;
@@ -281,28 +281,28 @@ WHERE NOT EXISTS (
 );
 ```
 
-### 7. Funding calls synchroniseren en embedden
+### 7. Synchronize and embed funding calls
 
-`sync_topics_from_projects.py` leest unieke Horizon-topiccodes uit de bestaande `projects`-tabel, haalt ontbrekende details op bij het EU Funding & Tenders-topicendpoint en upsert op `topic_code`. Er zijn geen CLI-flags en geen dry-run.
+`sync_topics_from_projects.py` reads unique Horizon topic codes from the existing `projects` table, retrieves missing details from the EU Funding & Tenders topic endpoint and upserts to `topic_code`. There are no CLI flags and no dry run.
 
 ```bash
 python scripts/sync_topics_from_projects.py
 ```
 
-Prerequisites: relationele CORDIS-projecten, netwerktoegang en `DATABASE_URL`. Het script commit per topic; na een netwerkfout kan het veilig opnieuw worden gestart omdat alleen ontbrekende topics worden opgehaald en bestaande topics via `ON CONFLICT` worden bijgewerkt.
+Prerequisites: relational CORDIS projects, network access and `DATABASE_URL`. The script commits per topic; after a network error it can be restarted safely because only missing topics are retrieved and existing topics are updated via `ON CONFLICT`.
 
-De actuele code bevat daarnaast het niet-getrackte `scripts/reembed_funding_calls.py`. Gebruik dit niet als overdrachtscommando zolang het niet is gereviewd en gecommit. De productiecode verwacht 3072 dimensies; controleer na elke goedgekeurde re-embedding:
+The current code also contains the untracked `scripts/reembed_funding_calls.py`. Do not use this as a transfer command until it has been reviewed and committed. The production code expects 3072 dimensions; after each approved re-embedding check:
 
 ```sql
 SELECT programme, count(*) AS calls, count(embedding) AS embedded
 FROM funding_calls GROUP BY programme ORDER BY programme;
 ```
 
-Lokale referentie op 20 juli 2026: 2.758 calls, alle 2.758 met embedding; Horizon Europe 2.274, Erasmus+ 277, Creative Europe 128, LIFE 35, EU4Health 32 en Digital Europe 12.
+Local reference on 20 July 2026: 2.758 calls, all 2.758 with embedding; Horizon Europe 2.274, Erasmus+ 277, Creative Europe 128, LIFE 35, EU4Health 32 and Digital Europe 12.
 
-### 8. Hardcoded programmareferenties in Neo4j
+### 8. Hardcoded program references in Neo4j
 
-Deze scripts hebben geen externe bronartifact nodig: actions, strands, regio's en regels staan als Python-constanten in de scripts. Ze zijn daarmee reproduceerbaar uit code, maar niet automatisch actueel ten opzichte van officiële programmaregels.
+These scripts do not require any external source artifact: actions, strands, regions and rules are contained as Python constants in the scripts. They are therefore reproducible from code, but not automatically up to date with respect to official program rules.
 
 ```bash
 python scripts/ingest_erasmus_to_neo4j.py
@@ -312,17 +312,17 @@ python scripts/ingest_eu4health_to_neo4j.py
 python scripts/ingest_life_to_neo4j.py
 ```
 
-Writes gebruiken voornamelijk `MERGE`; opnieuw uitvoeren hoort nodes te actualiseren. De `--clear`-flags verwijderen nodes met de betreffende programmaspecifieke labels; gedeelde `Country`-nodes blijven bestaan. Digital Europe, EU4Health en LIFE verwijderen daarbij ook hun eigen `Programme`-node. Verifieer per script de geprinte counts en daarna:
+Writes mainly use `MERGE`; redo should update nodes. The `--clear` flags remove nodes with the appropriate program-specific labels; shared `Country` nodes remain. Digital Europe, EU4Health and LIFE also remove their own `Programme` node. Verify the printed counts per script and then:
 
-| Dataset | Source artifact | Verwachte kernnodes uit de code |
+| Dataset | Source artifact | Expected core nodes from the code |
 |---|---|---|
-| Erasmus+ | Python-constanten in `ingest_erasmus_to_neo4j.py` | 22 actions, 6 sectors, 13 partner regions |
-| Creative Europe | Python-constanten in `ingest_creative_europe_to_neo4j.py` | 3 strands, 24 actions, 3 regions |
-| Digital Europe | Python-constanten in `ingest_digital_europe_to_neo4j.py` | 6 objectives, 2 actions, 5 regions en 1 eigen programme-node |
-| EU4Health | Python-constanten in `ingest_eu4health_to_neo4j.py` | 4 strands, 7 actions, 4 regions en 1 eigen programme-node |
-| LIFE | Python-constanten in `ingest_life_to_neo4j.py` | 4 subprogrammes, 5 project types, 4 regions en 1 eigen programme-node |
+| Erasmus+ | Python constants in `ingest_erasmus_to_neo4j.py` | 22 actions, 6 sectors, 13 partner regions |
+| Creative Europe | Python constants in `ingest_creative_europe_to_neo4j.py` | 3 strands, 24 actions, 3 regions |
+| Digital Europe | Python constants in `ingest_digital_europe_to_neo4j.py` | 6 objectives, 2 actions, 5 regions and 1 own program node |
+| EU4Health | Python constants in `ingest_eu4health_to_neo4j.py` | 4 strands, 7 actions, 4 regions and 1 own program node |
+| LIFE | Python constants in `ingest_life_to_neo4j.py` | 4 subprograms, 5 project types, 4 regions and 1 own program node |
 
-De relatie- en `Country`-counts hangen af van reeds aanwezige gedeelde nodes; vergelijk daarvoor de summary van ieder script in plaats van één globale statische waarde af te dwingen.
+The relationship and `Country` counts depend on existing shared nodes; compare the summary of each script instead of enforcing one global static value.
 
 ```cypher
 MATCH (n)
@@ -332,20 +332,20 @@ RETURN labels(n) AS labels, count(*) AS aantal
 ORDER BY labels;
 ```
 
-## 768 naar 3072 dimensies
+## 768 to 3072 dimensions
 
-| Object | Git-snapshot `migration/schema.sql` | Lokale DB 20-07-2026 | Actieve applicatiecode |
+| Object | Git snapshot `migration/schema.sql` | Local DB 20-07-2026 | Active application code |
 |---|---:|---:|---:|
 | `project_embeddings` | 3072 | 3072 | 3072 |
 | `document_chunks` | 768 | 3072 | 3072 |
 | `funding_calls` | 768 | 3072 | 3072 |
-| `embedding_cache` | 768 | 3072 (0 rijen) | 3072 |
+| `embedding_cache` | 768 | 3072 (0 rows) | 3072 |
 
-De lokale `document_chunks.embedding_model`-waarden zeggen nog `text-embedding-004`, ondanks 3072-dimensionale vectors; die provenance is dus inconsistent. Behandel de kolomwaarde niet als bewijs van het werkelijk gebruikte model. Migratie 002 dropt de drie oude embeddingkolommen, leegt `embedding_cache` en vereist volledige re-embedding. Na de migratie zijn de oude IVFFlat-indexen niet aanwezig in de lokale database; vectorzoekopdrachten gebruiken daar exact/sequential search. Zie [DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md) voor details.
+The local `document_chunks.embedding_model` values ​​still say `text-embedding-004`, despite 3072 dimensional vectors; that provenance is therefore inconsistent. Do not treat the column value as proof of the actual model used. Migration 002 drops the three old embedding columns, empties `embedding_cache` and requires full re-embedding. After the migration, the old IVFFlat indexes are not present in the local database; vector searches there use exact/sequential search. See [DATABASE_SCHEMA.md](../DATABASE_SCHEMA.md) for details.
 
-## Verificatie en quality gate
+## Verification and quality gate
 
-`scripts/quality_gate.py` is een conversation-testresultaatgate. De enige ondersteunde flags zijn:
+`scripts/quality_gate.py` is a conversation test result gate. The only supported flags are:
 
 ```text
 --results-dir PATH
@@ -354,7 +354,7 @@ De lokale `document_chunks.embedding_model`-waarden zeggen nog `text-embedding-0
 --fail-on-missing
 ```
 
-Er bestaan geen `--check-embeddings`- of `--check-calls`-flags. Gebruik voor data quality de SQL- en Cypherqueries in dit runbook. Een volledige eindcontrole:
+There are no `--check-embeddings` or `--check-calls` flags. For data quality, use the SQL and Cypher queries in this runbook. A complete final check:
 
 ```sql
 SELECT 'projects' AS dataset, count(*) AS rows, NULL::bigint AS embedded FROM projects
@@ -367,4 +367,4 @@ UNION ALL SELECT 'shared_document_chunks', count(*), NULL FROM shared_document_c
 UNION ALL SELECT 'funding_calls', count(*), count(embedding) FROM funding_calls;
 ```
 
-Leg bij elke ingestierun vast: Git-commit, bron-URL en licentie, brondatum, SHA-256, inputcount, succesvolle/overgeslagen/mislukte records, schema- en embeddingversie, uitvoertijd en operator. Zonder dit manifest is de run niet geschikt als nieuwe overdrachtsbaseline.
+On each ingest run, record: Git commit, source URL and license, source date, SHA-256, input count, successful/skipped/failed records, schema and embedding version, execution time and operator. Without this manifesto, the run is not suitable as a new transfer baseline.

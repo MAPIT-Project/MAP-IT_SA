@@ -1,6 +1,6 @@
-> ⚠️ **ARCHIVED — 20 juli 2026** — Dit document is historisch en niet meer actueel.
-> Zie [START_HERE.md](../../START_HERE.md) voor actuele documentatie.
-> Reden: dit document behandelt verwijderde V2-routes als actueel en V3 als nog niet actief, terwijl alleen V3/V4 is gemount.
+> ⚠️ **ARCHIVED — 20 July 2026** — This document is historical and no longer current.
+> See [START_HERE.md](../../START_HERE.md) for current documentation.
+> Reason: this document treats removed V2 routes as current and V3 as not yet active, while only V3/V4 is mounted.
 
 # Frontend Streaming Specification for V3 Architecture
 

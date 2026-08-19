@@ -1,6 +1,6 @@
-> ⚠️ **ARCHIVED — 20 juli 2026** — Dit document is historisch en niet meer actueel.
-> Zie [START_HERE.md](../../../START_HERE.md) voor actuele documentatie.
-> Reden: deze validatie-PRD is opgevolgd door de V3-versie en de actuele kwaliteitsrapporten.
+> ⚠️ **ARCHIVED — 20 July 2026** — This document is historical and no longer current.
+> See [START_HERE.md](../../../START_HERE.md) for current documentation.
+> Reason: this validation PRD has been superseded by the V3 version and the current quality reports.
 
 # MAPIT Production Quality Validation PRD
 

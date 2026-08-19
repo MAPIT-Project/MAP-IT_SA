@@ -1,6 +1,6 @@
-> ⚠️ **ARCHIVED — 20 juli 2026** — Dit document is historisch en niet meer actueel.
-> Zie [START_HERE.md](../../START_HERE.md) voor actuele documentatie.
-> Reden: de beschreven Celery-stack, worker-entrypoint en aparte Compose-configuratie bestaan niet in deze repository.
+> ⚠️ **ARCHIVED — 20 July 2026** — This document is historical and no longer current.
+> See [START_HERE.md](../../START_HERE.md) for current documentation.
+> Reason: the described Celery stack, worker entry point, and separate Compose configuration do not exist in this repository.
 
 # Celery-Based Concurrent Processing Setup
 
