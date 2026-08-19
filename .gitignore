@@ -190,3 +190,4 @@ processed_docs/
 test_outputs/
 neo4j_backup/
 GEMINI.md
+mapit_dump.dump

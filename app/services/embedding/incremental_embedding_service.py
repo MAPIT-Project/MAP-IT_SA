@@ -40,6 +40,7 @@ class IncrementalEmbeddingService:
         self.db_url = os.getenv("DATABASE_URL")
         self.google_api_key = os.getenv("GOOGLE_EMBEDDING_API_KEY") or os.getenv("GEMINI_API_KEY")
         self.batch_size = 50
+        # Embedding model config
         self.embedding_model = "models/gemini-embedding-001"
         self.embedding_dimension = 3072
         self.enabled = bool(self.db_url) and bool(self.google_api_key)
