@@ -10,16 +10,19 @@ from types import SimpleNamespace
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.services.ai.codex import CodexTextModel
+from app.services.ai.types import CODEX_REASONING_EFFORTS
 
 
 async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default=None)
+    parser.add_argument("--reasoning-effort", choices=CODEX_REASONING_EFFORTS, default=None)
     parser.add_argument("--timeout", type=float, default=120)
     args = parser.parse_args()
     model = CodexTextModel(SimpleNamespace(
         codex_enabled=True, codex_cli_path="codex", codex_model=args.model,
         codex_timeout_seconds=args.timeout,
+        codex_reasoning_effort=args.reasoning_effort,
     ))
     schema = {
         "type": "object",

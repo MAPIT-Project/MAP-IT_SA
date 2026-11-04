@@ -25,14 +25,19 @@ Enable all text generation through Codex in your local process environment:
 ```bash
 export CODEX_ENABLED=true
 export DEFAULT_AI_PROVIDER=codex
+export CODEX_MODEL=gpt-6.1-sol
+export CODEX_REASONING_EFFORT=high
 export CODEX_TIMEOUT_SECONDS=120
 # Optional: export CODEX_CLI_PATH=/absolute/path/to/codex
-# Optional: export CODEX_MODEL=<exact-model-ID-available-to-your-login>
 ```
 
 No Gemini/OpenAI/OpenRouter API key is required for Codex text generation.
 Database and other application configuration requirements still apply. Codex
-remains off by default; selecting it without `CODEX_ENABLED=true` raises an error.
+remains disabled when settings are omitted; selecting it without `CODEX_ENABLED=true`
+raises an error. `.env.example` now contains an active local Codex/Sol/high setup
+and preserves the previous API-provider configuration as comments. Comment out
+the Codex block and uncomment the saved provider/key/model settings to switch back.
+The real `.env` is not changed by editing the example or merging the code.
 Restart application/worker processes after changing environment configuration.
 
 For mixed routing, retain your existing global provider and set JSON overrides:
@@ -107,6 +112,15 @@ resolved model, metadata is `null`; MAPIT does not invent a model ID. Temperatur
 and output-token hints used by API providers are not CLI sampling controls.
 The CLI job timeout bounds generation time, and final output is limited to 4 MiB.
 
+`CODEX_REASONING_EFFORT` is optional and is forwarded as the official CLI
+`model_reasoning_effort` override in both the capability check and inference job.
+Use `high` for the Sol setup above. MAPIT accepts `minimal`, `low`, `medium`,
+`high`, `xhigh`, `max`, and `ultra`; the selected model and installed CLI determine
+which of those levels they support. Invalid setting values fail MAPIT validation;
+Codex jobs retain their no-other-provider fallback policy. Omit the variable to retain the CLI model's
+default effort. User CLI configuration is still ignored. See the
+[official setting reference](https://learn.chatgpt.com/docs/config-file/config-reference).
+
 Codex streaming yields a completed-message chunk after the job finishes. Existing
 SSE `token` and `complete` event shapes remain compatible, but this is not live
 token streaming. Structured output uses CLI schemas where supported and validates
@@ -124,6 +138,8 @@ Use the synthetic smoke without database or MAPIT settings loading:
 
 ```bash
 python scripts/smoke_codex.py --timeout 120
+# Pin the model and effort for a synthetic verification:
+python scripts/smoke_codex.py --model gpt-6.1-sol --reasoning-effort high --timeout 120
 ```
 
 Run mocked tests with dummy settings and external-service connections blocked:

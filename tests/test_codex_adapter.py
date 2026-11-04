@@ -521,6 +521,81 @@ def test_settings_validate_provider_and_step_names():
     assert Settings(_env_file=None, **required).codex_enabled is False
 
 
+def test_reasoning_effort_settings_and_example(local_settings, monkeypatch):
+    from dotenv.parser import parse_stream
+
+    assert local_settings.codex_reasoning_effort is None
+    monkeypatch.setenv("CODEX_REASONING_EFFORT", "high")
+    config = Settings(
+        _env_file=None, database_url=local_settings.database_url,
+        supabase_url=local_settings.supabase_url, supabase_service_key="dummy",
+    )
+    assert config.codex_reasoning_effort == "high"
+    monkeypatch.setenv("CODEX_REASONING_EFFORT", "invented")
+    with pytest.raises(ValidationError, match="codex_reasoning_effort"):
+        Settings(
+            _env_file=None, database_url=local_settings.database_url,
+            supabase_url=local_settings.supabase_url, supabase_service_key="dummy",
+        )
+
+    # Only the public template is read. Real environment/credential files are excluded.
+    example = Path(__file__).parents[1] / ".env.example"
+    with example.open() as stream:
+        bindings = [binding for binding in parse_stream(stream) if binding.key]
+    values = {binding.key: binding.value for binding in bindings}
+    assert values["DEFAULT_AI_PROVIDER"] == "codex"
+    assert values["CODEX_ENABLED"] == "true"
+    assert values["CODEX_MODEL"] == "gpt-6.1-sol"
+    assert values["CODEX_REASONING_EFFORT"] == "high"
+    assert len(values) == len(bindings), "Template has duplicate active configuration keys"
+    assert "GEMINI_API_KEY" not in values
+    assert "GOOGLE_EMBEDDING_API_KEY" in values
+    assert "# DEFAULT_AI_PROVIDER=gemini" in example.read_text()
+
+
+@pytest.mark.parametrize("effort", [None, "high"])
+def test_reasoning_effort_forwarded_without_changing_isolation(fake_cli, local_settings, effort):
+    local_settings.codex_reasoning_effort = effort
+    cli = fake_cli()
+    cli.model.generate_content("Synthetic prompt")
+    argv = records(cli)[0]["argv"]
+    overrides = {
+        argv[index + 1].split("=", 1)[0]: argv[index + 1].split("=", 1)[1]
+        for index, value in enumerate(argv) if value == "-c"
+    }
+    if effort is None:
+        assert "model_reasoning_effort" not in overrides
+    else:
+        assert json.loads(overrides["model_reasoning_effort"]) == "high"
+    assert argv[argv.index("--sandbox") + 1] == "read-only"
+    assert json.loads(overrides["features.multi_agent"]) is False
+    assert_job_cleaned(cli)
+
+
+def test_invalid_reasoning_effort_rejected_for_direct_adapter(local_settings):
+    config = local_settings.model_copy(update={"codex_reasoning_effort": "invented"})
+    with pytest.raises(CodexError, match="Unsupported CODEX_REASONING_EFFORT"):
+        CodexTextModel(config)
+
+
+def test_cached_codex_model_uses_current_effort(local_settings, monkeypatch):
+    local_settings.default_ai_provider = "codex"
+    model = factory.create_text_model("chat_reasoning")
+    created = []
+
+    def create(config):
+        result = SimpleNamespace(reasoning_effort=config.codex_reasoning_effort)
+        created.append(result)
+        return result
+
+    monkeypatch.setattr(factory, "CodexTextModel", create)
+    assert model._get_model()[1].reasoning_effort is None
+    local_settings.codex_reasoning_effort = "high"
+    assert model._get_model()[1].reasoning_effort == "high"
+    assert model._get_model()[1] is created[1]
+    assert len(created) == 2
+
+
 class SyntheticModel:
     def __init__(self, provider):
         self.provider = provider

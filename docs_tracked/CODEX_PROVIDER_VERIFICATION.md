@@ -135,6 +135,41 @@ it was not accepted as an isolation pass, and the catalog override/dry-run check
 - Google embeddings/vector search still need their existing separate credentials/configuration.
 - Full-suite live-service and legacy fixture failures remain; no provisioned app E2E was claimed.
 
+## Reasoning effort follow-up
+
+Added optional `CODEX_REASONING_EFFORT`, forwarded to the official CLI's
+`model_reasoning_effort` in capability checks and inference. Omitting it preserves
+the installed model's default. Cached Codex adapters are separated by effort.
+The public `.env.example` preserves API-provider settings as comments and now
+selects Codex, `gpt-6.1-sol`, and `high`. The real `.env` and live services were
+not changed.
+
+Verification command:
+
+```bash
+.venv/codex-tests/bin/python scripts/test_offline.py tests/test_offline_guards.py \
+  tests/test_codex_adapter.py tests/test_codex_catalog.py tests/test_codex_chat_wiring.py \
+  tests/test_codex_proposal_wiring.py tests/test_codex_service_wiring.py \
+  tests/test_conversation_namer.py tests/test_text_provider_status.py --tb=short
+```
+
+Result: **154 passed, 65 dependency/fixture warnings, 4.47 seconds**. Added cases
+cover environment validation, saved/active example profiles, default-effort
+compatibility, exact high-effort forwarding, preserved isolation, capability-check
+forwarding, and cached-adapter selection. Ruff passed all seven changed Python paths.
+The full suite was not rerun for this follow-up; its previously recorded blockers remain.
+
+Real synthetic smoke command:
+
+```bash
+.venv/codex-tests/bin/python scripts/smoke_codex.py --model gpt-6.1-sol --reasoning-effort high --timeout 120
+```
+
+Result: exit 0, `MAPIT_CODEX_OK`, model `gpt-6.1-sol`, tools listed only
+`functions.request_user_input`; no tools invoked. Usage: input 1,205 tokens,
+output 78 tokens, reasoning output 49 tokens. This was real CLI inference using
+its existing ChatGPT login, with no database or production document inputs.
+
 ## Changed paths
 
 - `.env.example`

@@ -183,7 +183,8 @@ class TextModel:
     def _get_model(self):
         provider = self.provider
         model_name = self._configured_model(provider)
-        key = (provider, model_name)
+        effort = settings.codex_reasoning_effort if provider == "codex" else None
+        key = (provider, model_name, effort)
         if key not in self._models:
             api_key_override = self.api_key if provider == self._api_key_provider else None
             if provider == "codex":

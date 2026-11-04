@@ -95,6 +95,21 @@ async def test_catalog_sanitizes_capabilities_preserving_model_identity_and_defa
 
 
 @pytest.mark.asyncio
+async def test_capability_check_uses_configured_reasoning_effort(model, tmp_path, monkeypatch):
+    model.reasoning_effort = "high"
+    model.model_name = "synthetic-model"
+    capture = AsyncMock(side_effect=[
+        (0, json.dumps({"models": [catalog_row("synthetic-model")]}).encode(), b""),
+        (0, json.dumps(inert_prompt()).encode(), b""),
+    ])
+    monkeypatch.setattr(model, "_capture", capture)
+    await model._inference_catalog("synthetic-codex", str(tmp_path))
+    arguments = capture.call_args_list[1].args[0]
+    assert 'model_reasoning_effort="high"' in arguments
+    assert 'model="synthetic-model"' in arguments
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "raw",
     [b"not JSON", b"{}", b'{"models":[]}', b'{"models":[{}]}', b'{"models":[null]}'],
