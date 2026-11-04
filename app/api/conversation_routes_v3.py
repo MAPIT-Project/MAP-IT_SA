@@ -9,12 +9,13 @@ import json
 import logging
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from ..services.ai.factory import generate_content, provider_scope, resolve_provider
 from ..services.analytics import get_conversation_analytics_service
 from ..services.conversation.conversation_manager import ConversationManager
 
@@ -31,6 +32,7 @@ analytics_service = get_conversation_analytics_service()
 class MessageRequest(BaseModel):
     message: str
     include_context: bool = True
+    ai_provider: Literal["gemini", "openai", "openrouter", "codex"] | None = None
 
 
 class MessageResponse(BaseModel):
@@ -57,7 +59,17 @@ async def send_message_stream(conversation_id: int, request: MessageRequest, use
     - error: If something goes wrong
     """
 
+    try:
+        resolve_provider("chat_reasoning", request.ai_provider)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     async def generate_stream():
+        with provider_scope(request.ai_provider):
+            async for event in generate_scoped_stream():
+                yield event
+
+    async def generate_scoped_stream():
         start_time = time.time()
         accumulated_response = []
         tools_used = []
@@ -211,6 +223,11 @@ async def send_message(
     V3 uses a single agentic loop - no intent classification, just the agent deciding
     what tools to use based on the query and conversation context.
     """
+    try:
+        resolve_provider("chat_reasoning", request.ai_provider)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     start_time = time.time()
     status = "completed"
     error_message = None
@@ -218,12 +235,13 @@ async def send_message(
     try:
         logger.info(f"[V3] Processing message for conversation {conversation_id}")
 
-        result = await conversation_manager.process_message_v3(
-            conversation_id=conversation_id,
-            user_message=request.message,
-            user_id=user_id,
-            streaming=False,
-        )
+        with provider_scope(request.ai_provider):
+            result = await conversation_manager.process_message_v3(
+                conversation_id=conversation_id,
+                user_message=request.message,
+                user_id=user_id,
+                streaming=False,
+            )
 
         response_text = result.get("response", "")
         metadata = result.get("metadata", {})
@@ -328,7 +346,8 @@ async def health_check():
     """
     import asyncio
 
-    components = {"redis": False, "database": False, "gemini": False}
+    selected_provider = resolve_provider("chat_reasoning")
+    components = {"redis": False, "database": False, selected_provider: False}
     errors = {}
 
     # Test Redis connection
@@ -353,7 +372,7 @@ async def health_check():
         errors["database"] = str(e)
         logger.warning(f"Health check - Database failed: {e}")
 
-    # Test Gemini connection with timeout
+    # Test the selected text provider with timeout
     try:
         model = None
         if (
@@ -373,18 +392,18 @@ async def health_check():
             # Use asyncio timeout for the LLM call
             try:
                 test_response = await asyncio.wait_for(
-                    asyncio.to_thread(model.generate_content, "ping"),
+                    generate_content(model, "ping"),
                     timeout=5.0,  # 5 second timeout for health check
                 )
-                components["gemini"] = bool(test_response.text)
+                components[selected_provider] = bool(test_response.text)
             except TimeoutError:
-                errors["gemini"] = "Timeout waiting for response"
-                logger.warning("Health check - Gemini timed out")
+                errors[selected_provider] = "Timeout waiting for response"
+                logger.warning(f"Health check - {selected_provider} timed out")
         else:
-            errors["gemini"] = "Gemini model not initialized"
+            errors[selected_provider] = f"{selected_provider} model not initialized"
     except Exception as e:
-        errors["gemini"] = str(e)
-        logger.warning(f"Health check - Gemini failed: {e}")
+        errors[selected_provider] = str(e)
+        logger.warning(f"Health check - {selected_provider} failed: {e}")
 
     # Determine overall status
     all_ok = all(components.values())
@@ -401,6 +420,7 @@ async def health_check():
         "status": status,
         "architecture": "simplified_v3",
         "components": components,
+        "ai_provider": selected_provider,
         "timestamp": datetime.now().isoformat(),
     }
 

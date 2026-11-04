@@ -495,7 +495,7 @@ class ToolExecutorsMixin:
             cluster_param = self._extract_cluster_param(params)
 
             tool = CallHistoryTool()
-            result = tool.analyze_history(
+            result = await tool.analyze_history_async(
                 topic_pattern=params.get("topic_pattern"),
                 cluster=cluster_param,
                 keywords=params.get("keywords"),

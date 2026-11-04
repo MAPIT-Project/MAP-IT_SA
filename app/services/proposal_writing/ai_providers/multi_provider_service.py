@@ -6,13 +6,16 @@ Automatically handles provider selection, fallback, and retry logic.
 
 import asyncio
 import logging
-import os
 from collections.abc import AsyncGenerator
 from typing import Any
+
+from app.core.config import settings
+from app.services.ai.factory import resolve_provider
 
 from .base import BaseAIProvider, ProviderConfig, ProviderResponse
 from .gemini_provider import GeminiProvider
 from .openai_provider import OpenAIProvider
+from .text_model_provider import TextModelProvider
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +31,15 @@ class MultiProviderAIService:
     - Consistent interface across providers
     """
 
-    def __init__(self, primary_provider: str = "gemini", enable_fallback: bool = True):
-        self.enable_fallback = enable_fallback
+    def __init__(
+        self,
+        primary_provider: str | None = None,
+        enable_fallback: bool = True,
+        step: str = "proposal_generation",
+    ):
+        self.step = step
+        primary_provider = resolve_provider(step, primary_provider)
+        self.enable_fallback = enable_fallback and primary_provider != "codex"
         self.providers: list[BaseAIProvider] = []
 
         # Initialize providers based on available API keys
@@ -38,23 +48,32 @@ class MultiProviderAIService:
     def _initialize_providers(self, primary_provider: str):
         """Initialize available providers."""
 
+        # Codex is an explicit local choice. Initialization and inference failures must
+        # never send its prompts to an API provider.
+        if primary_provider == "codex":
+            self.providers.append(TextModelProvider("codex", step=self.step))
+            return
+
+        if primary_provider == "openrouter":
+            self.providers.append(TextModelProvider("openrouter", step=self.step))
+
         provider_configs = {
             "gemini": {
                 "class": GeminiProvider,
-                "api_key_env": "GEMINI_API_KEY",
-                "default_model": "gemini-3-flash-preview",
+                "api_key": settings.gemini_api_key,
+                "model": settings.gemini_model,
             },
             "openai": {
                 "class": OpenAIProvider,
-                "api_key_env": "OPENAI_API_KEY",
-                "default_model": "gpt-4-turbo",
+                "api_key": settings.openai_api_key,
+                "model": settings.openai_model,
             },
         }
 
         # Initialize primary provider first
         if primary_provider in provider_configs:
             config = provider_configs[primary_provider]
-            api_key = os.getenv(config["api_key_env"])
+            api_key = config["api_key"]
 
             if api_key:
                 try:
@@ -62,9 +81,7 @@ class MultiProviderAIService:
                         ProviderConfig(
                             name=primary_provider,
                             api_key=api_key,
-                            model=os.getenv(
-                                f"{primary_provider.upper()}_MODEL", config["default_model"]
-                            ),
+                            model=config["model"],
                         )
                     )
                     self.providers.append(provider)
@@ -76,16 +93,14 @@ class MultiProviderAIService:
         if self.enable_fallback:
             for name, config in provider_configs.items():
                 if name != primary_provider:
-                    api_key = os.getenv(config["api_key_env"])
+                    api_key = config["api_key"]
                     if api_key:
                         try:
                             provider = config["class"](
                                 ProviderConfig(
                                     name=name,
                                     api_key=api_key,
-                                    model=os.getenv(
-                                        f"{name.upper()}_MODEL", config["default_model"]
-                                    ),
+                                    model=config["model"],
                                 )
                             )
                             self.providers.append(provider)

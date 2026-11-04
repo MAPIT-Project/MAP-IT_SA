@@ -108,7 +108,7 @@ class SemanticBenchmarkingService:
         if self._ai_service is None:
             from .proposal_ai_service import ProposalAIService
 
-            self._ai_service = ProposalAIService()
+            self._ai_service = ProposalAIService(step="proposal_benchmarking")
         return self._ai_service
 
     def _get_connection(self):

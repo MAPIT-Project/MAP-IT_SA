@@ -116,7 +116,7 @@ class EvaluatorSimulator:
         if self._ai_service is None:
             from .proposal_ai_service import ProposalAIService
 
-            self._ai_service = ProposalAIService()
+            self._ai_service = ProposalAIService(step="proposal_evaluation")
         return self._ai_service
 
     async def evaluate_section(

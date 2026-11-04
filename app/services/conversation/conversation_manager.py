@@ -17,6 +17,7 @@ import psycopg2.pool
 
 from ...core.atomic_storage import StorageResult, get_atomic_storage
 from ...core.conversation_lock import get_conversation_lock
+from ..ai.factory import create_text_model, generate_content
 from ..memory.memory_service import MemoryService
 
 logger = logging.getLogger(__name__)
@@ -168,7 +169,7 @@ class ConversationManager:
                 assistant_metadata = {}
                 if agent_result:
                     assistant_metadata = {
-                        "ai_provider": "gemini",
+                        "ai_provider": agent_result.get("ai_provider") if agent_result else None,
                         "ai_version": "V3",
                         "model_used": agent_result.get("model_used", "unknown"),
                         "data_source": "multi_programme",
@@ -221,6 +222,7 @@ class ConversationManager:
                     "iterations": agent_result.get("iterations", 0),
                     "processing_time_ms": processing_time,
                     "architecture": "simplified_v3",
+                    "ai_provider": agent_result.get("ai_provider"),
                     "model_used": agent_result.get("model_used", "unknown"),
                 },
             }
@@ -353,7 +355,7 @@ class ConversationManager:
             assistant_metadata = {}
             if agent_result:
                 assistant_metadata = {
-                    "ai_provider": "gemini",
+                    "ai_provider": agent_result.get("ai_provider") if agent_result else None,
                     "ai_version": "V3",
                     "model_used": agent_result.get("model_used", "unknown"),
                     "data_source": "multi_programme",
@@ -403,7 +405,7 @@ class ConversationManager:
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
             yield {
                 "type": "complete",
-                "ai_provider": "gemini",
+                "ai_provider": agent_result.get("ai_provider") if agent_result else None,
                 "ai_version": "V3",
                 "model_used": agent_result.get("model_used", "unknown")
                 if agent_result
@@ -439,6 +441,9 @@ class ConversationManager:
                 },
                 "metadata": {
                     "architecture": "simplified_v3",
+                    "ai_provider": agent_result.get("ai_provider") if agent_result else None,
+                    "model_used": agent_result.get("model_used") if agent_result else None,
+                    "streaming_mode": "completed_message_chunks",
                     "confidence": agent_result.get("confidence", 0.8) if agent_result else 0.5,
                     "tools_used": agent_result.get("sources_used", []) if agent_result else [],
                     "processing_time_ms": processing_time,
@@ -494,10 +499,9 @@ class ConversationManager:
     async def _synthesize_agent_response(
         self, query: str, agent_result: dict[str, Any], context: str
     ) -> str:
-        """Synthesize a final response using Gemini if direct answer is missing/poor."""
+        """Synthesize a final response using the selected chat response provider."""
         try:
-            import google.generativeai as genai
-
+            agent_result = agent_result or {}
             tool_info = [
                 step["observation"]
                 for step in agent_result.get("reasoning_steps", [])
@@ -507,8 +511,10 @@ class ConversationManager:
                 return agent_result.get("answer", "I was unable to find relevant information.")
 
             prompt = f"Based on these results, answer: {query}\n\nRESULTS:\n{chr(10).join(tool_info[:3])}"
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content(prompt)
+            model = create_text_model("chat_response", model="gemini-1.5-flash")
+            response = await generate_content(model, prompt)
+            agent_result["ai_provider"] = getattr(response, "provider", None) or model.provider
+            agent_result["model_used"] = getattr(response, "model_name", None) or model.model_name
             return response.text
         except Exception as e:
             logger.error(f"Synthesis failed: {e}")

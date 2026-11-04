@@ -6,10 +6,9 @@ AI-powered generation of proposal section drafts.
 
 import json
 import logging
-import os
 from typing import Any
 
-import google.generativeai as genai
+from app.services.ai.factory import create_text_model
 
 from .call_understanding_service import CallUnderstanding, CallUnderstandingService, HorizonCluster
 
@@ -26,9 +25,7 @@ class ProposalDraftGenerator:
         self.template_service = template_service
         self.call_understanding_service = CallUnderstandingService()
 
-        # Initialize Gemini
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        self.model = genai.GenerativeModel("gemini-3-flash-preview")
+        self.model = create_text_model("proposal_draft", model="gemini-3-flash-preview")
 
     async def generate_section_draft(
         self, call_id: str, section_id: str, user_context: dict[str, Any]
@@ -91,9 +88,9 @@ class ProposalDraftGenerator:
             user_context=user_context,
         )
 
-        # 4. Generate draft with Gemini
+        # 4. Generate the draft
         try:
-            response = self.model.generate_content(prompt)
+            response = await self.model.generate_content_async(prompt)
             draft_text = response.text
 
             # 5. Post-process to ensure EU alignment terms are included
@@ -674,7 +671,7 @@ REQUIREMENTS:
 Generate the improved version:"""
 
         try:
-            response = self.model.generate_content(prompt)
+            response = await self.model.generate_content_async(prompt)
             return response.text
         except Exception as e:
             logger.error(f"Error improving draft: {e}")

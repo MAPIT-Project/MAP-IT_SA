@@ -2,8 +2,10 @@
 Application configuration settings.
 """
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
+
+from app.core.ai_routing import TEXT_STEPS, AIProvider
 
 
 class Settings(BaseSettings):
@@ -23,13 +25,27 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     gemini_api_key: str | None = None
     openrouter_api_key: str | None = None
-    default_ai_provider: str = "gemini"
+    default_ai_provider: AIProvider = "gemini"
+    ai_step_providers: dict[str, AIProvider] = Field(default_factory=dict)
+    # Local CLI integration is opt-in, independently of provider selection.
+    codex_enabled: bool = False
+    codex_cli_path: str = "codex"
+    codex_model: str | None = None
+    codex_timeout_seconds: float = Field(default=120.0, gt=0, le=1800)
     openai_model: str = "gpt-4-turbo"
     gemini_model: str = "gemini-3-flash-preview"
     gemini_pro_model: str = "gemini-3.1-pro-preview"
     smart_model_routing: bool = True
     openrouter_model: str = "x-ai/grok-4-fast:free"
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
+
+    @field_validator("ai_step_providers")
+    @classmethod
+    def validate_text_steps(cls, value):
+        unknown = set(value) - TEXT_STEPS
+        if unknown:
+            raise ValueError(f"Unknown AI steps: {', '.join(sorted(unknown))}")
+        return value
 
     # Google Embedding API Configuration (falls back to gemini_api_key)
     google_embedding_api_key: str | None = None

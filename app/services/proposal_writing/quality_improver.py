@@ -21,7 +21,7 @@ class QualityImprover:
 
     def __init__(self, ai_service: Any | None = None):
         # Use ProposalAIService for structured outputs
-        self.ai_service = ProposalAIService()
+        self.ai_service = ProposalAIService(step="proposal_quality")
 
     async def analyze_quality(
         self, section_text: str, section_type: str, call_id: str = None, use_ai: bool = True

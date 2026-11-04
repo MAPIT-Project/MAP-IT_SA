@@ -219,6 +219,34 @@ async def check_gemini() -> ServiceHealth:
         return ServiceHealth(name="gemini", status="unhealthy", latency_ms=latency, message=str(e))
 
 
+async def check_text_provider() -> ServiceHealth:
+    """Check the selected generation provider without sending a Codex inference."""
+    from ..core.config import settings
+    from ..services.ai.factory import resolve_provider
+
+    selected = settings.ai_step_providers.get("chat_reasoning", settings.default_ai_provider)
+    try:
+        selected = resolve_provider("chat_reasoning")
+        if selected == "gemini":
+            return await check_gemini()
+        if selected == "codex":
+            from ..services.ai.codex import CodexTextModel
+
+            await CodexTextModel(settings).check_available()
+            return ServiceHealth(
+                name="codex", status="healthy", message="CLI and ChatGPT login available",
+                details={"model": settings.codex_model, "inference_checked": False},
+            )
+        configured = bool(getattr(settings, f"{selected}_api_key"))
+        return ServiceHealth(
+            name=selected, status="healthy" if configured else "unhealthy",
+            message="API key configured" if configured else "API key missing",
+            details={"model": getattr(settings, f"{selected}_model"), "inference_checked": False},
+        )
+    except Exception as exc:
+        return ServiceHealth(name=selected, status="unhealthy", message=str(exc))
+
+
 async def check_embedding_service() -> ServiceHealth:
     """Check embedding generation service availability."""
     start = time.time()
@@ -324,7 +352,7 @@ async def health_check() -> dict[str, Any]:
         check_postgres(),
         check_neo4j(),
         check_redis(),
-        check_gemini(),
+        check_text_provider(),
         check_embedding_service(),
         check_supabase(),
         return_exceptions=True,
@@ -340,10 +368,9 @@ async def health_check() -> dict[str, Any]:
             services[check.name] = check.to_dict()
 
     # Determine overall status
-    # Critical services: postgres, gemini
+    # The configured text provider is critical, alongside PostgreSQL.
     critical_services = ["postgres"]
-    if settings.gemini_api_key:
-        critical_services.append("gemini")
+    critical_services.append(settings.ai_step_providers.get("chat_reasoning", settings.default_ai_provider))
 
     critical_healthy = all(
         services.get(svc, {}).get("status") in ["healthy", "Not configured"]
@@ -378,8 +405,6 @@ async def readiness_check(response: Response) -> dict[str, Any]:
 
     Returns 200 if ready, 503 if not ready.
     """
-    from ..core.config import settings
-
     ready = True
     checks = {}
 
@@ -390,11 +415,10 @@ async def readiness_check(response: Response) -> dict[str, Any]:
         ready = False
 
     # Check at least one AI provider
-    if settings.gemini_api_key:
-        gemini_health = await check_gemini()
-        checks["gemini"] = gemini_health.status
-        if gemini_health.status == "unhealthy":
-            ready = False
+    provider_health = await check_text_provider()
+    checks[provider_health.name] = provider_health.status
+    if provider_health.status == "unhealthy":
+        ready = False
 
     if not ready:
         response.status_code = 503
@@ -433,7 +457,7 @@ async def dependencies_status() -> dict[str, Any]:
         check_postgres(),
         check_neo4j(),
         check_redis(),
-        check_gemini(),
+        check_text_provider(),
         check_embedding_service(),
         check_supabase(),
         return_exceptions=True,
@@ -444,7 +468,7 @@ async def dependencies_status() -> dict[str, Any]:
         if isinstance(check, ServiceHealth):
             dependencies[check.name] = {
                 **check.to_dict(),
-                "critical": check.name in ["postgres", "gemini"],
+                "critical": check.name in ["postgres", settings.ai_step_providers.get("chat_reasoning", settings.default_ai_provider)],
                 "fallback_available": check.name in ["neo4j", "redis", "embeddings"],
             }
 
@@ -455,6 +479,8 @@ async def dependencies_status() -> dict[str, Any]:
             "supabase_configured": bool(settings.supabase_url),
             "vector_search_enabled": settings.vector_search_enabled,
             "ai_provider": settings.default_ai_provider,
+            "ai_step_providers": settings.ai_step_providers,
+            "codex_enabled": settings.codex_enabled,
         },
         "timestamp": datetime.now(UTC).isoformat(),
     }

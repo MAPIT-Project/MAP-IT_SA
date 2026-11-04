@@ -11,7 +11,7 @@ Tests:
 import asyncio
 import os
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -207,7 +207,7 @@ class TestConversationNamerLLM:
         mock = MagicMock()
         mock_response = MagicMock()
         mock_response.text = "Hydrogen Funding Opportunities"
-        mock.generate_content.return_value = mock_response
+        mock.generate_content_async = AsyncMock(return_value=mock_response)
         return mock
 
     def test_llm_name_generation(self, mock_model):
@@ -218,13 +218,13 @@ class TestConversationNamerLLM:
         result = asyncio.run(namer._generate_with_llm("What hydrogen calls are open?"))
 
         assert result == "Hydrogen Funding Opportunities"
-        mock_model.generate_content.assert_called_once()
+        mock_model.generate_content_async.assert_awaited_once()
 
     def test_llm_strips_quotes(self, mock_model):
         """Test that quotes are stripped from LLM responses."""
         mock_response = MagicMock()
         mock_response.text = '"AI Research Proposal"'
-        mock_model.generate_content.return_value = mock_response
+        mock_model.generate_content_async = AsyncMock(return_value=mock_response)
 
         namer = ConversationNamer()
         namer.model = mock_model
@@ -236,7 +236,7 @@ class TestConversationNamerLLM:
         """Test that very long names are truncated."""
         mock_response = MagicMock()
         mock_response.text = "This Is A Very Long Conversation Name That Should Be Truncated"
-        mock_model.generate_content.return_value = mock_response
+        mock_model.generate_content_async = AsyncMock(return_value=mock_response)
 
         namer = ConversationNamer()
         namer.model = mock_model
@@ -247,7 +247,7 @@ class TestConversationNamerLLM:
 
     def test_llm_error_returns_none(self, mock_model):
         """Test that LLM errors return None (triggering fallback)."""
-        mock_model.generate_content.side_effect = Exception("API Error")
+        mock_model.generate_content_async = AsyncMock(side_effect=Exception("API Error"))
 
         namer = ConversationNamer()
         namer.model = mock_model
@@ -259,7 +259,7 @@ class TestConversationNamerLLM:
         """Test that empty LLM response returns None."""
         mock_response = MagicMock()
         mock_response.text = ""
-        mock_model.generate_content.return_value = mock_response
+        mock_model.generate_content_async = AsyncMock(return_value=mock_response)
 
         namer = ConversationNamer()
         namer.model = mock_model
@@ -278,7 +278,7 @@ class TestConversationNamerIntegration:
         mock_model = MagicMock()
         mock_response = MagicMock()
         mock_response.text = "LLM Generated Name"
-        mock_model.generate_content.return_value = mock_response
+        mock_model.generate_content_async = AsyncMock(return_value=mock_response)
         namer.model = mock_model
         return namer
 
@@ -291,7 +291,7 @@ class TestConversationNamerIntegration:
         """Test fallback when LLM fails."""
         namer = ConversationNamer()
         mock_model = MagicMock()
-        mock_model.generate_content.side_effect = Exception("API Error")
+        mock_model.generate_content_async = AsyncMock(side_effect=Exception("API Error"))
         namer.model = mock_model
 
         result = asyncio.run(namer.generate_name("What funding calls are available?"))

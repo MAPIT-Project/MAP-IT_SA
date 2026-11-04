@@ -32,6 +32,11 @@ MAP-IT is designed to help researchers, consultants, and organizations navigate 
 - **Supabase Account** (for pgvector document storage)
 - **Google Gemini API Key** (Primary AI reasoning and embeddings)
 
+Text generation can also use the authenticated local Codex CLI. See
+[Local Codex provider](docs_tracked/CODEX_LOCAL_PROVIDER.md) for opt-in setup,
+global and named-step selection, and host limitations. Google embeddings keep
+their existing model and 3072-dimensional vectors.
+
 ### Installation & Setup
 
 1. **Clone & Enter**
