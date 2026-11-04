@@ -3,7 +3,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "16379:6379"  # High port to avoid conflict with other deployment
+      - "127.0.0.1:16379:6379"  # Private host access only
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -31,7 +31,7 @@ services:
       - REDIS_PORT=6379
 
       # Database Configuration (Docker-specific, uses service name)
-      - DATABASE_URL=postgresql://postgres:postgres@supabase_db_supabase_cli:5432/postgres
+      - DATABASE_URL=${DATABASE_URL:?Set DATABASE_URL in .env}
 
       # Docker Environment
       - DOCKER_ENV=true
@@ -91,8 +91,8 @@ services:
     image: neo4j:5.22.0-community
     container_name: mapit-neo4j
     ports:
-      - "17474:7474"  # HTTP Browser (high port to avoid conflict with other Neo4j)
-      - "17687:7687"  # Bolt Protocol (high port to avoid conflict with other Neo4j)
+      - "127.0.0.1:17474:7474"  # Private HTTP Browser
+      - "127.0.0.1:17687:7687"  # Private Bolt Protocol
     environment:
       - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:-mapit_secure_password_2024}
       - NEO4J_PLUGINS=["apoc", "graph-data-science"]
