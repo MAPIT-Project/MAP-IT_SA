@@ -6,12 +6,11 @@ Replaces hardcoded domain-specific logic with intelligent call analysis.
 """
 
 import logging
-import os
 import re
 from dataclasses import dataclass
 from enum import Enum
 
-import google.generativeai as genai
+from app.services.ai.factory import create_text_model
 
 logger = logging.getLogger(__name__)
 
@@ -350,8 +349,7 @@ class CallUnderstandingService:
     """
 
     def __init__(self):
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        self.model = genai.GenerativeModel("gemini-3-flash-preview")
+        self.model = create_text_model("call_understanding", model="gemini-3-flash-preview")
         self._cache: dict[str, CallUnderstanding] = {}
 
     async def understand_call(
@@ -481,7 +479,7 @@ Extract the following information in JSON format:
 Focus on extracting factual information from the call. Be specific to this particular call's topic."""
 
         try:
-            response = self.model.generate_content(prompt)
+            response = await self.model.generate_content_async(prompt)
             response_text = response.text
 
             # Extract JSON from response

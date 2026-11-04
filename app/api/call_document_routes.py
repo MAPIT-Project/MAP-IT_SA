@@ -6,12 +6,12 @@ Bypasses the complex conversation system and directly uses CallDocumentService.
 import logging
 import os
 
-import google.generativeai as genai
 import psycopg2
 import psycopg2.pool
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from ..services.ai.factory import create_text_model
 from ..services.call_document_service import CallDocumentService
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/call", tags=["call-documents"])
 # Lazy initialization of database pool and services
 _db_pool = None
 _call_doc_service = None
-_gemini_model = None
+_text_model = None
 
 
 def _get_db_pool():
@@ -49,16 +49,13 @@ def _get_call_doc_service():
     return _call_doc_service
 
 
-def _get_gemini_model():
-    """Lazy initialization of Gemini model."""
-    global _gemini_model
-    if _gemini_model is None:
-        api_key = os.getenv("GEMINI_API_KEY")
-        if api_key:
-            genai.configure(api_key=api_key)
-            _gemini_model = genai.GenerativeModel("gemini-2.0-flash-exp")
-            logger.info("Gemini model initialized")
-    return _gemini_model
+def _get_text_model():
+    """Lazy initialization of the call document answer provider."""
+    global _text_model
+    if _text_model is None:
+        _text_model = create_text_model("call_document_summary", model="gemini-2.0-flash-exp")
+        logger.info("Call document text provider initialized")
+    return _text_model
 
 
 class CallQuestionRequest(BaseModel):
@@ -91,13 +88,13 @@ async def ask_call_question(call_id: str, request: CallQuestionRequest):
         {"question": "What are the eligibility criteria?"}
     """
     call_doc_service = _get_call_doc_service()
-    model = _get_gemini_model()
+    model = _get_text_model()
 
     if not call_doc_service:
         raise HTTPException(status_code=500, detail="Call document service not initialized")
 
     if not model:
-        raise HTTPException(status_code=500, detail="Gemini model not initialized")
+        raise HTTPException(status_code=500, detail="Text model not initialized")
 
     try:
         import time
@@ -151,7 +148,7 @@ QUESTION: {request.question}
 
 ANSWER (cite sources):"""
 
-        response = model.generate_content(prompt)
+        response = await model.generate_content_async(prompt)
         answer = response.text
 
         # Extract unique sources

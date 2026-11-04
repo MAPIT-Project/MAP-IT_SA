@@ -8,16 +8,14 @@ Provides detailed feedback, scoring, and improvement suggestions.
 import asyncio
 import json
 import logging
-import os
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
-import google.generativeai as genai
-from dotenv import load_dotenv
+from app.core.config import settings
+from app.services.ai.factory import create_text_model, resolve_provider
 
-load_dotenv()
 logger = logging.getLogger(__name__)
 
 
@@ -94,15 +92,8 @@ class ComprehensiveReviewer:
 
     def __init__(self, db_pool=None):
         self.db_pool = db_pool
-        self.api_key = os.getenv("GEMINI_API_KEY")
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
-
-        if self.api_key:
-            genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel(self.model_name)
-        else:
-            self.model = None
-            logger.warning("Gemini API key not configured - reviewer disabled")
+        self.model = create_text_model("proposal_review", model=settings.gemini_model)
+        self.model_name = self.model.model_name
 
     async def full_review(
         self,
@@ -121,7 +112,7 @@ class ComprehensiveReviewer:
         Returns:
             Comprehensive review with scores, findings, and recommendations
         """
-        if not self.model:
+        if resolve_provider("proposal_review") == "gemini" and not settings.gemini_api_key:
             return {"error": "Reviewer not configured - missing API key"}
 
         logger.info(f"Starting comprehensive review for {action_type} proposal")
@@ -248,7 +239,7 @@ For each issue found, provide in JSON format:
 Be thorough but fair. Identify both strengths and weaknesses. Return valid JSON only."""
 
         try:
-            response = await asyncio.to_thread(self.model.generate_content, prompt)
+            response = await self.model.generate_content_async(prompt)
             result = self._parse_json_response(response.text)
 
             findings = [
@@ -332,7 +323,7 @@ For each issue, provide JSON:
 Return valid JSON only."""
 
         try:
-            response = await asyncio.to_thread(self.model.generate_content, prompt)
+            response = await self.model.generate_content_async(prompt)
             result = self._parse_json_response(response.text)
 
             findings = [
@@ -413,7 +404,7 @@ For each issue, provide JSON:
 Return valid JSON only."""
 
         try:
-            response = await asyncio.to_thread(self.model.generate_content, prompt)
+            response = await self.model.generate_content_async(prompt)
             result = self._parse_json_response(response.text)
 
             findings = [
@@ -536,7 +527,7 @@ Return JSON with findings:
 Return valid JSON only."""
 
         try:
-            response = await asyncio.to_thread(self.model.generate_content, prompt)
+            response = await self.model.generate_content_async(prompt)
             result = self._parse_json_response(response.text)
 
             findings = [
@@ -588,7 +579,7 @@ Return JSON with inconsistencies found:
 Return valid JSON only."""
 
         try:
-            response = await asyncio.to_thread(self.model.generate_content, prompt)
+            response = await self.model.generate_content_async(prompt)
             result = self._parse_json_response(response.text)
 
             findings = [

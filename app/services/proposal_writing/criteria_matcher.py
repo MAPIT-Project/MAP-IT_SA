@@ -19,7 +19,7 @@ class EvaluationCriteriaMatcher:
     """
 
     def __init__(self):
-        self.ai_service = ProposalAIService()
+        self.ai_service = ProposalAIService(step="proposal_criteria")
 
     async def analyze_section(
         self, section_text: str, evaluation_criteria: list[str], call_id: str

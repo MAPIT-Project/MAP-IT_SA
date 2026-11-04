@@ -6,9 +6,11 @@ Unified AI service for proposal writing with multi-provider support and structur
 
 import json
 import logging
-import os
 from collections.abc import AsyncGenerator, Callable
 from typing import Any
+
+from app.core.config import settings
+from app.services.ai.factory import create_text_model, resolve_provider
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +26,18 @@ class ProposalAIService:
     - Consistent temperature settings for different tasks
     """
 
-    def __init__(self, primary_provider: str = "gemini", enable_fallback: bool = True):
+    def __init__(
+        self,
+        primary_provider: str | None = None,
+        enable_fallback: bool = True,
+        step: str = "proposal_generation",
+    ):
+        # Validate selection before callers can convert an invalid configuration into
+        # a content fallback. Clients remain lazy and no inference runs here.
+        resolve_provider(step, primary_provider)
+        self._step = step
         self._primary_provider = primary_provider
+        self._active_provider = None
         self._enable_fallback = enable_fallback
         self._multi_provider = None
 
@@ -34,30 +46,35 @@ class ProposalAIService:
 
     def _ensure_initialized(self):
         """Lazily initialize the multi-provider service."""
-        if self._initialized:
+        selected_provider = resolve_provider(self._step, self._primary_provider)
+        if self._initialized and self._active_provider == selected_provider:
             return
-
         try:
             from .ai_providers.multi_provider_service import MultiProviderAIService
 
             self._multi_provider = MultiProviderAIService(
-                primary_provider=self._primary_provider, enable_fallback=self._enable_fallback
+                primary_provider=selected_provider,
+                enable_fallback=self._enable_fallback,
+                step=self._step,
             )
             self._initialized = True
+            self._active_provider = selected_provider
             provider = self._multi_provider.get_primary_provider()
             logger.info(f"ProposalAIService initialized with provider: {provider}")
         except Exception as e:
+            if selected_provider != "gemini" or not self._enable_fallback:
+                raise
             logger.warning(f"Failed to initialize multi-provider service: {e}")
             # Fall back to direct Gemini usage
             self._init_fallback_gemini()
             self._initialized = True
+            self._active_provider = selected_provider
 
     def _init_fallback_gemini(self):
         """Initialize fallback direct Gemini connection."""
-        import google.generativeai as genai
-
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        self._fallback_model = genai.GenerativeModel("gemini-3-flash-preview")
+        self._fallback_model = create_text_model(
+            self._step, provider="gemini", model=settings.gemini_model
+        )
         self._multi_provider = None
         logger.info("Using fallback direct Gemini connection")
 
@@ -104,7 +121,7 @@ class ProposalAIService:
 
         for attempt in range(max_retries + 1):
             try:
-                response = self._fallback_model.generate_content(
+                response = await self._fallback_model.generate_content_async(
                     current_prompt,
                     generation_config={
                         "response_mime_type": "application/json",
@@ -156,7 +173,7 @@ class ProposalAIService:
             return response.text
         else:
             # Fallback to direct Gemini
-            response = self._fallback_model.generate_content(
+            response = await self._fallback_model.generate_content_async(
                 prompt,
                 generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
             )
@@ -184,10 +201,10 @@ class ProposalAIService:
                 yield chunk
         else:
             # Fallback to direct Gemini
-            response = self._fallback_model.generate_content(
+            response = await self._fallback_model.generate_content_async(
                 prompt, generation_config={"temperature": temperature}, stream=True
             )
-            for chunk in response:
+            async for chunk in response:
                 if chunk.text:
                     yield chunk.text
 

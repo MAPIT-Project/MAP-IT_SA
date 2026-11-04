@@ -26,11 +26,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import google.generativeai as genai
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
+from ..ai.factory import create_text_model
 
 logger = logging.getLogger(__name__)
 
@@ -118,25 +114,24 @@ class QueryPlanner:
         api_key: str | None = None,
         model_name: str | None = None,
         prompt_path: Path | None = None,
+        ai_provider: str | None = None,
     ):
         """
         Initialize the Query Planner.
 
         Args:
             api_key: Google API key (defaults to GEMINI_API_KEY env var)
-            model_name: Model to use (defaults to gemini-1.5-flash)
+            model_name: Gemini model override (defaults to GEMINI_MODEL)
             prompt_path: Path to system prompt file (defaults to planner_system_prompt.txt)
+            ai_provider: Explicit provider override; otherwise use query_planning routing
         """
-        # Configure API
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        if not self.api_key:
-            raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY not found in environment variables")
-
-        genai.configure(api_key=self.api_key)
-
-        # Initialize model
-        self.model_name = model_name or self.DEFAULT_MODEL
-        self.model = genai.GenerativeModel(self.model_name)
+        self.model = create_text_model(
+            "query_planning",
+            provider=ai_provider,
+            model=model_name or self.DEFAULT_MODEL,
+            api_key=api_key or os.getenv("GOOGLE_API_KEY"),
+        )
+        self.model_name = self.model.model_name
 
         # Load system prompt
         if prompt_path is None:
@@ -212,15 +207,12 @@ class QueryPlanner:
     async def _call_llm(self, prompt: str) -> str:
         """Call the LLM and return the response text."""
 
-        generation_config = genai.types.GenerationConfig(
-            temperature=self.DEFAULT_TEMPERATURE,
-            max_output_tokens=self.DEFAULT_MAX_TOKENS,
-        )
-
-        # Run in thread pool to avoid blocking
-        loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(
-            None, lambda: self.model.generate_content(prompt, generation_config=generation_config)
+        response = await self.model.generate_content_async(
+            prompt,
+            generation_config={
+                "temperature": self.DEFAULT_TEMPERATURE,
+                "max_output_tokens": self.DEFAULT_MAX_TOKENS,
+            },
         )
 
         return response.text

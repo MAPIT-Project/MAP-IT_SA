@@ -14,6 +14,7 @@ funded, when, and under which calls. Helps users understand funding landscape
 and identify trends.
 """
 
+import asyncio
 import json
 import logging
 import os
@@ -24,19 +25,10 @@ from datetime import datetime
 from typing import Any
 
 import psycopg2
-from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
 
-# Import Gemini for AI-powered keyword expansion
-try:
-    import google.generativeai as genai
+from ..ai.factory import create_text_model, resolve_provider
 
-    GEMINI_AVAILABLE = True
-except ImportError:
-    GEMINI_AVAILABLE = False
-    genai = None
-
-load_dotenv()
 logger = logging.getLogger(__name__)
 
 # Cluster code mapping
@@ -230,18 +222,18 @@ class CallHistoryTool:
         except Exception as e:
             logger.warning(f"⚠️ Graph service not available for call history analysis: {e}")
 
-        # Initialize Gemini for AI-powered keyword expansion
-        self._gemini_model = None
-        if GEMINI_AVAILABLE:
-            try:
-                api_key = os.getenv("GEMINI_API_KEY")
-                if api_key:
-                    genai.configure(api_key=api_key)
-                    model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
-                    self._gemini_model = genai.GenerativeModel(model_name)
-                    logger.info(f"✅ Gemini available for keyword expansion (model: {model_name})")
-            except Exception as e:
-                logger.warning(f"⚠️ Gemini not available for keyword expansion: {e}")
+        # Keyword expansion uses its own configured text provider.
+        self._text_model = None
+        self.provider = resolve_provider("call_history")
+        try:
+            self._text_model = create_text_model(
+                "call_history", model=os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
+            )
+            logger.info("Keyword expansion provider initialized: %s", self.provider)
+        except Exception as e:
+            if self.provider == "codex":
+                raise
+            logger.warning("Keyword expansion provider unavailable: %s", e)
 
     def _get_connection(self):
         """Get database connection."""
@@ -373,36 +365,19 @@ class CallHistoryTool:
         ],
     }
 
-    def _expand_keywords_with_ai(self, keywords: str) -> list[str]:
-        """
-        Use AI to expand keywords to include related terms for broader scope searches.
-
-        For example, "AI" → ["artificial intelligence", "AI", "machine learning",
-        "deep learning", "neural network", "computer vision", "NLP", etc.]
-
-        This allows finding projects that USE a technology rather than just focus on it.
-        Falls back to predefined expansions if AI fails.
-        """
-        # Handle list input
-        if isinstance(keywords, list):
-            original_keywords = ", ".join(keywords)
-        else:
-            original_keywords = keywords
-
-        # Check for fallback expansion first (common topics)
+    def _keyword_expansion_fallback(self, original_keywords: str) -> list[str] | None:
+        """Return a deterministic expansion when no inference is needed."""
         keywords_lower = original_keywords.lower().strip()
         for key, expansion in self.FALLBACK_EXPANSIONS.items():
-            if key in keywords_lower or keywords_lower == key:
-                logger.info(
-                    f"🔍 Using fallback expansion for '{original_keywords}': {len(expansion)} terms"
-                )
+            if key in keywords_lower:
                 return expansion
-
-        if not self._gemini_model:
-            logger.warning("⚠️ Gemini not available - using original keywords only")
+        if not self._text_model:
             return [original_keywords]
+        return None
 
-        prompt = f"""You are a research topic expert helping to find EU research projects. Given a topic keyword, expand it to include all related terms, techniques, methods, and applications.
+    @staticmethod
+    def _keyword_expansion_prompt(original_keywords: str) -> str:
+        return f"""You are a research topic expert helping to find EU research projects. Given a topic keyword, expand it to include all related terms, techniques, methods, and applications.
 
 Task: Expand the topic "{original_keywords}" into related search terms.
 
@@ -417,53 +392,56 @@ Requirements:
 
 Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
+    @staticmethod
+    def _parse_keyword_expansion(response, original_keywords: str) -> list[str]:
+        response_text = response.text.strip()
+        if response_text.startswith("```"):
+            response_text = "\n".join(response_text.split("\n")[1:-1])
+        expanded = json.loads(response_text)
+        if isinstance(expanded, list) and expanded and all(isinstance(x, str) for x in expanded):
+            return expanded
+        logger.warning("AI expansion returned unexpected format, using original keywords")
+        return [original_keywords]
+
+    def _expand_keywords_with_ai(self, keywords: str) -> list[str]:
+        """Expand keywords using the selected model, with a deterministic fallback."""
+        original_keywords = ", ".join(keywords) if isinstance(keywords, list) else keywords
+        fallback = self._keyword_expansion_fallback(original_keywords)
+        if fallback is not None:
+            return fallback
         try:
-            response = self._gemini_model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.3,
-                    max_output_tokens=500,
-                ),
+            response = self._text_model.generate_content(
+                self._keyword_expansion_prompt(original_keywords),
+                generation_config={"temperature": 0.3, "max_output_tokens": 500},
             )
-
-            # Try to get text, handle blocked responses
-            try:
-                response_text = response.text.strip()
-            except Exception:
-                # Response might be blocked - check for candidates
-                if hasattr(response, "candidates") and response.candidates:
-                    for candidate in response.candidates:
-                        if hasattr(candidate, "content") and candidate.content:
-                            for part in candidate.content.parts:
-                                if hasattr(part, "text"):
-                                    response_text = part.text.strip()
-                                    break
-                else:
-                    raise ValueError("No valid response from AI") from None
-
-            # Parse JSON response
-            # Handle markdown code blocks if present
-            if response_text.startswith("```"):
-                lines = response_text.split("\n")
-                response_text = "\n".join(lines[1:-1])  # Remove first and last lines
-
-            expanded = json.loads(response_text)
-
-            if isinstance(expanded, list) and len(expanded) > 0:
-                logger.info(
-                    f"🔍 AI expanded '{original_keywords}' to {len(expanded)} terms: {expanded[:5]}..."
-                )
-                return expanded
-            else:
-                logger.warning("⚠️ AI expansion returned unexpected format, using original")
-                return [original_keywords]
-
-        except json.JSONDecodeError as e:
-            logger.warning(f"⚠️ Failed to parse AI expansion response: {e}")
-            return [original_keywords]
+            return self._parse_keyword_expansion(response, original_keywords)
         except Exception as e:
-            logger.warning(f"⚠️ AI keyword expansion failed: {e}, using original")
+            logger.warning("AI keyword expansion failed: %s", e)
             return [original_keywords]
+
+    async def _expand_keywords_with_ai_async(self, keywords: str) -> list[str]:
+        """Await inference directly so request cancellation reaches the CLI process."""
+        original_keywords = ", ".join(keywords) if isinstance(keywords, list) else keywords
+        fallback = self._keyword_expansion_fallback(original_keywords)
+        if fallback is not None:
+            return fallback
+        try:
+            response = await self._text_model.generate_content_async(
+                self._keyword_expansion_prompt(original_keywords),
+                generation_config={"temperature": 0.3, "max_output_tokens": 500},
+            )
+            return self._parse_keyword_expansion(response, original_keywords)
+        except Exception as e:
+            logger.warning("AI keyword expansion failed: %s", e)
+            return [original_keywords]
+
+    async def analyze_history_async(self, **kwargs) -> dict[str, Any]:
+        """Run inference asynchronously and database analysis outside the event loop."""
+        if kwargs.get("expand_scope") and kwargs.get("keywords"):
+            kwargs["_expanded_keywords"] = await self._expand_keywords_with_ai_async(
+                kwargs["keywords"]
+            )
+        return await asyncio.to_thread(self.analyze_history, **kwargs)
 
     def _extract_year_from_topic(self, topic_code: str) -> int | None:
         """Extract year from topic code like HORIZON-CL5-2024-D3-01-04."""
@@ -488,6 +466,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         strict_match: bool = True,  # Use stricter keyword matching
         expand_scope: bool = False,  # NEW: Expand keywords to include related terms
         limit: int = 500,
+        _expanded_keywords: list[str] | None = None,
     ) -> dict[str, Any]:
         """
         Analyze historical funding patterns for specific topic areas.
@@ -522,7 +501,11 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
             original_keywords = keywords
             expanded_keywords_list = None
             if expand_scope and keywords:
-                expanded_keywords_list = self._expand_keywords_with_ai(keywords)
+                expanded_keywords_list = (
+                    _expanded_keywords
+                    if _expanded_keywords is not None
+                    else self._expand_keywords_with_ai(keywords)
+                )
                 # Join expanded keywords for search (using comma separation)
                 keywords = ", ".join(expanded_keywords_list)
                 # When expanding scope, don't use strict_match (we want broader results)
@@ -2021,7 +2004,7 @@ async def analyze_call_history_execute(
 
     tool = CallHistoryTool()
 
-    return tool.analyze_history(
+    return await tool.analyze_history_async(
         topic_pattern=params.get("topic_pattern"),
         cluster=cluster_param,
         keywords=params.get("keywords"),
@@ -2031,5 +2014,6 @@ async def analyze_call_history_execute(
         include_projects=params.get("include_projects", True),
         include_topic_evolution=params.get("include_topic_evolution", True),
         include_cluster_trends=params.get("include_cluster_trends", True),
+        expand_scope=params.get("expand_scope", False),
         limit=params.get("limit", 50),
     )

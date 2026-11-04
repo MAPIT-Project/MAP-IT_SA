@@ -19,6 +19,7 @@ from collections.abc import AsyncGenerator
 from datetime import datetime
 from typing import Any
 
+from ..ai.factory import generate_content
 from .prompts import REASONING_PROMPT
 from .tool_aware_agent import AgentPlan, ReasoningStep, Tool, ToolAwareAgent, ToolCall, ToolCategory
 
@@ -502,6 +503,7 @@ When the user asks to "evaluate" or "score" a section:
             Dict with answer, reasoning steps, sources, and any sections affected
         """
         start_time = datetime.now()
+        self._reset_generation_metadata()
 
         # Try to append call metadata context
         try:
@@ -535,6 +537,7 @@ When the user asks to "evaluate" or "score" a section:
             complexity=self._assess_complexity(query),
             required_sources=self._identify_required_sources(query),
         )
+        self._select_model_for_query(plan.complexity, query)
 
         logger.info(f"📝 [ProposalAgent] Query: {query[:50]}... | Complexity: {plan.complexity}")
 
@@ -647,6 +650,7 @@ When the user asks to "evaluate" or "score" a section:
             "confidence": plan.confidence,
             "total_time_ms": total_time,
             "proposal_intent": proposal_intent,
+            **self._generation_metadata(),
         }
 
     async def process_query_streaming(
@@ -677,6 +681,7 @@ When the user asks to "evaluate" or "score" a section:
             Dict events as processing happens
         """
         start_time = datetime.now()
+        self._reset_generation_metadata()
 
         # Store session context
         self._current_session_id = session_id
@@ -688,6 +693,7 @@ When the user asks to "evaluate" or "score" a section:
             complexity=self._assess_complexity(query),
             required_sources=self._identify_required_sources(query),
         )
+        self._select_model_for_query(plan.complexity, query)
 
         proposal_intent = self._detect_proposal_intent(query)
 
@@ -849,6 +855,7 @@ When the user asks to "evaluate" or "score" a section:
                 "confidence": plan.confidence,
                 "total_time_ms": total_time,
                 "proposal_intent": proposal_intent,
+                **self._generation_metadata(),
             },
         }
 
@@ -882,8 +889,10 @@ When the user asks to "evaluate" or "score" a section:
         )
 
         try:
-            if self.llm:
-                response = self.llm.generate_content(prompt)
+            reasoning_model = self.llm
+            if reasoning_model:
+                response = await generate_content(reasoning_model, prompt)
+                self._record_generation("reasoning", reasoning_model, response)
                 response_text = response.text.strip()
 
                 # Parse JSON response

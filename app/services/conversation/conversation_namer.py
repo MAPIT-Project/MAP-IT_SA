@@ -6,9 +6,8 @@ Uses a fast LLM call to create concise, descriptive titles.
 """
 
 import logging
-import os
 
-import google.generativeai as genai
+from ..ai.factory import create_text_model, resolve_provider
 
 logger = logging.getLogger(__name__)
 
@@ -50,18 +49,16 @@ class ConversationNamer:
     ]
 
     def __init__(self):
-        """Initialize the conversation namer with Gemini."""
-        self.api_key = os.getenv("GEMINI_API_KEY")
+        """Initialize naming with its configured provider."""
+        self.provider = resolve_provider("conversation_naming")
         self.model = None
-
-        if self.api_key:
-            try:
-                genai.configure(api_key=self.api_key)
-                # Use flash for speed - naming should be fast
-                self.model = genai.GenerativeModel("gemini-2.0-flash-lite")
-                logger.info("ConversationNamer initialized with Gemini")
-            except Exception as e:
-                logger.warning(f"Failed to initialize Gemini for naming: {e}")
+        try:
+            self.model = create_text_model("conversation_naming", model="gemini-2.0-flash-lite")
+            logger.info("ConversationNamer initialized with %s", self.provider)
+        except Exception as e:
+            if self.provider == "codex":
+                raise
+            logger.warning("Failed to initialize naming provider: %s", e)
 
     async def generate_name(self, first_message: str) -> str:
         """
@@ -111,7 +108,7 @@ User's message: {message[:500]}
 Title:"""
 
         try:
-            response = self.model.generate_content(
+            response = await self.model.generate_content_async(
                 prompt,
                 generation_config={
                     "temperature": 0.3,

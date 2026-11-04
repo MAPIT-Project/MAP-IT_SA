@@ -26,7 +26,7 @@ class ProviderResponse:
 
     text: str
     provider: str
-    model: str
+    model: str | None
     usage: dict[str, int]  # tokens used
     latency_ms: float
 
@@ -37,7 +37,7 @@ class ProviderConfig:
 
     name: str
     api_key: str
-    model: str
+    model: str | None
     max_retries: int = 3
     timeout_seconds: int = 60
     rate_limit_backoff: float = 2.0

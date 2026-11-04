@@ -33,7 +33,7 @@ class GeminiProvider(BaseAIProvider):
         start_time = time.time()
 
         try:
-            response = self.model.generate_content(
+            response = await self.model.generate_content_async(
                 prompt,
                 generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
             )
@@ -59,7 +59,7 @@ class GeminiProvider(BaseAIProvider):
         """Generate structured JSON using Gemini's JSON mode."""
 
         try:
-            response = self.model.generate_content(
+            response = await self.model.generate_content_async(
                 prompt,
                 generation_config={
                     "response_mime_type": "application/json",
@@ -97,11 +97,11 @@ class GeminiProvider(BaseAIProvider):
         """Stream text generation."""
 
         try:
-            response = self.model.generate_content(
+            response = await self.model.generate_content_async(
                 prompt, generation_config={"temperature": temperature}, stream=True
             )
 
-            for chunk in response:
+            async for chunk in response:
                 if chunk.text:
                     yield chunk.text
 

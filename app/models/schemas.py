@@ -2,7 +2,7 @@
 Pydantic models for request and response schemas.
 """
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -15,7 +15,9 @@ class QuestionRequest(BaseModel):
     max_results: int | None = Field(
         5, ge=1, le=20, description="Maximum number of projects to retrieve"
     )
-    ai_provider: str | None = Field(None, description="AI provider to use (openai or gemini)")
+    ai_provider: Literal["gemini", "openai", "openrouter", "codex"] | None = Field(
+        None, description="Explicit text provider override; otherwise use configured step routing"
+    )
     ai_version: str | None = Field("V9", description="RAG version to use (V2-V9)")
     conversation_id: int | None = Field(
         None, description="Conversation ID for context-aware responses"
@@ -113,7 +115,7 @@ class DatabaseStatusResponse(BaseModel):
 class ProviderConfig(BaseModel):
     """Configuration for a specific provider."""
 
-    model: str
+    model: str | None
     is_default: bool
 
 

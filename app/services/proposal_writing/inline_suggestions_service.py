@@ -147,7 +147,7 @@ class InlineSuggestionsService:
     ]
 
     def __init__(self):
-        self.ai_service = ProposalAIService()
+        self.ai_service = ProposalAIService(step="proposal_suggestions")
 
     async def analyze_text(
         self,

@@ -18,8 +18,12 @@ import logging
 import os
 import re
 from collections.abc import AsyncGenerator
+from contextvars import ContextVar
 from datetime import datetime
 from typing import Any
+
+from ...core.config import settings
+from ..ai.factory import create_text_model, generate_content, resolve_provider
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +35,9 @@ from .query_preprocessing import (  # noqa: F401
     TranslationResult,
     normalize_special_characters,
     preprocess_long_query,
+    preprocess_long_query_async,
     preprocess_non_english_query,
+    preprocess_non_english_query_async,
 )
 
 # Prompt constants
@@ -244,7 +250,8 @@ class ToolAwareAgent(
         intro that connects the query to the results, adding personalization that
         mechanical formatting can't provide.
         """
-        if not self.llm_flash:
+        response_model = getattr(self, "llm_response", self.llm_flash)
+        if not response_model:
             return None
 
         # Build a compact summary of what was found
@@ -290,10 +297,12 @@ class ToolAwareAgent(
             import asyncio
 
             response = await asyncio.wait_for(
-                asyncio.to_thread(self.llm_flash.generate_content, prompt), timeout=3.0
+                generate_content(response_model, prompt),
+                timeout=self._generation_timeout(response_model, 3.0),
             )
             text = response.text.strip() if hasattr(response, "text") else str(response).strip()
             if text and 10 < len(text) < 200:
+                self._record_generation("response", response_model, response)
                 return text
             return None
         except Exception as e:
@@ -378,56 +387,26 @@ class ToolAwareAgent(
 
         return memory
 
+    @staticmethod
+    def _generation_timeout(model: Any, default: float) -> float:
+        if getattr(model, "provider", None) == "codex":
+            return settings.codex_timeout_seconds
+        return default
+
     def _init_llm(self):
-        """Initialize LLMs for reasoning with smart model routing.
-
-        Initializes both a fast model (flash) and a powerful model (pro).
-        Smart routing selects the pro model for complex queries (comparisons,
-        analysis, multi-source) and the flash model for simple queries.
-        """
-
-        self.llm_provider = os.getenv("DEFAULT_AI_PROVIDER", "gemini")
+        """Create routed text models. Flash/pro selection applies only to Gemini."""
+        self.llm_provider = resolve_provider("chat_reasoning")
         self.smart_model_routing = os.getenv("SMART_MODEL_ROUTING", "true").lower() == "true"
-
-        if self.llm_provider == "gemini":
-            try:
-                import google.generativeai as genai
-
-                genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
-                # Flash model (fast, cost-effective) — used for simple queries
-                flash_model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
-                self.llm_flash = genai.GenerativeModel(flash_model_name)
-                self.flash_model_name = flash_model_name
-
-                # Pro model (powerful, higher quality) — used for complex queries
-                pro_model_name = os.getenv("GEMINI_PRO_MODEL", "gemini-3.1-pro-preview")
-                self.llm_pro = genai.GenerativeModel(pro_model_name)
-                self.pro_model_name = pro_model_name
-
-                # Default active model is flash (switched per-query based on complexity)
-                self.llm = self.llm_flash
-                self._active_model_name = flash_model_name
-
-                if self.smart_model_routing:
-                    logger.info(
-                        f"🧠 Smart model routing enabled: "
-                        f"flash={flash_model_name}, pro={pro_model_name}"
-                    )
-                else:
-                    logger.info(
-                        f"🧠 ToolAwareAgent using model: {flash_model_name} (routing disabled)"
-                    )
-            except Exception as e:
-                logger.warning(f"Gemini init failed: {e}")
-                self.llm = None
-                self.llm_flash = None
-                self.llm_pro = None
-        else:
-            self.llm = None
-            self.llm_flash = None
-            self.llm_pro = None
-            logger.warning("LLM not configured for ToolAwareAgent")
+        flash_model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
+        pro_model_name = os.getenv("GEMINI_PRO_MODEL", "gemini-3.1-pro-preview")
+        self.llm_flash = create_text_model("chat_reasoning", model=flash_model_name)
+        self.llm_pro = create_text_model("chat_reasoning", model=pro_model_name)
+        self.llm_response = create_text_model("chat_response", model=flash_model_name)
+        self.llm_preprocessing = create_text_model("query_preprocessing", model=flash_model_name)
+        self.flash_model_name = self.llm_flash.model_name
+        self.pro_model_name = self.llm_pro.model_name
+        self.llm = self.llm_flash
+        self._active_model_name = self.llm.model_name
 
     def _select_model_for_query(self, complexity: str, query: str) -> None:
         """Select the appropriate model based on query complexity.
@@ -437,7 +416,14 @@ class ToolAwareAgent(
         """
         self._current_complexity = complexity
 
+        # Re-evaluate request-scoped selection before selecting a Gemini model.
+        if resolve_provider("chat_reasoning") != "gemini":
+            self.llm = self.llm_flash
+            self._active_model_name = self.llm.model_name
+            self._record_generation("reasoning", self.llm)
+            return
         if not self.smart_model_routing or not self.llm_pro:
+            self._record_generation("reasoning", self.llm)
             return
 
         use_pro = complexity in ("comparison", "analysis", "multi_source")
@@ -450,12 +436,13 @@ class ToolAwareAgent(
             self.llm = self.llm_flash
             self._active_model_name = self.flash_model_name
             logger.info(f"⚡ Using FLASH model ({self.flash_model_name}) for {complexity} query")
+        self._record_generation("reasoning", self.llm)
 
     # _init_tools, register_tool, _get_tools_description are provided by ToolRegistryMixin.
 
     # ── Shared preprocessing for process_query and process_query_streaming ──
 
-    def _preprocess_query(
+    async def _preprocess_query(
         self, query: str, context: str
     ) -> tuple[str, str, dict | None, dict | None, LongQueryResult, str]:
         """Preprocess a query: normalize special chars, translate, condense long queries.
@@ -480,7 +467,9 @@ class ToolAwareAgent(
             }
 
         # Handle non-English queries (detect and translate if needed)
-        translated_query, translation_metadata = preprocess_non_english_query(query, self.llm)
+        translated_query, translation_metadata = await preprocess_non_english_query_async(
+            query, getattr(self, "llm_preprocessing", self.llm)
+        )
         if translation_metadata and translation_metadata.get("was_translated"):
             logger.info(
                 f"🌐 Translated query from {translation_metadata['original_language_name']}: "
@@ -489,7 +478,9 @@ class ToolAwareAgent(
             query = translated_query
 
         # Preprocess long queries (500+ characters) to extract key intent
-        long_query_result = preprocess_long_query(query, self.llm)
+        long_query_result = await preprocess_long_query_async(
+            query, getattr(self, "llm_preprocessing", self.llm)
+        )
         if long_query_result.was_processed:
             logger.info(
                 f"📝 Long query ({long_query_result.query_length} chars) → "
@@ -763,6 +754,51 @@ class ToolAwareAgent(
                     quality_score=plan.confidence or 0.8,
                 )
 
+    @staticmethod
+    def _model_generation(model: Any, response: Any = None) -> dict[str, Any]:
+        provider = getattr(response, "provider", None)
+        model_name = getattr(response, "model_name", None)
+        return {
+            "ai_provider": provider if isinstance(provider, str) else getattr(model, "provider", None),
+            "model_used": model_name if isinstance(model_name, str) else getattr(model, "model_name", None),
+        }
+
+    def _generation_state(self) -> dict[str, dict[str, Any]]:
+        # Lazy initialization also supports agents constructed with __new__ in tests.
+        if not hasattr(self, "_generation_context"):
+            self._generation_context = ContextVar(f"mapit_agent_generation_{id(self)}", default=None)
+        state = self._generation_context.get()
+        if state is None:
+            state = {}
+            self._generation_context.set(state)
+        return state
+
+    def _reset_generation_metadata(self) -> None:
+        self._generation_state()
+        # Each query owns a fresh dictionary. Child reasoning tasks inherit that
+        # dictionary, so their records reach the streaming caller without sharing
+        # records with another request using this singleton agent.
+        self._generation_context.set({})
+
+    def _record_generation(self, kind: str, model: Any, response: Any = None) -> None:
+        self._generation_state()[kind] = self._model_generation(model, response)
+
+    def _generation_metadata(self) -> dict[str, Any]:
+        """Report observed model IDs, including IDs returned from a CLI default model."""
+        state = self._generation_state()
+        reasoning = state.get("reasoning") or self._model_generation(self.llm)
+        response = state.get("response")
+        output = response or reasoning
+        metadata = {
+            **output,
+            "reasoning_provider": reasoning["ai_provider"],
+            "reasoning_model": reasoning["model_used"],
+        }
+        if response:
+            metadata["response_provider"] = response["ai_provider"]
+            metadata["response_model"] = response["model_used"]
+        return metadata
+
     def _build_result_dict(
         self,
         plan: AgentPlan,
@@ -809,7 +845,7 @@ class ToolAwareAgent(
             "confidence": plan.confidence,
             "total_time_ms": total_time,
             "quality_analysis": quality_analysis,
-            "model_used": getattr(self, "_active_model_name", "unknown"),
+            **self._generation_metadata(),
         }
 
         if long_query_result.was_processed:
@@ -1106,6 +1142,7 @@ class ToolAwareAgent(
         start_time = datetime.now()
         self._current_query = query
         self._conversation_id = conversation_id
+        self._reset_generation_metadata()
 
         # ── Early check: "show more projects" pagination from cached results ──
         show_more_result = self._handle_show_more_request(query)
@@ -1119,7 +1156,7 @@ class ToolAwareAgent(
 
         # Preprocess query (special chars, translation, long query)
         query, context, special_char_metadata, translation_metadata, long_query_result, _ = (
-            self._preprocess_query(query, context)
+            await self._preprocess_query(query, context)
         )
 
         # Extract structured memory from conversation context
@@ -1187,6 +1224,7 @@ class ToolAwareAgent(
         start_time = datetime.now()
         self._current_query = query
         self._conversation_id = conversation_id
+        self._reset_generation_metadata()
 
         # ── Early check: "show more projects" pagination from cached results ──
         show_more_result = self._handle_show_more_request(query)
@@ -1201,7 +1239,7 @@ class ToolAwareAgent(
 
         # Preprocess query (special chars, translation, long query)
         query, context, special_char_metadata, translation_metadata, long_query_result, _ = (
-            self._preprocess_query(query, context)
+            await self._preprocess_query(query, context)
         )
 
         # Extract structured memory from conversation context
@@ -1233,16 +1271,22 @@ class ToolAwareAgent(
             )
         )
 
-        # Yield events as they arrive, until the loop completes
-        while not loop_task.done():
-            try:
-                event = await asyncio.wait_for(event_queue.get(), timeout=0.1)
-                yield event
-            except TimeoutError:
-                continue
-
-        # Get loop results
-        iteration, all_tool_results = loop_task.result()
+        try:
+            # Yield events as they arrive, until the loop completes.
+            while not loop_task.done():
+                try:
+                    event = await asyncio.wait_for(event_queue.get(), timeout=0.1)
+                    yield event
+                except TimeoutError:
+                    continue
+            iteration, all_tool_results = loop_task.result()
+        finally:
+            if not loop_task.done():
+                loop_task.cancel()
+                try:
+                    await loop_task
+                except asyncio.CancelledError:
+                    pass
 
         # Drain any remaining events
         while not event_queue.empty():
@@ -1606,20 +1650,25 @@ class ToolAwareAgent(
 
         # LLM timeout in seconds (configurable via env, default 30s)
 
-        llm_timeout = int(os.getenv("LLM_TIMEOUT_SECONDS", "30"))
+        llm_timeout = self._generation_timeout(
+            self.llm, float(os.getenv("LLM_TIMEOUT_SECONDS", "30"))
+        )
 
         try:
-            if self.llm:
+            reasoning_model = self.llm
+            if reasoning_model:
                 # Wrap LLM call with timeout protection
                 try:
                     response = await asyncio.wait_for(
-                        asyncio.to_thread(self.llm.generate_content, prompt), timeout=llm_timeout
+                        generate_content(reasoning_model, prompt), timeout=llm_timeout
                     )
                 except TimeoutError:
                     logger.warning(f"⏰ LLM call timed out after {llm_timeout}s, using fallback")
                     return await self._fallback_reasoning(
                         query, previous_steps, tool_results, context
                     )
+
+                self._record_generation("reasoning", reasoning_model, response)
 
                 # Parse JSON from response
                 response_text = response.text
@@ -1777,7 +1826,8 @@ class ToolAwareAgent(
         timeout, etc.) but tool results are available.
         Returns synthesized text or None if LLM call fails.
         """
-        if not self.llm:
+        response_model = getattr(self, "llm_response", self.llm)
+        if not response_model:
             return None
 
         # Build compact summaries of each tool result
@@ -1817,11 +1867,12 @@ class ToolAwareAgent(
 
         try:
             response = await asyncio.wait_for(
-                asyncio.to_thread(self.llm.generate_content, prompt),
-                timeout=10,
+                generate_content(response_model, prompt),
+                timeout=self._generation_timeout(response_model, 10.0),
             )
             text = response.text.strip()
             if text and len(text) > 100:
+                self._record_generation("response", response_model, response)
                 return text
             return None
         except Exception as e:

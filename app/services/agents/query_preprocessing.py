@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ...core.config import settings
+from ..ai.factory import generate_content
 
 logger = logging.getLogger(__name__)
 
@@ -730,37 +731,8 @@ def translate_query_to_english(
         prompt = TRANSLATION_PROMPT_TEMPLATE.format(source_lang=source_language_name, query=query)
 
         response = llm.generate_content(prompt)
-        translated = response.text.strip()
-
-        # Clean up the translation (remove quotes if present)
-        if translated.startswith('"') and translated.endswith('"'):
-            translated = translated[1:-1]
-        if translated.startswith("'") and translated.endswith("'"):
-            translated = translated[1:-1]
-
-        # Validate translation isn't empty or same as original
-        if not translated or translated.lower() == query.lower():
-            logger.warning("Translation returned empty or identical result")
-            return TranslationResult(
-                original_query=query,
-                translated_query=query,
-                source_language=source_language,
-                source_language_name=source_language_name,
-                was_translated=False,
-                translation_method="passthrough",
-                confidence=0.0,
-            )
-
-        logger.info(f"🌐 Translated from {source_language_name}: '{query}' → '{translated}'")
-
-        return TranslationResult(
-            original_query=query,
-            translated_query=translated,
-            source_language=source_language,
-            source_language_name=source_language_name,
-            was_translated=True,
-            translation_method="llm",
-            confidence=0.85,  # LLM translations are generally reliable
+        return _translation_from_text(
+            query, source_language, source_language_name, response.text
         )
 
     except Exception as e:
@@ -774,6 +746,43 @@ def translate_query_to_english(
             translation_method="passthrough",
             confidence=0.0,
         )
+
+
+def _translation_from_text(
+    query: str, source_language: str, source_language_name: str, text: str
+) -> TranslationResult:
+    translated = text.strip()
+
+    # Clean up the translation (remove quotes if present)
+    if translated.startswith('"') and translated.endswith('"'):
+        translated = translated[1:-1]
+    if translated.startswith("'") and translated.endswith("'"):
+        translated = translated[1:-1]
+
+    # Validate translation isn't empty or same as original
+    if not translated or translated.lower() == query.lower():
+        logger.warning("Translation returned empty or identical result")
+        return TranslationResult(
+            original_query=query,
+            translated_query=query,
+            source_language=source_language,
+            source_language_name=source_language_name,
+            was_translated=False,
+            translation_method="passthrough",
+            confidence=0.0,
+        )
+
+    logger.info(f"🌐 Translated from {source_language_name}: '{query}' → '{translated}'")
+
+    return TranslationResult(
+        original_query=query,
+        translated_query=translated,
+        source_language=source_language,
+        source_language_name=source_language_name,
+        was_translated=True,
+        translation_method="llm",
+        confidence=0.85,  # LLM translations are generally reliable
+    )
 
 
 def preprocess_non_english_query(query: str, llm: Any = None) -> tuple[str, dict | None]:
@@ -999,7 +1008,18 @@ def _extract_key_details(query: str) -> list[str]:
 
 def _extract_intent_with_llm(query: str, llm: Any) -> dict[str, str] | None:
     """Use LLM to extract the core intent from a long query."""
-    prompt = f"""Extract the core question from this long EU funding query.
+    prompt = _intent_prompt(query)
+    try:
+        response = llm.generate_content(prompt)
+        return _parse_intent_response(response.text)
+    except Exception as e:
+        logger.warning(f"LLM intent extraction failed: {e}")
+
+    return None
+
+
+def _intent_prompt(query: str) -> str:
+    return f"""Extract the core question from this long EU funding query.
 
 Query ({len(query)} characters):
 {query}
@@ -1018,24 +1038,22 @@ Keep ALL specific details like:
 
 Return ONLY the JSON object, no other text.
 """
-    try:
-        response = llm.generate_content(prompt)
-        response_text = response.text
 
-        # Extract JSON
-        json_match = re.search(r"\{[^{}]*\}", response_text, re.DOTALL)
-        if json_match:
-            result = json.loads(json_match.group(0))
-            if "processed_query" in result:
-                # Ensure processed query isn't too long
-                if len(result["processed_query"]) > settings.max_processed_query_length:
-                    result["processed_query"] = result["processed_query"][
-                        : settings.max_processed_query_length
-                    ]
-                return result
-    except Exception as e:
-        logger.warning(f"LLM intent extraction failed: {e}")
 
+def _parse_intent_response(text: str) -> dict[str, str] | None:
+    response_text = text
+
+    # Extract JSON
+    json_match = re.search(r"\{[^{}]*\}", response_text, re.DOTALL)
+    if json_match:
+        result = json.loads(json_match.group(0))
+        if "processed_query" in result:
+            # Ensure processed query isn't too long
+            if len(result["processed_query"]) > settings.max_processed_query_length:
+                result["processed_query"] = result["processed_query"][
+                    : settings.max_processed_query_length
+                ]
+            return result
     return None
 
 
@@ -1118,3 +1136,58 @@ def _extract_intent_rule_based(query: str, key_details: list[str]) -> str:
         processed = processed[: settings.max_processed_query_length - 3] + "..."
 
     return processed
+
+
+async def preprocess_non_english_query_async(
+    query: str, llm: Any = None
+) -> tuple[str, dict | None]:
+    """Translate using native asynchronous generation without blocking the request loop."""
+    detection = detect_query_language(query)
+    if detection.is_english:
+        return query, None
+
+    translation = translate_query_to_english(
+        query, detection.detected_language, detection.language_name, llm=None
+    )
+    if llm:
+        try:
+            prompt = TRANSLATION_PROMPT_TEMPLATE.format(
+                source_lang=detection.language_name, query=query
+            )
+            response = await generate_content(llm, prompt)
+            translation = _translation_from_text(
+                query, detection.detected_language, detection.language_name, response.text
+            )
+        except Exception as e:
+            logger.warning(f"Translation failed: {e}, passing through original query")
+
+    return translation.translated_query, {
+        "original_language": detection.detected_language,
+        "original_language_name": detection.language_name,
+        "language_detection_confidence": detection.confidence,
+        "was_translated": translation.was_translated,
+        "translation_method": translation.translation_method,
+        "original_query": query,
+    }
+
+
+async def preprocess_long_query_async(query: str, llm: Any = None) -> LongQueryResult:
+    """Condense using native asynchronous generation, retaining the rule based fallback."""
+    if len(query) <= settings.long_query_threshold or not llm:
+        return preprocess_long_query(query, llm=None)
+    try:
+        response = await generate_content(llm, _intent_prompt(query))
+        result = _parse_intent_response(response.text)
+        if result:
+            return LongQueryResult(
+                original_query=query,
+                processed_query=result["processed_query"],
+                was_processed=True,
+                extracted_intent=result.get("intent"),
+                key_details=_extract_key_details(query),
+                query_length=len(query),
+                processing_note="Extracted via LLM",
+            )
+    except Exception as e:
+        logger.warning(f"LLM extraction failed, using fallback: {e}")
+    return preprocess_long_query(query, llm=None)

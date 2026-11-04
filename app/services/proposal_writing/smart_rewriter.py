@@ -52,7 +52,7 @@ class SmartRewriter:
     """
 
     def __init__(self):
-        self.ai_service = ProposalAIService()
+        self.ai_service = ProposalAIService(step="proposal_rewrite")
         self.learning_service = ProposalLearningService()
 
     # =========================================================================
