@@ -1,37 +1,33 @@
 # Backend tests
 
-## Local baseline
-
-Install both production and development dependencies, then collect or run the suite from the
-backend repository root:
+Install production and development requirements, then use the guarded offline target:
 
 ```bash
 make install-dev
-pytest --collect-only
 make test
+make test PYTEST_ARGS="--collect-only"
 ```
 
-Pytest is intentionally limited to `tests/` in `pyproject.toml`. This keeps collection away from
-runtime and Docker volume directories such as `neo4j/import/`, whose ownership may belong to the
-Neo4j container. It does not remove or skip files in the test suite.
+The offline runner uses dummy settings, disables dotenv and blocks live service
+access. Model responses in these tests are mocked. CI treats test failures as
+blocking and uploads its JUnit report even on failure.
 
-## External dependencies
+The former bulk live-response tests and collection-time API probes were removed.
+Their replacement is a compact matrix of 52 tool contracts and ten source-backed
+questions. It checks expected facts against independent read-only funding SQL,
+not an AI judge or another call to the tool under test.
 
-Most unit tests mock infrastructure. Integration, quality, real-tool, and live-conversation tests
-can additionally require some or all of the following:
+```bash
+make test-tools   # Actual tools against funding data, zero model requests
+make test-live    # Real Codex questions with a shared 30-request ceiling
+```
 
-- PostgreSQL/Supabase with the project schema and pgvector data (`DATABASE_URL`, `SUPABASE_URL`,
-  and `SUPABASE_KEY`);
-- Redis (`REDIS_URL`);
-- Neo4j with the project graph loaded (`NEO4J_URI`, `NEO4J_USER`, and `NEO4J_PASSWORD`);
-- a running backend (`TEST_API_URL`);
-- configured LLM/embedding provider credentials for live AI scenarios.
+Run these explicit evaluation commands only when you intend to query the local
+funding source or spend model usage. Missing capabilities remain blocked, and a
+provider failure stops later questions. The default evaluator does not modify
+existing data or connect paid embedding/API-key providers.
 
-Fixtures and modules that explicitly support missing infrastructure skip based on their relevant
-environment variables. Not every historical scenario is consistently marked, so a full
-`make test` run without the services can still fail or time out after successful collection.
-
-The backend CI therefore treats lint and formatting as blocking checks and currently runs
-`make test` as a non-blocking baseline. It always uploads `test-results/pytest.xml` so remaining
-failures can be inspected. Promote tests to a blocking gate after the integration/live tiers have
-been separated and their service/data setup is reproducible in CI.
+See [commands, budgets and limitations](../docs_tracked/TESTING.md),
+[coverage and evidence](../docs_tracked/TOOL_SCENARIO_COVERAGE.md),
+[actual validation results](../docs_tracked/PYDANTIC_AI_VALIDATION.md), and
+[the retirement inventory](RETIRED_LIVE_TESTS.md).

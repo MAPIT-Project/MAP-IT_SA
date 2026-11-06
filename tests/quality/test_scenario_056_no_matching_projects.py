@@ -14,12 +14,9 @@ Query: "Find projects by organization 'XYZ123NotReal Inc'"
 Expected: Explains no results, suggests checking spelling
 """
 
-import json
 import re
-from datetime import datetime
 from pathlib import Path
 
-import httpx
 import pytest
 
 # Test configuration
@@ -515,9 +512,9 @@ class TestV3ResponseFormatterNoMatchingProjects:
         )
         result = evaluator.evaluate("Find projects by Fake Organization GmbH", response)
 
-        assert result["total_score"] >= PASS_THRESHOLD, (
-            f"Score: {result['total_score']}, Feedback: {result['feedback']}"
-        )
+        assert (
+            result["total_score"] >= PASS_THRESHOLD
+        ), f"Score: {result['total_score']}, Feedback: {result['feedback']}"
 
     def test_format_no_matching_projects_no_hallucinations(self, formatter, evaluator):
         """Test that response doesn't hallucinate projects."""
@@ -623,162 +620,3 @@ class TestSuggestAlternativeProjectSearchTerms:
 # ============================================================================
 # Integration Tests (require running API)
 # ============================================================================
-
-
-@pytest.mark.integration
-class TestScenario056Integration:
-    """Integration tests that require the API to be running."""
-
-    @pytest.fixture
-    def evaluator(self):
-        return ScenarioEvaluator()
-
-    @pytest.mark.asyncio
-    async def test_scenario_056_live_api(self, evaluator):
-        """Test the actual API response for no matching projects."""
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            # Create a new conversation
-            conv_response = await client.post(
-                f"{API_BASE_URL}{CONVERSATION_ENDPOINT}",
-                json={"user_id": 1},
-            )
-            if conv_response.status_code != 200:
-                pytest.skip("API not available")
-
-            conv_id = conv_response.json().get("conversation_id")
-
-            # Send the test query
-            response = await client.post(
-                f"{API_BASE_URL}{CONVERSATION_ENDPOINT}/{conv_id}/message",
-                json={"message": TEST_QUERY, "user_id": 1},
-            )
-
-            if response.status_code != 200:
-                pytest.skip(f"API returned {response.status_code}")
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Evaluate the response
-            evaluation = evaluator.evaluate(TEST_QUERY, response_text)
-
-            # Save results
-            RESULT_FILE.parent.mkdir(parents=True, exist_ok=True)
-            with open(RESULT_FILE, "w") as f:
-                json.dump(
-                    {
-                        "timestamp": datetime.now().isoformat(),
-                        "query": TEST_QUERY,
-                        "response": response_text,
-                        "evaluation": evaluation,
-                    },
-                    f,
-                    indent=2,
-                )
-
-            # Assert passing score
-            assert evaluation["passed"], (
-                f"Score {evaluation['total_score']}/{PASS_THRESHOLD} - "
-                f"Feedback: {evaluation['feedback']}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_scenario_056_streaming(self, evaluator):
-        """Test the streaming API response for no matching projects."""
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            # Create a new conversation
-            conv_response = await client.post(
-                f"{API_BASE_URL}{CONVERSATION_ENDPOINT}",
-                json={"user_id": 1},
-            )
-            if conv_response.status_code != 200:
-                pytest.skip("API not available")
-
-            conv_id = conv_response.json().get("conversation_id")
-
-            # Send the test query via streaming
-            response_text = ""
-            async with client.stream(
-                "POST",
-                f"{API_BASE_URL}{CONVERSATION_ENDPOINT}/{conv_id}/message/stream",
-                json={"message": TEST_QUERY, "user_id": 1},
-            ) as response:
-                if response.status_code != 200:
-                    pytest.skip(f"API returned {response.status_code}")
-
-                async for line in response.aiter_lines():
-                    if line.startswith("data: "):
-                        try:
-                            event = json.loads(line[6:])
-                            if event.get("type") == "token":
-                                response_text += event.get("content", "")
-                        except json.JSONDecodeError:
-                            continue
-
-            # Evaluate the response
-            evaluation = evaluator.evaluate(TEST_QUERY, response_text)
-
-            assert evaluation["passed"], (
-                f"Score {evaluation['total_score']}/{PASS_THRESHOLD} - "
-                f"Feedback: {evaluation['feedback']}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_generic_project_search_no_results(self, evaluator):
-        """Test generic project search that returns no results."""
-        query = "Find projects about underwater telepathic communication"
-
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            conv_response = await client.post(
-                f"{API_BASE_URL}{CONVERSATION_ENDPOINT}",
-                json={"user_id": 1},
-            )
-            if conv_response.status_code != 200:
-                pytest.skip("API not available")
-
-            conv_id = conv_response.json().get("conversation_id")
-
-            response = await client.post(
-                f"{API_BASE_URL}{CONVERSATION_ENDPOINT}/{conv_id}/message",
-                json={"message": query, "user_id": 1},
-            )
-
-            if response.status_code != 200:
-                pytest.skip(f"API returned {response.status_code}")
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            evaluation = evaluator.evaluate(query, response_text)
-
-            # Should handle gracefully
-            assert evaluation["scores"]["factual_accuracy"] >= 20, "Should not hallucinate"
-
-    @pytest.mark.asyncio
-    async def test_organization_with_special_characters(self, evaluator):
-        """Test organization search with special characters."""
-        query = "Find projects by organization 'Test & Fake GmbH'"
-
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            conv_response = await client.post(
-                f"{API_BASE_URL}{CONVERSATION_ENDPOINT}",
-                json={"user_id": 1},
-            )
-            if conv_response.status_code != 200:
-                pytest.skip("API not available")
-
-            conv_id = conv_response.json().get("conversation_id")
-
-            response = await client.post(
-                f"{API_BASE_URL}{CONVERSATION_ENDPOINT}/{conv_id}/message",
-                json={"message": query, "user_id": 1},
-            )
-
-            if response.status_code != 200:
-                pytest.skip(f"API returned {response.status_code}")
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Should handle special characters gracefully
-            assert "error" not in response_text.lower() or "not find" in response_text.lower()

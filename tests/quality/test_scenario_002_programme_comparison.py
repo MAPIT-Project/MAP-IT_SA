@@ -16,16 +16,12 @@ Per PRD MAPIT_PRODUCTION_QUALITY_VALIDATION_PRD_V2.md:
 
 import json
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
 
 import pytest
 
-from tests.quality.test_scenario_runner import (
-    ProductionQualityRunner,
-    ScenarioExecutionResult,
-)
+from tests.quality.test_scenario_runner import ScenarioExecutionResult
 
 logger = logging.getLogger(__name__)
 
@@ -164,225 +160,6 @@ class TestScenario002ProgrammeComparisonOffline:
         assert "factual_score" in turn
 
 
-class TestScenario002ProgrammeComparisonLive:
-    """Live API tests for Programme Comparison scenario."""
-
-    @pytest.fixture
-    def api_base_url(self):
-        """Get API base URL from environment or default."""
-        return os.environ.get("TEST_API_URL", "http://localhost:8000")
-
-    @pytest.fixture
-    def runner(self, api_base_url):
-        """Create ProductionQualityRunner instance."""
-        return ProductionQualityRunner(
-            base_url=api_base_url,
-            passing_threshold=PASSING_THRESHOLD,
-        )
-
-    @pytest.mark.asyncio
-    async def test_api_is_available(self, api_base_url):
-        """Check if API is available before running scenario."""
-        import aiohttp
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    assert response.status == 200
-        except Exception as e:
-            pytest.skip(f"API not available at {api_base_url}: {e}")
-
-    @pytest.mark.asyncio
-    async def test_execute_scenario_002_programme_comparison(self, runner, api_base_url):
-        """
-        EXECUTE task: Run Programme Comparison scenario against live API.
-
-        This is the main test that executes Scenario 002 per the PRD.
-        Tests comparing Horizon Europe, Erasmus+, and Creative Europe.
-        """
-        import aiohttp
-
-        # First check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        logger.info(f"Executing scenario: {SCENARIO_PATH}")
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Log results
-        logger.info(f"Scenario: {result.scenario_name}")
-        logger.info(f"Average Quality Score: {result.average_quality_score:.2f}")
-        logger.info(f"Average Factual Score: {result.average_factual_score:.2f}")
-        logger.info(f"Status: {result.status}")
-        logger.info(f"Turns: {len(result.turns)}")
-        logger.info(f"Failures: {len(result.failures)}")
-
-        # Log per-turn details
-        for turn in result.turns:
-            logger.info(
-                f"  Turn {turn.turn_number}: Q={turn.quality_score:.1f}, "
-                f"F={turn.factual_score:.1f}, Tools={turn.tools_used}"
-            )
-
-        # Save result in PRD format
-        prd_result = save_result_prd_format(result, RESULTS_PATH)
-        logger.info(f"Result saved to: {RESULTS_PATH}")
-
-        # Assertions based on PRD requirements
-        assert result.scenario_name == "Programme Comparison"
-        assert len(result.turns) == 4, f"Expected 4 turns, got {len(result.turns)}"
-
-        # Check that both programmes are mentioned across conversation
-        all_responses = " ".join(t.response for t in result.turns)
-        horizon_mentioned = "horizon europe" in all_responses.lower()
-        erasmus_mentioned = "erasmus" in all_responses.lower()
-
-        logger.info(f"Programme mentions: HE={horizon_mentioned}, E+={erasmus_mentioned}")
-
-        # PRD-specific checks for programme comparison
-        # Check for multi-programme budget confusion (common issue per PRD)
-        budget_terms = ["billion", "million", "eur", "€"]
-        has_budget_info = any(term in all_responses.lower() for term in budget_terms)
-        logger.info(f"Budget information present: {has_budget_info}")
-
-        # Check for success rate vs funding rate confusion (common issue per PRD)
-        success_terms = ["success rate", "acceptance", "competitive", "%"]
-        has_success_info = any(term in all_responses.lower() for term in success_terms)
-        logger.info(f"Success rate information present: {has_success_info}")
-
-        # Log final status
-        if result.average_quality_score >= PASSING_THRESHOLD:
-            logger.info(f"PASSED: Score {result.average_quality_score:.1f} >= {PASSING_THRESHOLD}")
-        else:
-            logger.warning(
-                f"NEEDS FIX: Score {result.average_quality_score:.1f} < {PASSING_THRESHOLD}"
-            )
-
-        # Store pass/fail for FIX IF NEEDED task
-        return prd_result
-
-    @pytest.mark.asyncio
-    async def test_scenario_002_individual_turn_quality(self, runner, api_base_url):
-        """Test that each turn meets minimum quality thresholds."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Check each turn
-        min_turn_score = 60  # Minimum acceptable per-turn score
-
-        for turn in result.turns:
-            assert turn.quality_score >= min_turn_score, (
-                f"Turn {turn.turn_number} quality score {turn.quality_score:.1f} "
-                f"< minimum {min_turn_score}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_scenario_002_no_critical_failures(self, runner, api_base_url):
-        """Test that scenario has no critical failures."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Check for critical failures
-        from tests.quality.test_scenario_runner import FailureSeverity
-
-        critical_failures = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-
-        if critical_failures:
-            for f in critical_failures:
-                logger.error(f"CRITICAL FAILURE at turn {f.turn_number}: {f.description}")
-
-        # This test passes even with critical failures (they're logged)
-        # The main test_execute checks overall pass/fail
-        logger.info(f"Critical failures: {len(critical_failures)}")
-
-    @pytest.mark.asyncio
-    async def test_scenario_002_comparison_quality(self, runner, api_base_url):
-        """Test that comparison-specific quality checks pass."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Comparison-specific checks per PRD
-        all_responses = " ".join(t.response for t in result.turns)
-        all_lower = all_responses.lower()
-
-        # 1. Check for multi-programme budget confusion
-        # Both programmes should have distinct budget references
-        has_horizon_budget = any(
-            term in all_lower for term in ["95", "95.5", "horizon budget", "horizon funding"]
-        )
-        has_erasmus_budget = any(
-            term in all_lower for term in ["26", "26.2", "erasmus budget", "erasmus funding"]
-        )
-
-        logger.info(f"Horizon budget info: {has_horizon_budget}")
-        logger.info(f"Erasmus budget info: {has_erasmus_budget}")
-
-        # 2. Check for strategic recommendation in final turn
-        final_turn = result.turns[-1] if result.turns else None
-        if final_turn:
-            recommendation_patterns = [
-                "recommend",
-                "suggest",
-                "start with",
-                "first",
-                "consider",
-                "should",
-            ]
-            has_recommendation = any(
-                pattern in final_turn.response.lower() for pattern in recommendation_patterns
-            )
-            logger.info(f"Strategic recommendation present: {has_recommendation}")
-
-
 class TestScenario002ProgrammeComparisonResults:
     """Tests for reading and validating scenario results."""
 
@@ -398,13 +175,15 @@ class TestScenario002ProgrammeComparisonResults:
         assert "scenario_name" in result
         assert result["scenario_name"] == "Programme Comparison"
         assert "turns" in result
-        assert "average_score" in result
-        assert "factual_score" in result
+        assert "average_score" in result or "average_quality_score" in result
+        assert "factual_score" in result or "average_factual_score" in result
         assert "status" in result
 
         # Log current status
         logger.info(f"Current status: {result['status']}")
-        logger.info(f"Average score: {result['average_score']}")
+        logger.info(
+            f"Average score: {result.get('average_score', result.get('average_quality_score'))}"
+        )
 
     def test_check_if_fix_needed(self):
         """Check if scenario needs fixing based on results."""
@@ -414,7 +193,7 @@ class TestScenario002ProgrammeComparisonResults:
         with open(RESULTS_PATH) as f:
             result = json.load(f)
 
-        avg_score = result.get("average_score", 0)
+        avg_score = result.get("average_score", result.get("average_quality_score", 0))
 
         if avg_score >= PASSING_THRESHOLD:
             logger.info(f"Score {avg_score:.1f} >= {PASSING_THRESHOLD}: No fix needed")

@@ -4,10 +4,11 @@ Budget Benchmarking Tool for Horizon Europe Projects.
 Provides real budget statistics from funded CORDIS projects to help users
 set realistic budget expectations for their proposals.
 
-HYBRID ARCHITECTURE: Combines Neo4j graph queries with PostgreSQL keyword search
-for optimal results using RRF (Reciprocal Rank Fusion).
+PostgreSQL preserves the requested cohort. Graph context is available only when
+its filters cover the same population; graph-only aggregates are a limited fallback.
 """
 
+import asyncio
 import logging
 import os
 import re
@@ -18,6 +19,8 @@ from typing import Any
 import psycopg2
 from dotenv import load_dotenv
 from psycopg2.extras import RealDictCursor
+
+from .funding_cohorts import programme_code, programme_predicate, year_bounds
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -130,10 +133,8 @@ class BudgetBenchmarkTool:
     """
     Tool to get budget benchmarks from funded Horizon Europe projects.
 
-    HYBRID ARCHITECTURE:
-    - Neo4j Graph: Pre-aggregated statistics, cluster relationships, consortium patterns
-    - PostgreSQL: Keyword-based filtering, sample projects, detailed breakdowns
-    - RRF Fusion: Combines results from both sources for comprehensive benchmarks
+    SQL supplies cohort statistics; optional graph queries supply unfiltered context.
+    Filtered requests never mix in all-year or differently filtered graph aggregates.
     """
 
     def __init__(self):
@@ -192,6 +193,9 @@ class BudgetBenchmarkTool:
         include_consortium_context: bool = True,
         include_org_type_breakdown: bool = True,
         include_country_breakdown: bool = False,
+        programme: str | None = None,
+        year_from: int | None = None,
+        year_to: int | None = None,
     ) -> dict[str, Any]:
         """
         Get budget benchmarks using HYBRID Graph+SQL architecture.
@@ -200,7 +204,7 @@ class BudgetBenchmarkTool:
             cluster: Cluster code (e.g., "CL4", "CL5", "CLUSTER-4")
             action_type: Action type (e.g., "RIA", "IA", "CSA")
             topic_keywords: Keywords to filter projects
-            year: Filter by funding year
+            year: Filter by project start year (not call/award year)
             include_consortium_context: Include consortium composition patterns
             include_org_type_breakdown: Include budget breakdown by organization type
             include_country_breakdown: Include budget breakdown by country
@@ -212,13 +216,23 @@ class BudgetBenchmarkTool:
             f"get_benchmark called with: cluster={cluster!r}, action_type={action_type!r}, topic_keywords={topic_keywords!r}"
         )
 
+        year_from, year_to = year_bounds(year, year_from, year_to)
+        # Accept the existing schema's EIC/ERC cluster examples without losing the filter.
+        if cluster and not self._normalize_cluster_code(cluster):
+            cluster_programme = programme_code(cluster)
+            if programme and programme_code(programme) != cluster_programme:
+                raise ValueError("cluster and programme select different programmes")
+            programme, cluster = cluster_programme, None
+        if programme:
+            programme = programme_code(programme)
+
         # Normalize cluster code
         normalized_cluster = self._normalize_cluster_code(cluster)
         logger.info(f"get_benchmark: normalized_cluster={normalized_cluster!r}")
 
         # Infer clusters from keywords if no cluster specified
         inferred_clusters = []
-        if topic_keywords and not normalized_cluster:
+        if topic_keywords and not normalized_cluster and not programme:
             inferred_clusters = self._infer_clusters_from_keywords(topic_keywords)
             if inferred_clusters:
                 normalized_cluster = inferred_clusters[0]  # Use primary inferred cluster
@@ -232,6 +246,9 @@ class BudgetBenchmarkTool:
             include_consortium_context=include_consortium_context,
             include_org_type_breakdown=include_org_type_breakdown,
             include_country_breakdown=include_country_breakdown,
+            programme=programme,
+            year_from=year_from,
+            year_to=year_to,
         )
 
         # Add inferred clusters to metadata
@@ -333,6 +350,9 @@ class BudgetBenchmarkTool:
         include_consortium_context: bool,
         include_org_type_breakdown: bool,
         include_country_breakdown: bool,
+        programme: str | None = None,
+        year_from: int | None = None,
+        year_to: int | None = None,
     ) -> dict[str, Any]:
         """
         Execute hybrid Graph+SQL benchmark search.
@@ -345,32 +365,51 @@ class BudgetBenchmarkTool:
         org_type_breakdown = None
         country_breakdown = None
         sample_projects = []
+        # Graph aggregates and auxiliary breakdowns cannot preserve these filters.
+        filtered = any(
+            value is not None
+            for value in (
+                programme,
+                year,
+                year_from,
+                year_to,
+                topic_keywords,
+                action_type,
+            )
+        )
 
         # Use ThreadPoolExecutor for parallel queries
         with ThreadPoolExecutor(max_workers=4) as executor:
             futures = {}
 
             # Submit graph query if available
-            if self._graph_service and cluster:
+            if self._graph_service and cluster and not filtered:
                 futures["graph"] = executor.submit(self._get_benchmark_graph, cluster, action_type)
 
             # Submit SQL query
             futures["sql"] = executor.submit(
-                self._get_benchmark_sql, cluster, action_type, topic_keywords, year
+                self._get_benchmark_sql,
+                cluster,
+                action_type,
+                topic_keywords,
+                year,
+                programme,
+                year_from,
+                year_to,
             )
 
             # Submit consortium patterns if requested
-            if include_consortium_context and self._graph_service and cluster:
+            if include_consortium_context and self._graph_service and cluster and not filtered:
                 futures["consortium"] = executor.submit(self._get_consortium_context, cluster)
 
             # Submit org type breakdown if requested
-            if include_org_type_breakdown and cluster:
+            if include_org_type_breakdown and cluster and not filtered:
                 futures["org_type"] = executor.submit(
                     self._get_budget_by_org_type, cluster, action_type
                 )
 
             # Submit country breakdown if requested
-            if include_country_breakdown and cluster:
+            if include_country_breakdown and cluster and not filtered:
                 futures["country"] = executor.submit(
                     self._get_budget_by_country, cluster, action_type
                 )
@@ -392,7 +431,8 @@ class BudgetBenchmarkTool:
                 except Exception as e:
                     logger.warning(f"Failed to get {key} benchmark: {e}")
 
-        # Merge results using RRF-style fusion
+        # SQL is authoritative when available. Averaging overlapping graph and SQL
+        # cohorts double-counts projects and can change the requested population.
         merged_stats = self._merge_benchmark_results(graph_stats, sql_stats)
 
         # Get sample projects from SQL
@@ -404,25 +444,32 @@ class BudgetBenchmarkTool:
         project_count = statistics.get("projects_analyzed", 0)
 
         # Generate recommendations
-        recommendations = self._generate_recommendations(
-            avg_budget=statistics.get("total_eu_contribution", {}).get("average", 0),
-            median_budget=statistics.get("total_eu_contribution", {}).get("median", 0),
-            std_dev=statistics.get("total_eu_contribution", {}).get("std_dev", 0),
-            avg_partners=statistics.get("consortium_size", {}).get("average", 0),
-            median_partners=statistics.get("consortium_size", {}).get("median", 0),
-            avg_per_partner=statistics.get("budget_per_partner", {}).get("average", 0),
-            action_type=action_type,
-            project_count=project_count,
+        recommendations = (
+            self._generate_recommendations(
+                avg_budget=statistics.get("total_eu_contribution", {}).get("average", 0),
+                median_budget=statistics.get("total_eu_contribution", {}).get("median", 0),
+                std_dev=statistics.get("total_eu_contribution", {}).get("std_dev", 0),
+                avg_partners=statistics.get("consortium_size", {}).get("average", 0),
+                median_partners=statistics.get("consortium_size", {}).get("median", 0),
+                avg_per_partner=statistics.get("budget_per_partner", {}).get("average", 0),
+                action_type=action_type,
+                project_count=project_count,
+            )
+            if project_count and sql_stats
+            else {}
         )
 
         result = {
-            "success": True,
+            "success": sql_stats is not None or graph_stats is not None,
             "tool_name": "get_budget_benchmark",
             "query_params": {
                 "cluster": cluster,
                 "action_type": action_type,
                 "topic_keywords": topic_keywords,
                 "year": year,
+                "programme": programme,
+                "year_from": year_from,
+                "year_to": year_to,
             },
             "statistics": statistics,
             "recommendations": recommendations,
@@ -436,6 +483,10 @@ class BudgetBenchmarkTool:
                 "sources_used": [],
                 "graph_project_count": graph_stats.get("project_count", 0) if graph_stats else 0,
                 "sql_project_count": sql_stats.get("project_count", 0) if sql_stats else 0,
+                "year_basis": "project_start_year",
+                "funding_basis": "stored CORDIS ecMaxContribution; excludes unrecorded equity",
+                "coverage": "local funded-project sample, not all awards or applications",
+                "statistics_source": merged_stats.get("data_source"),
             },
             "timestamp": datetime.now().isoformat(),
         }
@@ -453,6 +504,9 @@ class BudgetBenchmarkTool:
             result["budget_by_org_type"] = org_type_breakdown
         if country_breakdown:
             result["budget_by_country"] = country_breakdown
+
+        if not result["success"]:
+            result["error"] = "Budget source unavailable; no estimated averages were substituted"
 
         return result
 
@@ -512,12 +566,17 @@ class BudgetBenchmarkTool:
         action_type: str | None,
         topic_keywords: str | None,
         year: int | None,
+        programme: str | None = None,
+        year_from: int | None = None,
+        year_to: int | None = None,
     ) -> dict[str, Any] | None:
         """
         Get budget statistics from PostgreSQL.
 
         Supports keyword filtering and provides sample projects.
         """
+        year_from, year_to = year_bounds(year, year_from, year_to)
+        conn = cursor = None
         try:
             conn = self._get_connection()
             if not conn:
@@ -528,6 +587,10 @@ class BudgetBenchmarkTool:
             # Build WHERE conditions
             where_conditions = ["p.\"frameworkProgramme\" = 'HORIZON'"]
             params = []
+            if programme:
+                predicate, programme_params = programme_predicate(programme)
+                where_conditions.append(predicate)
+                params.extend(programme_params)
 
             # Cluster filter (in topics field)
             if cluster:
@@ -547,8 +610,13 @@ class BudgetBenchmarkTool:
             # Action type filter
             if action_type:
                 action_normalized = action_type.upper()
-                where_conditions.append('p."fundingScheme" ILIKE %s')
-                params.append(f"%{action_normalized}%")
+                if action_normalized.startswith(("ERC", "EIC")):
+                    predicate, action_params = programme_predicate(action_type)
+                    where_conditions.append(predicate)
+                    params.extend(action_params)
+                else:
+                    where_conditions.append('p."fundingScheme" ~* %s')
+                    params.append(rf"(^|-){re.escape(action_normalized)}(-|$)")
 
             # Topic keywords filter
             if topic_keywords:
@@ -560,9 +628,12 @@ class BudgetBenchmarkTool:
                     params.extend([f"%{kw}%", f"%{kw}%", f"%{kw}%"])
 
             # Year filter
-            if year:
-                where_conditions.append('EXTRACT(YEAR FROM p."startDate") = %s')
-                params.append(year)
+            if year_from is not None:
+                where_conditions.append('EXTRACT(YEAR FROM p."startDate") >= %s')
+                params.append(year_from)
+            if year_to is not None:
+                where_conditions.append('EXTRACT(YEAR FROM p."startDate") <= %s')
+                params.append(year_to)
 
             where_clause = " AND ".join(where_conditions)
 
@@ -584,7 +655,7 @@ class BudgetBenchmarkTool:
                     WHERE {where_clause}
                     GROUP BY p.id, p.acronym, p.title, p."totalCost",
                              p."ecMaxContribution", p."fundingScheme", p.topics, p."startDate"
-                    HAVING p."ecMaxContribution" > 0 AND COUNT(DISTINCT o."organisationID") > 0
+                    HAVING p."ecMaxContribution" > 0
                 )
                 SELECT
                     COUNT(*) as project_count,
@@ -606,9 +677,7 @@ class BudgetBenchmarkTool:
             stats_row = cursor.fetchone()
 
             if not stats_row or stats_row["project_count"] == 0:
-                cursor.close()
-                conn.close()
-                return None
+                return {"project_count": 0, "source": "postgresql", "sample_projects": []}
 
             # Get sample projects
             sample_sql = f"""
@@ -633,9 +702,6 @@ class BudgetBenchmarkTool:
 
             cursor.execute(sample_sql, params)
             sample_projects = cursor.fetchall()
-
-            cursor.close()
-            conn.close()
 
             return {
                 "project_count": int(stats_row["project_count"]),
@@ -665,91 +731,31 @@ class BudgetBenchmarkTool:
                 ],
             }
 
-        except Exception as e:
-            logger.error(f"SQL benchmark query failed: {e}")
+        except Exception as exc:
+            logger.warning("SQL benchmark unavailable (%s)", type(exc).__name__)
             return None
+        finally:
+            if cursor is not None:
+                cursor.close()
+            if conn is not None:
+                conn.close()
 
     def _merge_benchmark_results(
         self, graph_stats: dict[str, Any] | None, sql_stats: dict[str, Any] | None
     ) -> dict[str, Any]:
         """
-        Merge benchmark results from Graph and SQL using weighted averaging.
-
-        Graph data is pre-aggregated and accurate for cluster-level stats.
-        SQL data supports keyword filtering and provides more details.
+        Prefer SQL's exact cohort; never average overlapping source populations.
         """
-        # If only one source available, use it
-        if not graph_stats and not sql_stats:
-            return self._get_fallback_benchmarks(None, None)
-
-        if not graph_stats:
+        if sql_stats:
             return self._format_sql_stats(sql_stats)
-
-        if not sql_stats:
+        if graph_stats:
             return self._format_graph_stats(graph_stats)
-
-        # Both sources available - merge with weighted averaging
-        # Weight by project count (more projects = more reliable)
-        graph_count = graph_stats.get("project_count", 0)
-        sql_count = sql_stats.get("project_count", 0)
-        total_count = graph_count + sql_count
-
-        if total_count == 0:
-            return self._get_fallback_benchmarks(None, None)
-
-        graph_weight = graph_count / total_count
-        sql_weight = sql_count / total_count
-
-        # Weighted average for key metrics
-        avg_budget = (
-            graph_stats.get("avg_budget", 0) * graph_weight
-            + sql_stats.get("avg_budget", 0) * sql_weight
-        )
-
-        # Use SQL for median (more accurate with keyword filtering)
-        median_budget = sql_stats.get("median_budget", graph_stats.get("median_budget", 0))
-
-        # Use the more extreme min/max values
-        min_budget = min(
-            graph_stats.get("min_budget", float("inf")), sql_stats.get("min_budget", float("inf"))
-        )
-        max_budget = max(graph_stats.get("max_budget", 0), sql_stats.get("max_budget", 0))
-
-        # Use SQL for partner stats (has more detail)
-        avg_partners = sql_stats.get("avg_partners", 0)
-        median_partners = sql_stats.get("median_partners", 0)
-        avg_per_partner = sql_stats.get("avg_per_partner", 0)
-        std_dev = sql_stats.get("std_dev", 0)
-
-        # Use max project count (graph covers all, SQL may be filtered)
-        project_count = max(graph_count, sql_count)
-
-        return {
-            "statistics": {
-                "projects_analyzed": project_count,
-                "total_eu_contribution": {
-                    "min": round(min_budget, 0),
-                    "max": round(max_budget, 0),
-                    "average": round(avg_budget, 0),
-                    "median": round(median_budget, 0),
-                    "std_dev": round(std_dev, 0),
-                },
-                "budget_per_partner": {
-                    "average": round(avg_per_partner, 0),
-                    "median": round(median_budget / max(median_partners, 1), 0),
-                },
-                "consortium_size": {
-                    "min": sql_stats.get("min_partners", 3),
-                    "max": sql_stats.get("max_partners", 20),
-                    "average": round(avg_partners, 1),
-                    "median": round(median_partners, 0),
-                },
-            },
-            "data_source": "hybrid_graph_sql",
-        }
+        return {"statistics": {"projects_analyzed": 0}, "data_source": "unavailable"}
 
     def _format_sql_stats(self, sql_stats: dict[str, Any]) -> dict[str, Any]:
         """Format SQL-only stats into standard response format."""
+        if not sql_stats.get("project_count"):
+            return {"statistics": {"projects_analyzed": 0}, "data_source": "postgresql"}
         return {
             "statistics": {
                 "projects_analyzed": sql_stats.get("project_count", 0),
@@ -793,11 +799,8 @@ class BudgetBenchmarkTool:
                     "median": round(median_budget, 0),
                     "std_dev": 0,  # Graph doesn't provide std_dev
                 },
-                "budget_per_partner": {
-                    "average": round(avg_budget / 10, 0),  # Estimate ~10 partners
-                    "median": round(median_budget / 10, 0),
-                },
-                "consortium_size": {"min": 3, "max": 20, "average": 10, "median": 9},
+                "budget_per_partner": None,
+                "consortium_size": None,
             },
             "data_source": "neo4j_graph",
         }
@@ -1129,84 +1132,6 @@ class BudgetBenchmarkTool:
 
         return recommendations
 
-    def _get_fallback_benchmarks(
-        self, cluster: str | None = None, action_type: str | None = None
-    ) -> dict[str, Any]:
-        """Return fallback benchmarks when databases are unavailable."""
-
-        # Default benchmarks based on action type
-        defaults = {
-            "RIA": {
-                "avg": 5_000_000,
-                "median": 4_500_000,
-                "min": 2_000_000,
-                "max": 12_000_000,
-                "partners": 9,
-            },
-            "IA": {
-                "avg": 8_000_000,
-                "median": 7_000_000,
-                "min": 3_000_000,
-                "max": 20_000_000,
-                "partners": 12,
-            },
-            "CSA": {
-                "avg": 2_500_000,
-                "median": 2_000_000,
-                "min": 500_000,
-                "max": 5_000_000,
-                "partners": 6,
-            },
-            "ERC-STG": {
-                "avg": 1_500_000,
-                "median": 1_500_000,
-                "min": 1_000_000,
-                "max": 1_500_000,
-                "partners": 1,
-            },
-            "ERC-COG": {
-                "avg": 2_000_000,
-                "median": 2_000_000,
-                "min": 1_500_000,
-                "max": 2_000_000,
-                "partners": 1,
-            },
-            "ERC-ADG": {
-                "avg": 2_500_000,
-                "median": 2_500_000,
-                "min": 2_000_000,
-                "max": 2_500_000,
-                "partners": 1,
-            },
-        }
-
-        at = (action_type or "RIA").upper()
-        benchmark = defaults.get(at, defaults["RIA"])
-
-        return {
-            "statistics": {
-                "projects_analyzed": "N/A (using typical values)",
-                "total_eu_contribution": {
-                    "min": benchmark["min"],
-                    "max": benchmark["max"],
-                    "average": benchmark["avg"],
-                    "median": benchmark["median"],
-                    "std_dev": "N/A",
-                },
-                "budget_per_partner": {
-                    "average": round(benchmark["avg"] / benchmark["partners"], 0),
-                    "median": round(benchmark["median"] / benchmark["partners"], 0),
-                },
-                "consortium_size": {
-                    "typical": benchmark["partners"],
-                    "range": f"{max(3, benchmark['partners'] - 3)}-{benchmark['partners'] + 3}",
-                },
-            },
-            "data_source": "fallback_estimates",
-        }
-
-    # Additional methods for enhanced functionality
-
     def get_budget_trends(self, cluster: str, action_type: str | None = None) -> dict[str, Any]:
         """
         Get budget trends over time for a cluster.
@@ -1289,7 +1214,8 @@ async def get_budget_benchmark_execute(
 
     tool = BudgetBenchmarkTool()
 
-    return tool.get_benchmark(
+    return await asyncio.to_thread(
+        tool.get_benchmark,
         cluster=cluster_param,
         action_type=params.get("action_type"),
         topic_keywords=params.get("topic_keywords"),
@@ -1297,4 +1223,7 @@ async def get_budget_benchmark_execute(
         include_consortium_context=params.get("include_consortium_context", True),
         include_org_type_breakdown=params.get("include_org_type_breakdown", True),
         include_country_breakdown=params.get("include_country_breakdown", False),
+        programme=params.get("programme"),
+        year_from=params.get("year_from"),
+        year_to=params.get("year_to"),
     )

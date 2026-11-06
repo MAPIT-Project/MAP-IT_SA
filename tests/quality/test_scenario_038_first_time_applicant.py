@@ -388,9 +388,9 @@ Now you're ready to browse available funding like Horizon Europe, Erasmus+, or C
 **Your Next Action:** Start by creating your EU Login account - it only takes 5 minutes."""
 
         result = evaluator.evaluate(query, excellent_response)
-        assert result["total_score"] >= 80, (
-            f"Excellent response scored {result['total_score']}, expected 80+"
-        )
+        assert (
+            result["total_score"] >= 80
+        ), f"Excellent response scored {result['total_score']}, expected 80+"
         assert result["passed"], "Excellent response should pass"
 
     def test_too_technical_response_scores_lower(self, evaluator):
@@ -404,9 +404,9 @@ Submit your proposal through the portal before the deadline."""
 
         result = evaluator.evaluate(query, technical_response)
         # Should fail accuracy because it's too technical
-        assert result["dimensions"]["factual_accuracy"] < 20, (
-            "Technical response should score lower on accuracy for beginners"
-        )
+        assert (
+            result["dimensions"]["factual_accuracy"] < 20
+        ), "Technical response should score lower on accuracy for beginners"
 
     def test_minimal_response_scores_low(self, evaluator):
         """Test that a minimal response without guidance scores low."""
@@ -535,166 +535,6 @@ Don't worry - the process is simpler than it looks once you get started!"""
     # --------------------------------------------------------------------------
     # Live API tests
     # --------------------------------------------------------------------------
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        not pytest.importorskip("httpx", reason="httpx required"),
-        reason="httpx not available",
-    )
-    async def test_live_api_primary_query(self, evaluator):
-        """Test the live API with primary first-time applicant query."""
-        query = "I've never applied for EU funding before. Where do I start?"
-
-        try:
-            response, conv_id, tools = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        assert len(response) > 100, "Response too short"
-
-        result = evaluator.evaluate(query, response)
-        save_result(result, query, response)
-
-        print(f"\n{'=' * 60}")
-        print(f"Query: {query}")
-        print(f"Response length: {len(response)}")
-        print(f"Tools used: {tools}")
-        print("\nScores:")
-        for dim, score in result["dimensions"].items():
-            max_score = evaluator.dimensions[dim]
-            print(f"  {dim}: {score}/{max_score}")
-        print(f"\nTotal: {result['total_score']}/100")
-        print(f"Status: {'PASS' if result['passed'] else 'FAIL'}")
-        print(f"{'=' * 60}")
-
-        if result["feedback"]:
-            print("\nFeedback:")
-            for dim, fb in result["feedback"].items():
-                if fb:
-                    print(f"  {dim}: {'; '.join(fb)}")
-
-        assert result["total_score"] >= PASS_THRESHOLD, (
-            f"Score {result['total_score']} below threshold {PASS_THRESHOLD}"
-        )
-
-    @pytest.mark.asyncio
-    async def test_live_api_mentions_ncp(self, evaluator):
-        """Verify the system mentions National Contact Points."""
-        query = "I've never applied for EU funding before. Where do I start?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        response_lower = response.lower()
-
-        # Should mention NCP
-        assert "ncp" in response_lower or "national contact point" in response_lower, (
-            "Response should mention National Contact Points"
-        )
-
-    @pytest.mark.asyncio
-    async def test_live_api_mentions_registration(self, evaluator):
-        """Verify the system explains registration (EU Login, PIC)."""
-        query = "I've never applied for EU funding before. Where do I start?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        response_lower = response.lower()
-
-        # Should mention registration steps
-        has_login = "eu login" in response_lower or "account" in response_lower
-        has_pic = "pic" in response_lower or "participant identification" in response_lower
-
-        assert has_login or has_pic, "Response should explain registration process (EU Login, PIC)"
-
-    @pytest.mark.asyncio
-    async def test_live_api_provides_steps(self, evaluator):
-        """Verify the response provides step-by-step guidance."""
-        query = "I've never applied for EU funding before. Where do I start?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        response_lower = response.lower()
-
-        # Should have step-by-step structure
-        step_indicators = [
-            "step 1",
-            "step 2",
-            "first",
-            "second",
-            "1.",
-            "2.",
-            "**1",
-            "**2",
-        ]
-        has_steps = any(ind in response_lower for ind in step_indicators)
-        assert has_steps, "Response should provide step-by-step guidance"
-
-    @pytest.mark.asyncio
-    async def test_live_api_not_overwhelming(self, evaluator):
-        """Verify the response is not overwhelming with jargon."""
-        query = "I've never applied for EU funding before. Where do I start?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        response_lower = response.lower()
-
-        # Should NOT overuse technical jargon without explanation
-        jargon_terms = ["trl", "work package", "deliverable", "annex", "consortium agreement"]
-        jargon_count = sum(1 for term in jargon_terms if term in response_lower)
-
-        assert jargon_count <= 2, (
-            f"Response uses too much unexplained jargon ({jargon_count} terms)"
-        )
-
-    @pytest.mark.asyncio
-    async def test_live_api_variant_getting_started(self, evaluator):
-        """Test variant: I want to get started with EU funding."""
-        query = (
-            "I want to get started with EU funding. I've never done this before. What should I do?"
-        )
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        assert len(response) > 100, "Response too short"
-
-        response_lower = response.lower()
-
-        # Should still provide guidance
-        guidance_indicators = ["step", "first", "register", "portal", "ncp", "national contact"]
-        has_guidance = any(ind in response_lower for ind in guidance_indicators)
-        assert has_guidance, "Response should provide getting started guidance"
-
-    @pytest.mark.asyncio
-    async def test_live_api_variant_how_do_i_begin(self, evaluator):
-        """Test variant: How do I begin?"""
-        query = "How do I begin with EU research funding? I'm completely new to this."
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        assert len(response) > 100, "Response too short"
-
-        result = evaluator.evaluate(query, response)
-
-        # Should still score reasonably well
-        assert result["total_score"] >= 60, f"Variant scored {result['total_score']}"
 
 
 # ==============================================================================

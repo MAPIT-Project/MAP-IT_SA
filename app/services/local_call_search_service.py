@@ -269,8 +269,9 @@ class LocalCallSearchService:
             self._available = True
             logger.info("✅ LocalCallSearchService initialized")
         except Exception as e:
-            logger.error(f"❌ Failed to initialize LocalCallSearchService: {e}")
-            self._available = False
+            self.vector_service = None
+            self._available = self._structured_available
+            logger.warning("Document vector fallback unavailable (%s)", type(e).__name__)
 
     def _resolve_parent_calls_to_children(
         self, results: list[dict[str, Any]], include_closed: bool = False

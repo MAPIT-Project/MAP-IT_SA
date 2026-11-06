@@ -12,6 +12,7 @@ from contextvars import ContextVar
 
 from app.core.ai_routing import PROVIDERS, TEXT_STEPS
 from app.core.config import settings
+from app.services.ai.budget import budgeted_inference
 from app.services.ai.codex import CodexTextModel
 from app.services.ai.structured import validate_json, validate_schema
 from app.services.ai.types import TextResponse
@@ -77,7 +78,12 @@ class APITextModel:
         if not isinstance(config, dict):
             config = {
                 key: getattr(config, key, None)
-                for key in ("temperature", "max_output_tokens", "response_schema", "response_mime_type")
+                for key in (
+                    "temperature",
+                    "max_output_tokens",
+                    "response_schema",
+                    "response_mime_type",
+                )
             }
         schema = config.get("response_schema")
         if schema:
@@ -108,18 +114,22 @@ class APITextModel:
         usage = response.usage.model_dump() if response.usage else {}
         return TextResponse(answer, self.provider, response.model, usage)
 
+    @budgeted_inference
     def generate_content(self, prompt, generation_config=None, stream=False, **kwargs):
         from openai import OpenAI
 
         args, config = self._arguments(prompt, generation_config, stream)
         if stream:
+
             def chunks():
                 with OpenAI(**self._client_arguments()) as client:
                     result = client.chat.completions.create(**args)
                     try:
                         for chunk in result:
                             if chunk.choices and chunk.choices[0].delta.content:
-                                yield TextResponse(chunk.choices[0].delta.content, self.provider, chunk.model)
+                                yield TextResponse(
+                                    chunk.choices[0].delta.content, self.provider, chunk.model
+                                )
                     finally:
                         result.close()
 
@@ -127,18 +137,22 @@ class APITextModel:
         with OpenAI(**self._client_arguments()) as client:
             return self._response(client.chat.completions.create(**args), config)
 
+    @budgeted_inference
     async def generate_content_async(self, prompt, generation_config=None, stream=False, **kwargs):
         from openai import AsyncOpenAI
 
         args, config = self._arguments(prompt, generation_config, stream)
         if stream:
+
             async def chunks():
                 async with AsyncOpenAI(**self._client_arguments()) as client:
                     result = await client.chat.completions.create(**args)
                     try:
                         async for chunk in result:
                             if chunk.choices and chunk.choices[0].delta.content:
-                                yield TextResponse(chunk.choices[0].delta.content, self.provider, chunk.model)
+                                yield TextResponse(
+                                    chunk.choices[0].delta.content, self.provider, chunk.model
+                                )
                     finally:
                         await result.close()
 
@@ -168,7 +182,11 @@ class TextModel:
         if provider == "codex":
             return settings.codex_model or None
         if provider == "gemini":
-            return self.model_hint if self.model_hint and self._hint_provider == provider else settings.gemini_model
+            return (
+                self.model_hint
+                if self.model_hint and self._hint_provider == provider
+                else settings.gemini_model
+            )
         if self.model_hint and self._hint_provider == provider:
             return self.model_hint
         return getattr(settings, f"{provider}_model")
@@ -203,12 +221,16 @@ class TextModel:
         return provider, self._models[key]
 
     def _record(self, provider, response):
-        self._last_model.set((provider, getattr(response, "model_name", None) or self._configured_model(provider)))
+        self._last_model.set(
+            (provider, getattr(response, "model_name", None) or self._configured_model(provider))
+        )
 
+    @budgeted_inference
     def generate_content(self, prompt, **kwargs):
         provider, model = self._get_model()
         response = model.generate_content(prompt, **kwargs)
         if kwargs.get("stream"):
+
             def chunks():
                 for chunk in response:
                     self._record(provider, chunk)
@@ -218,10 +240,12 @@ class TextModel:
         self._record(provider, response)
         return response
 
+    @budgeted_inference
     async def generate_content_async(self, prompt, **kwargs):
         provider, model = self._get_model()
         response = await model.generate_content_async(prompt, **kwargs)
         if kwargs.get("stream"):
+
             async def chunks():
                 async for chunk in response:
                     self._record(provider, chunk)

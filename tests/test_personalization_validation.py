@@ -402,168 +402,9 @@ def api_base_url():
     return os.environ.get("TEST_API_URL", DEFAULT_API_URL)
 
 
-@pytest.fixture
-def personalization_validator(api_base_url):
-    """Create a personalization validator."""
-    return PersonalizationValidator(base_url=api_base_url)
-
-
 # =============================================================================
 # TEST CLASSES
 # =============================================================================
-
-
-class TestPersonalizationValidation:
-    """
-    Tests for personalization validation in PHASE 4 scenarios.
-
-    These tests verify that:
-    1. Context accumulates correctly across turns
-    2. Recommendations are personalized based on profile
-    3. Profile fields are used in responses
-    4. Personalization scores meet thresholds
-    """
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize("scenario_file", PHASE_4_SCENARIOS)
-    async def test_phase4_scenario_personalization(
-        self,
-        scenario_file: str,
-        personalization_validator: PersonalizationValidator,
-    ):
-        """
-        Test personalization for a PHASE 4 scenario.
-
-        Validates:
-        - Context accumulates across turns
-        - Profile is used in recommendations
-        - Responses are personalized
-        """
-        result = await personalization_validator.validate_scenario(scenario_file)
-
-        # Log detailed results
-        logger.info(
-            f"\nScenario: {result.scenario_name}\n"
-            f"  Turns executed: {result.turns_executed}\n"
-            f"  Fields accumulated: {result.total_fields_accumulated}\n"
-            f"  Profile completeness: {result.profile_completeness:.2f}\n"
-            f"  Avg personalization: {result.average_personalization:.2f}\n"
-            f"  Avg profile usage: {result.average_profile_usage:.2f}\n"
-            f"  Tools used: {len(result.tools_used)}\n"
-            f"  Errors: {len(result.errors)}"
-        )
-
-        # Print validation details
-        for detail in result.validation_details:
-            status = "✓" if detail.get("passed", False) else "✗"
-            detail_info = ""
-            if "actual_fields" in detail:
-                detail_info = f"fields={detail['actual_fields']}"
-            elif "score" in detail:
-                detail_info = f"score={detail['score']:.2f}"
-            elif "usage_score" in detail:
-                detail_info = f"usage={detail['usage_score']:.2f}"
-            logger.info(f"  {status} Step {detail['step']}: {detail['validation']} ({detail_info})")
-
-        # Assert scenario passed
-        assert result.passed, (
-            f"Scenario '{result.scenario_name}' failed personalization:\n"
-            f"  Errors: {result.errors}\n"
-            f"  Fields accumulated: {result.total_fields_accumulated}\n"
-            f"  Avg personalization: {result.average_personalization:.2f}"
-        )
-
-        # Verify turns were executed
-        assert result.turns_executed > 0, f"No turns executed for scenario '{result.scenario_name}'"
-
-    @pytest.mark.asyncio
-    async def test_context_accumulates_over_time(
-        self,
-        personalization_validator: PersonalizationValidator,
-    ):
-        """
-        Verify that context accumulates across turns for multi-turn scenarios.
-
-        For scenarios with user profile information revealed over time,
-        the accumulated fields should generally increase.
-        """
-        # Test scenarios that explicitly build profile over time
-        profile_building_scenarios = [
-            "user_context_learning.yaml",
-            "progressive_profile.yaml",
-        ]
-
-        for scenario_file in profile_building_scenarios:
-            result = await personalization_validator.validate_scenario(scenario_file)
-
-            if result.turns_executed < 2:
-                continue  # Skip if not enough data
-
-            # Check that fields accumulate
-            # At least some fields should be extracted
-            # Note: The actual extraction depends on the messages in the scenario
-            logger.info(
-                f"{result.scenario_name}: accumulated {result.total_fields_accumulated} fields"
-            )
-
-            # Profile completeness should be tracked
-            assert result.profile_completeness >= 0.0, (
-                f"Invalid profile completeness for {result.scenario_name}: "
-                f"{result.profile_completeness}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_personalization_score_quality(
-        self,
-        personalization_validator: PersonalizationValidator,
-    ):
-        """
-        Verify that personalization scores are reasonable.
-
-        For PHASE 4 scenarios, personalization should be applied
-        at least partially in responses.
-        """
-        for scenario_file in PHASE_4_SCENARIOS:
-            result = await personalization_validator.validate_scenario(scenario_file)
-
-            # If we have personalization scores, check they're reasonable
-            if result.personalization_scores:
-                # At least some personalization should be detected
-                max_score = max(result.personalization_scores)
-                logger.info(f"{result.scenario_name}: max personalization score = {max_score:.2f}")
-
-                # Personalization scores should be valid (0.0 to 1.0)
-                for score in result.personalization_scores:
-                    assert 0.0 <= score <= 1.0, (
-                        f"Invalid personalization score for {result.scenario_name}: {score}"
-                    )
-
-    @pytest.mark.asyncio
-    async def test_profile_usage_in_recommendations(
-        self,
-        personalization_validator: PersonalizationValidator,
-    ):
-        """
-        Verify that profile information is used in recommendations.
-
-        When the user provides profile information and asks for recommendations,
-        the response should use that profile context.
-        """
-        for scenario_file in PHASE_4_SCENARIOS:
-            result = await personalization_validator.validate_scenario(scenario_file)
-
-            # If we have profile usage scores, check they're tracked
-            if result.profile_usage_scores:
-                logger.info(
-                    f"{result.scenario_name}: "
-                    f"avg profile usage = {result.average_profile_usage:.2f}"
-                )
-
-                # Profile usage scores should be valid (0.0 to 1.0)
-                for score in result.profile_usage_scores:
-                    assert 0.0 <= score <= 1.0, (
-                        f"Invalid profile usage score for {result.scenario_name}: {score}"
-                    )
 
 
 class TestPersonalizationInfrastructure:
@@ -594,9 +435,9 @@ class TestPersonalizationInfrastructure:
                         has_personalization_validation = True
                         break
 
-            assert has_personalization_validation, (
-                f"No personalization validations in {scenario_file}"
-            )
+            assert (
+                has_personalization_validation
+            ), f"No personalization validations in {scenario_file}"
 
             # Check for personalization validations in final validations
             has_final_personalization = False
@@ -609,9 +450,9 @@ class TestPersonalizationInfrastructure:
                     has_final_personalization = True
                     break
 
-            assert has_final_personalization, (
-                f"No personalization validation in final_validations for {scenario_file}"
-            )
+            assert (
+                has_final_personalization
+            ), f"No personalization validation in final_validations for {scenario_file}"
 
     def test_personalization_agent_initialization(self):
         """Test that PersonalizationAgent initializes correctly."""

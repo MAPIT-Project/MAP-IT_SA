@@ -24,6 +24,7 @@ from typing import Any
 
 from ...core.config import settings
 from ..ai.factory import create_text_model, generate_content, resolve_provider
+from ..ai.errors import generation_error_message
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,7 @@ from .guidance_generators import GuidanceGeneratorsMixin
 from .query_detectors import QueryDetectorsMixin
 from .response_synthesizer import ResponseSynthesizerMixin
 from .tool_executors import ToolExecutorsMixin
+from .framework.request_state import RequestValue
 from .tool_registry import (  # noqa: F401
     AgentPlan,
     ReasoningStep,
@@ -78,6 +80,14 @@ class ToolAwareAgent(
     - Compares and contrasts results from different sources
     - Iteratively refines by calling more tools based on findings
     """
+
+    _conversation_id = RequestValue(None)
+    _current_query = RequestValue("")
+    _current_session_id = RequestValue(None)
+    _current_proposal_context = RequestValue("")
+    _current_complexity = RequestValue("simple")
+    _active_model_name = RequestValue(None)
+    llm = RequestValue(None)
 
     def __init__(self, max_iterations: int = 5, enable_quality_analysis: bool = True):
         """Initialize the tool-aware agent.
@@ -423,6 +433,8 @@ class ToolAwareAgent(
             self._record_generation("reasoning", self.llm)
             return
         if not self.smart_model_routing or not self.llm_pro:
+            self.llm = self.llm_flash
+            self._active_model_name = self.llm.model_name
             self._record_generation("reasoning", self.llm)
             return
 
@@ -759,14 +771,20 @@ class ToolAwareAgent(
         provider = getattr(response, "provider", None)
         model_name = getattr(response, "model_name", None)
         return {
-            "ai_provider": provider if isinstance(provider, str) else getattr(model, "provider", None),
-            "model_used": model_name if isinstance(model_name, str) else getattr(model, "model_name", None),
+            "ai_provider": provider
+            if isinstance(provider, str)
+            else getattr(model, "provider", None),
+            "model_used": model_name
+            if isinstance(model_name, str)
+            else getattr(model, "model_name", None),
         }
 
     def _generation_state(self) -> dict[str, dict[str, Any]]:
         # Lazy initialization also supports agents constructed with __new__ in tests.
         if not hasattr(self, "_generation_context"):
-            self._generation_context = ContextVar(f"mapit_agent_generation_{id(self)}", default=None)
+            self._generation_context = ContextVar(
+                f"mapit_agent_generation_{id(self)}", default=None
+            )
         state = self._generation_context.get()
         if state is None:
             state = {}
@@ -811,7 +829,11 @@ class ToolAwareAgent(
         translation_metadata: dict | None,
     ) -> dict[str, Any]:
         """Build the final result dictionary."""
-        answer = plan.final_answer or self._build_fallback_answer(plan)
+        answer = (
+            f"I couldn't generate an answer. {plan.error}"
+            if plan.error
+            else plan.final_answer or self._build_fallback_answer(plan)
+        )
 
         quality_analysis = self._analyze_response_quality(
             query=query, answer=answer, tool_results=all_tool_results
@@ -819,7 +841,7 @@ class ToolAwareAgent(
 
         result = {
             "answer": answer,
-            "success": plan.final_answer is not None,
+            "success": plan.final_answer is not None and not plan.error,
             "reasoning_steps": [
                 {
                     "step": s.step_number,
@@ -842,9 +864,11 @@ class ToolAwareAgent(
             "tool_results": all_tool_results,
             "complexity": plan.complexity,
             "iterations": iteration,
-            "confidence": plan.confidence,
+            "confidence": 0.0 if plan.error else plan.confidence,
             "total_time_ms": total_time,
             "quality_analysis": quality_analysis,
+            "agent_framework": plan.framework,
+            "agent_error": plan.error,
             **self._generation_metadata(),
         }
 
@@ -954,6 +978,11 @@ class ToolAwareAgent(
         Returns:
             Tuple of (iteration_count, all_tool_results)
         """
+        if settings.agent_framework == "pydantic":
+            from .framework.runtime import run_agent_loop
+
+            return await run_agent_loop(self, query, context, plan, event_callback)
+
         iteration = 0
         all_tool_results = {}
 
@@ -969,8 +998,14 @@ class ToolAwareAgent(
                 tool_results=all_tool_results,
             )
 
+            if reasoning_result and reasoning_result.get("error"):
+                plan.error = reasoning_result["error"]
+                plan.confidence = 0.0
+                break
+
             if not reasoning_result:
-                logger.warning("Reasoning step failed, using fallback")
+                plan.error = "The selected AI provider did not return a reasoning result."
+                logger.warning("Reasoning step returned no result")
                 break
 
             # Create reasoning step
@@ -1056,6 +1091,8 @@ class ToolAwareAgent(
 
         Returns updated iteration count.
         """
+        if plan.framework == "pydantic":
+            return iteration
         if not self.quality_analyzer or not plan.final_answer:
             return iteration
 
@@ -1155,9 +1192,14 @@ class ToolAwareAgent(
         _context_manager.reset()
 
         # Preprocess query (special chars, translation, long query)
-        query, context, special_char_metadata, translation_metadata, long_query_result, _ = (
-            await self._preprocess_query(query, context)
-        )
+        (
+            query,
+            context,
+            special_char_metadata,
+            translation_metadata,
+            long_query_result,
+            _,
+        ) = await self._preprocess_query(query, context)
 
         # Extract structured memory from conversation context
         structured_memory = self._extract_structured_memory(context)
@@ -1238,9 +1280,14 @@ class ToolAwareAgent(
         _context_manager.reset()
 
         # Preprocess query (special chars, translation, long query)
-        query, context, special_char_metadata, translation_metadata, long_query_result, _ = (
-            await self._preprocess_query(query, context)
-        )
+        (
+            query,
+            context,
+            special_char_metadata,
+            translation_metadata,
+            long_query_result,
+            _,
+        ) = await self._preprocess_query(query, context)
 
         # Extract structured memory from conversation context
         structured_memory = self._extract_structured_memory(context)
@@ -1665,7 +1712,7 @@ class ToolAwareAgent(
                 except TimeoutError:
                     logger.warning(f"⏰ LLM call timed out after {llm_timeout}s, using fallback")
                     return await self._fallback_reasoning(
-                        query, previous_steps, tool_results, context
+                        query, previous_steps, tool_results, context, error=TimeoutError()
                     )
 
                 self._record_generation("reasoning", reasoning_model, response)
@@ -1716,8 +1763,10 @@ class ToolAwareAgent(
                 return await self._fallback_reasoning(query, previous_steps, tool_results, context)
 
         except Exception as e:
-            logger.error(f"Reasoning step failed: {e}")
-            return await self._fallback_reasoning(query, previous_steps, tool_results, context)
+            logger.error("Reasoning step failed (%s)", type(e).__name__)
+            return await self._fallback_reasoning(
+                query, previous_steps, tool_results, context, error=e
+            )
 
     def _fix_malformed_json(self, json_str: str) -> dict[str, Any] | None:
         """Attempt to fix common JSON formatting issues from LLM responses."""
@@ -1763,59 +1812,18 @@ class ToolAwareAgent(
         previous_steps: list[ReasoningStep],
         tool_results: dict[str, Any],
         context: str = "",
+        error: Exception | None = None,
     ) -> dict[str, Any]:
-        """Fallback reasoning when LLM fails. Now async to allow LLM synthesis."""
-
-        if not previous_steps:
-            # First, try to detect specific query types for better tool selection
-            # Pass context to enable detection of refinement queries
-            detected_tool = self._detect_query_type_for_tool_selection(query, context)
-            if detected_tool:
-                return detected_tool
-
-            # Default fallback - call basic search with more results
-            return {
-                "thought": "Starting with document search to gather information",
-                "action": "call_tools",
-                "tool_calls": [
-                    {
-                        "tool": "search_documents",
-                        "parameters": {"query": query, "max_results": 15},
-                        "reasoning": "Initial search for relevant information",
-                    }
-                ],
-                "needs_more_info": True,
-            }
-
-        if tool_results:
-            # Try LLM-assisted synthesis first (better quality than mechanical)
-            llm_conclusion = await self._llm_synthesize_results(query, tool_results)
-
-            if llm_conclusion:
-                logger.info("✅ LLM fallback synthesis succeeded")
-                return {
-                    "thought": "LLM synthesized answer from tool results",
-                    "action": "conclude",
-                    "conclusion": llm_conclusion,
-                    "confidence": 0.8,
-                    "needs_more_info": False,
-                }
-
-            # Fall through to mechanical synthesis
-            synthesized_content = self._synthesize_from_results(query, tool_results)
-            return {
-                "thought": "Have gathered information, synthesizing answer",
-                "action": "conclude",
-                "conclusion": synthesized_content,
-                "confidence": 0.7,
-                "needs_more_info": False,
-            }
-
+        """Stop on failed inference instead of pretending a fixed search is model reasoning."""
+        provider = getattr(self.llm, "provider", None)
         return {
-            "thought": "Unable to gather more information",
-            "action": "conclude",
-            "conclusion": "I was unable to find specific information to answer this question. Please try rephrasing your question or asking about a more specific topic.",
-            "confidence": 0.3,
+            "action": "error",
+            "error": (
+                generation_error_message(error, provider)
+                if error is not None
+                else "The selected AI provider did not return a valid reasoning response."
+            ),
+            "confidence": 0.0,
             "needs_more_info": False,
         }
 

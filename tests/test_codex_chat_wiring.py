@@ -103,7 +103,9 @@ def manager_with_mocked_agent():
         "tool_results": {},
     }
     manager.tool_aware_agent = SimpleNamespace(process_query=AsyncMock(return_value=result))
-    manager._get_recent_messages_simple = MagicMock(return_value=[{"role": "user", "content": "Hi"}])
+    manager._get_recent_messages_simple = MagicMock(
+        return_value=[{"role": "user", "content": "Hi"}]
+    )
     manager._format_conversation_for_agent = MagicMock(return_value="Previous conversation")
     manager._add_to_memory_only = MagicMock()
     manager.atomic_storage = SimpleNamespace(
@@ -134,13 +136,12 @@ async def test_stream_preserves_token_and_complete_contract():
     manager.tool_aware_agent.process_query_streaming = agent_stream
     events = [
         event
-        async for event in manager._stream_v3_response(
-            1, "Synthetic question", 1, datetime.now()
-        )
+        async for event in manager._stream_v3_response(1, "Synthetic question", 1, datetime.now())
     ]
-    assert "".join(event["content"] for event in events if event["type"] == "token") == result[
-        "answer"
-    ]
+    assert (
+        "".join(event["content"] for event in events if event["type"] == "token")
+        == result["answer"]
+    )
     complete = events[-1]
     assert complete["type"] == "complete"
     assert complete["ai_provider"] == "codex"
@@ -239,6 +240,84 @@ async def test_request_provider_stays_scoped_while_streaming(mocked_routes, monk
     assert '"type": "token"' in events[0]
     assert '"type": "complete"' in events[1]
     assert resolve_provider("chat_reasoning") == "gemini"
+
+
+@pytest.mark.asyncio
+async def test_nonstream_generation_failure_returns_503(mocked_routes, monkeypatch):
+    from fastapi import HTTPException
+
+    failed = AsyncMock(
+        return_value={
+            "response": "",
+            "success": False,
+            "error": "Gemini generation authentication failed.",
+            "metadata": {"success": False, "confidence": 0.0},
+        }
+    )
+    monkeypatch.setattr(
+        mocked_routes, "conversation_manager", SimpleNamespace(process_message_v3=failed)
+    )
+    with pytest.raises(HTTPException) as error:
+        await mocked_routes.send_message(1, mocked_routes.MessageRequest(message="Test"))
+    assert error.value.status_code == 503
+    assert error.value.detail == "Gemini generation authentication failed."
+
+
+@pytest.mark.asyncio
+async def test_stream_generation_failure_emits_error_without_fake_completion(
+    mocked_routes, monkeypatch
+):
+    async def stream():
+        yield {"type": "error", "stage": "generation", "error": "Provider unavailable"}
+
+    monkeypatch.setattr(
+        mocked_routes,
+        "conversation_manager",
+        SimpleNamespace(process_message_v3=AsyncMock(return_value=stream())),
+    )
+    response = await mocked_routes.send_message_stream(
+        1, mocked_routes.MessageRequest(message="Test")
+    )
+    events = [event async for event in response.body_iterator]
+    assert len(events) == 1
+    assert '"type": "error"' in events[0]
+    assert '"type": "complete"' not in events[0]
+    assert mocked_routes.analytics_service.log_conversation.call_args.kwargs["status"] == "error"
+
+
+@pytest.mark.asyncio
+async def test_activity_summaries_reach_the_v3_sse_client(mocked_routes, monkeypatch):
+    import json
+
+    manager, result = manager_with_mocked_agent()
+    result["agent_framework"] = "pydantic"
+    activity = {
+        "type": "agent_thinking",
+        "iteration": 1,
+        "action": "call_tools",
+        "stage": "tool_started",
+        "thought": "Looking up project details (project id: IMAGHyNE).",
+        "tool_name": "get_project_details",
+        "call_id": "tool-1-1",
+    }
+
+    async def agent_stream(**kwargs):
+        yield activity
+        yield {"type": "agent_complete", "result": result}
+
+    manager.tool_aware_agent.process_query_streaming = agent_stream
+
+    async def process(**kwargs):
+        return manager._stream_v3_response(1, kwargs["user_message"], 1, datetime.now())
+
+    monkeypatch.setattr(
+        mocked_routes, "conversation_manager", SimpleNamespace(process_message_v3=process)
+    )
+    response = await mocked_routes.send_message_stream(
+        1, mocked_routes.MessageRequest(message="Synthetic question")
+    )
+    events = [json.loads(event.removeprefix("data: ")) async for event in response.body_iterator]
+    assert next(event for event in events if event["type"] == "agent_thinking") == activity
 
 
 @pytest.mark.asyncio

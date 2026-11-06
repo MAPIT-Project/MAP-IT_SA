@@ -1,7 +1,9 @@
 PYTHON := python3
 PIP := pip
+PYTEST_ARGS ?=
+EVAL_ARGS ?=
 
-.PHONY: help install install-dev run run-reload docker-up docker-down lint format test clean precommit hooks
+.PHONY: help install install-dev run run-reload docker-up docker-down lint format test test-tools test-live clean precommit hooks
 
 help:
 	@echo "Common commands:"
@@ -13,7 +15,9 @@ help:
 	@echo "  make docker-down    Stop services"
 	@echo "  make lint           Run ruff (lint)"
 	@echo "  make format         Run ruff format + isort + black"
-	@echo "  make test           Run pytest"
+	@echo "  make test           Run guarded offline tests"
+	@echo "  make test-tools     Check tools against read-only source evidence (zero model calls)"
+	@echo "  make test-live      Run compact source-backed questions (30 model requests maximum)"
 	@echo "  make precommit      Run pre-commit on all files"
 	@echo "  make hooks          Install pre-commit git hooks"
 
@@ -44,7 +48,13 @@ format:
 	black app tests .
 
 test:
-	pytest -q
+	$(PYTHON) scripts/test_offline.py $(PYTEST_ARGS)
+
+test-tools:
+	$(PYTHON) scripts/evaluate_tools.py --mode contracts $(EVAL_ARGS)
+
+test-live:
+	$(PYTHON) scripts/evaluate_tools.py --mode questions --max-requests 30 $(EVAL_ARGS)
 
 precommit:
 	pre-commit run --all-files
@@ -55,5 +65,3 @@ hooks:
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	rm -rf .pytest_cache .ruff_cache .mypy_cache
-
-

@@ -18,7 +18,6 @@ This test verifies data quality by ensuring:
 import re
 from datetime import date, datetime, timedelta
 
-import httpx
 import pytest
 
 
@@ -28,13 +27,6 @@ class TestScenario040NoExpiredCalls:
     BASE_URL = "http://localhost:8000"
     QUERY = "Show me open Horizon Europe calls"
     PASS_THRESHOLD = 85
-
-    @pytest.fixture
-    def conversation_id(self):
-        """Generate a unique conversation ID for each test."""
-        import random
-
-        return random.randint(100000, 999999)
 
     # ==========================================================================
     # UNIT TESTS - Test the filtering logic directly
@@ -136,9 +128,9 @@ class TestScenario040NoExpiredCalls:
                 "status": "open",
             }
             normalized = service._normalize_call_status(call)
-            assert normalized["status"] == "closed", (
-                f"Date format '{date_str}' should be detected as expired"
-            )
+            assert (
+                normalized["status"] == "closed"
+            ), f"Date format '{date_str}' should be detected as expired"
 
     def test_datetime_object_handling(self):
         """Test that datetime objects are correctly handled."""
@@ -175,7 +167,9 @@ class TestScenario040NoExpiredCalls:
     def test_perfect_response_scoring(self):
         """Test that a response with no expired calls scores 85+."""
         # Perfect response: all calls open, future deadlines, properly formatted
-        excellent_response = """
+        first_deadline = (date.today() + timedelta(days=90)).strftime("%d %B %Y")
+        second_deadline = (date.today() + timedelta(days=120)).strftime("%d %B %Y")
+        excellent_response = f"""
 ## Open Horizon Europe Funding Opportunities
 
 I found **8 open funding calls** matching your query.
@@ -183,14 +177,14 @@ I found **8 open funding calls** matching your query.
 ### 1. AI for Healthcare Innovation
 - **Call ID:** HORIZON-HLTH-2026-DISEASE-01
 - **Status:** Open
-- **Deadline:** 15 March 2026
+- **Deadline:** {first_deadline}
 - **Budget:** EUR 50 million
 - **Apply:** [EU Portal](https://ec.europa.eu/info/funding-tenders)
 
 ### 2. Digital Transformation
 - **Call ID:** HORIZON-CL4-2026-DIGITAL-01
 - **Status:** Open
-- **Deadline:** 20 April 2026
+- **Deadline:** {second_deadline}
 - **Budget:** EUR 30 million
 
 ### Next Steps
@@ -340,201 +334,6 @@ I found **8 open funding calls** matching your query.
     # ==========================================================================
     # INTEGRATION TESTS - Require running server
     # ==========================================================================
-
-    @pytest.mark.asyncio
-    async def test_live_no_expired_calls_returned(self, conversation_id):
-        """Test that live API returns no expired calls."""
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY},
-            )
-
-            assert response.status_code == 200, f"API returned {response.status_code}"
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Extract all dates from response
-            months = (
-                "January|February|March|April|May|June|July|August|"
-                "September|October|November|December"
-            )
-            date_pattern = rf"(\d{{1,2}})\s+({months})\s+(\d{{4}})"
-            found_dates = re.findall(date_pattern, response_text, re.IGNORECASE)
-
-            today = date.today()
-            past_dates = []
-
-            for day, month, year in found_dates:
-                try:
-                    deadline = datetime.strptime(f"{day} {month} {year}", "%d %B %Y").date()
-                    if deadline < today:
-                        past_dates.append(f"{day} {month} {year}")
-                except ValueError:
-                    pass
-
-            assert len(past_dates) == 0, (
-                f"Response contains past deadlines: {past_dates}. "
-                "All deadlines should be in the future."
-            )
-
-    @pytest.mark.asyncio
-    async def test_live_no_closed_status_shown(self, conversation_id):
-        """Test that no calls are shown with 'closed' status."""
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Should NOT show "Status: Closed"
-            assert "status: closed" not in response_text.lower(), (
-                "Response should not show calls with 'Status: Closed'"
-            )
-
-            # Should NOT mention calls are expired
-            assert "expired" not in response_text.lower(), (
-                "Response should not mention expired calls"
-            )
-
-    @pytest.mark.asyncio
-    async def test_live_all_calls_are_open(self, conversation_id):
-        """Test that all returned calls have open/upcoming status."""
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Should indicate Open status
-            assert "open" in response_text.lower(), "Response should indicate calls are open"
-
-            # Count status indicators
-            open_count = len(re.findall(r"status.*open", response_text, re.IGNORECASE))
-            closed_count = len(re.findall(r"status.*closed", response_text, re.IGNORECASE))
-
-            # Should have more open than closed (ideally 0 closed)
-            assert closed_count == 0, f"Found {closed_count} closed status indicators - should be 0"
-            assert open_count >= 1, "Should show at least one call with Open status"
-
-    @pytest.mark.asyncio
-    async def test_live_future_deadlines_only(self, conversation_id):
-        """Test that all deadlines are in the future."""
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            current_year = date.today().year
-
-            # Filter out years that might be from call IDs (like HORIZON-2026-...)
-            # by only checking years in deadline context
-            deadline_years = []
-            for match in re.finditer(r"deadline.*?(\d{4})", response_text, re.IGNORECASE):
-                deadline_years.append(int(match.group(1)))
-
-            # All deadline years should be current or future
-            past_years = [y for y in deadline_years if y < current_year]
-            assert len(past_years) == 0, (
-                f"Found past years in deadlines: {past_years}. "
-                "All deadlines should be current or future year."
-            )
-
-    @pytest.mark.asyncio
-    async def test_live_returns_calls(self, conversation_id):
-        """Test that the query actually returns funding calls."""
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Should return actual calls
-            call_id_pattern = r"HORIZON-[A-Z0-9-]+"
-            call_ids = re.findall(call_id_pattern, response_text)
-
-            assert len(call_ids) >= 1, "Response should include at least one HORIZON call ID"
-
-    @pytest.mark.asyncio
-    async def test_live_variant_open_calls_query(self, conversation_id):
-        """Test variant query 'what open calls are available'."""
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": "What open Horizon Europe calls are available right now?"},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Should return open calls only
-            assert "status: closed" not in response_text.lower(), (
-                "Variant query should not return closed calls"
-            )
-
-            # Extract and verify dates
-            months = (
-                "January|February|March|April|May|June|July|August|"
-                "September|October|November|December"
-            )
-            date_pattern = rf"(\d{{1,2}})\s+({months})\s+(\d{{4}})"
-            found_dates = re.findall(date_pattern, response_text, re.IGNORECASE)
-
-            today = date.today()
-            for day, month, year in found_dates:
-                try:
-                    deadline = datetime.strptime(f"{day} {month} {year}", "%d %B %Y").date()
-                    assert deadline >= today, f"Found past deadline: {day} {month} {year}"
-                except ValueError:
-                    pass
-
-    @pytest.mark.asyncio
-    async def test_live_currently_open_query(self, conversation_id):
-        """Test query 'show me currently open calls'."""
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": "Show me currently open Horizon Europe funding calls"},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Check for open calls
-            assert "open" in response_text.lower(), "Response should mention 'open' calls"
-
-            # No closed status
-            assert "status: closed" not in response_text.lower(), "Should not show closed calls"
-
-    @pytest.mark.asyncio
-    async def test_live_quality_score(self, conversation_id):
-        """Test that live response achieves pass threshold."""
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            score = self._score_response(response_text)
-            assert score >= self.PASS_THRESHOLD, (
-                f"Live response should score {self.PASS_THRESHOLD}+, got {score}"
-            )
 
 
 class TestDataQualityVerification:

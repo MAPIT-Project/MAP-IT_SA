@@ -28,7 +28,6 @@ import pytest
 
 # Import production quality runner and data structures
 from tests.test_production_quality_validation import (
-    ProductionQualityRunner,
     ScenarioExecutionResult,
     FailureCategory,
     FailureSeverity,
@@ -62,16 +61,6 @@ PHASE3_SCENARIOS = [
 def base_url() -> str:
     """Get API base URL from environment or default."""
     return os.environ.get("TEST_API_URL", "http://localhost:8000")
-
-
-@pytest.fixture
-def runner(base_url: str) -> ProductionQualityRunner:
-    """Create a ProductionQualityRunner instance."""
-    return ProductionQualityRunner(
-        base_url=base_url,
-        passing_threshold=80,
-        factual_threshold=0.9,
-    )
 
 
 @pytest.fixture
@@ -178,266 +167,9 @@ def generate_phase3_report(
 # =============================================================================
 
 
-class TestPhase3Scenarios:
-    """Test class for Phase 3 Partner Discovery scenarios."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_partner_search_refinement(
-        self, runner: ProductionQualityRunner, results_dir: Path
-    ):
-        """
-        RUN: partner_search_refinement.yaml
-
-        Tests iterative partner search with incremental filter refinement.
-        A user progressively narrows down partner search for quantum computing research
-        through 5 steps: broad search → universities only → EU15 countries →
-        coordination experience → quantum communication expertise.
-
-        Key Test: Filters should be applied incrementally, with results narrowing correctly.
-        """
-        scenario_path = SCENARIOS_DIR / "partner_search_refinement.yaml"
-
-        if not scenario_path.exists():
-            pytest.skip(f"Scenario file not found: {scenario_path}")
-
-        result = await runner.run_scenario(scenario_path)
-        save_scenario_result(result, results_dir)
-
-        # Log results
-        logger.info(
-            f"partner_search_refinement: Runtime={result.execution_time_ms / 1000:.2f}s, "
-            f"Score={result.average_quality_score:.1f}/100, "
-            f"Failures={len(result.failures)}, Status={result.status}"
-        )
-
-        # Assert minimum quality threshold
-        assert result.average_quality_score >= 80, (
-            f"Partner Search Refinement score {result.average_quality_score:.1f} < 80. "
-            f"Failures: {[f.description for f in result.failures]}"
-        )
-
-        # Assert no critical failures
-        critical = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-        assert len(critical) == 0, (
-            f"Partner Search Refinement has {len(critical)} critical failures: "
-            f"{[f.description for f in critical]}"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_partner_comparison(self, runner: ProductionQualityRunner, results_dir: Path):
-        """
-        RUN: partner_comparison.yaml
-
-        Tests partner comparison workflow with ranking and recommendation.
-        A user finds experienced partners in renewable energy, compares top 3 organizations,
-        analyzes funding and network diversity, then gets a coordination recommendation.
-
-        Key Test: Comparison should be accurate and recommendation justified with data.
-        """
-        scenario_path = SCENARIOS_DIR / "partner_comparison.yaml"
-
-        if not scenario_path.exists():
-            pytest.skip(f"Scenario file not found: {scenario_path}")
-
-        result = await runner.run_scenario(scenario_path)
-        save_scenario_result(result, results_dir)
-
-        logger.info(
-            f"partner_comparison: Runtime={result.execution_time_ms / 1000:.2f}s, "
-            f"Score={result.average_quality_score:.1f}/100, "
-            f"Failures={len(result.failures)}, Status={result.status}"
-        )
-
-        assert result.average_quality_score >= 80, (
-            f"Partner Comparison score {result.average_quality_score:.1f} < 80. "
-            f"Failures: {[f.description for f in result.failures]}"
-        )
-
-        critical = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-        assert len(critical) == 0, (
-            f"Partner Comparison has {len(critical)} critical failures: "
-            f"{[f.description for f in critical]}"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_network_exploration(self, runner: ProductionQualityRunner, results_dir: Path):
-        """
-        RUN: network_exploration.yaml
-
-        Tests network traversal and relationship discovery workflows.
-        A user explores the collaboration network for climate research,
-        identifies key players, explores Fraunhofer's projects, their partners,
-        and follows relationship chains to hydrogen-focused collaborators.
-
-        Key Test: Network traversal works, relationship chains followed.
-        """
-        scenario_path = SCENARIOS_DIR / "network_exploration.yaml"
-
-        if not scenario_path.exists():
-            pytest.skip(f"Scenario file not found: {scenario_path}")
-
-        result = await runner.run_scenario(scenario_path)
-        save_scenario_result(result, results_dir)
-
-        logger.info(
-            f"network_exploration: Runtime={result.execution_time_ms / 1000:.2f}s, "
-            f"Score={result.average_quality_score:.1f}/100, "
-            f"Failures={len(result.failures)}, Status={result.status}"
-        )
-
-        assert result.average_quality_score >= 80, (
-            f"Network Exploration score {result.average_quality_score:.1f} < 80. "
-            f"Failures: {[f.description for f in result.failures]}"
-        )
-
-        critical = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-        assert len(critical) == 0, (
-            f"Network Exploration has {len(critical)} critical failures: "
-            f"{[f.description for f in critical]}"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_organization_deep_dive(self, runner: ProductionQualityRunner, results_dir: Path):
-        """
-        RUN: organization_deep_dive.yaml
-
-        Tests organization profile exploration and detailed information retrieval.
-        A user explores Technical University of Munich's EU funding history,
-        research topics, success rate as coordinator, recent projects,
-        and preferred partners.
-
-        Key Test: Organization profile complete, statistics accurate.
-        """
-        scenario_path = SCENARIOS_DIR / "organization_deep_dive.yaml"
-
-        if not scenario_path.exists():
-            pytest.skip(f"Scenario file not found: {scenario_path}")
-
-        result = await runner.run_scenario(scenario_path)
-        save_scenario_result(result, results_dir)
-
-        logger.info(
-            f"organization_deep_dive: Runtime={result.execution_time_ms / 1000:.2f}s, "
-            f"Score={result.average_quality_score:.1f}/100, "
-            f"Failures={len(result.failures)}, Status={result.status}"
-        )
-
-        assert result.average_quality_score >= 80, (
-            f"Organization Deep-Dive score {result.average_quality_score:.1f} < 80. "
-            f"Failures: {[f.description for f in result.failures]}"
-        )
-
-        critical = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-        assert len(critical) == 0, (
-            f"Organization Deep-Dive has {len(critical)} critical failures: "
-            f"{[f.description for f in critical]}"
-        )
-
-
 # =============================================================================
 # Full Phase 3 Execution Test
 # =============================================================================
-
-
-class TestPhase3FullExecution:
-    """Full Phase 3 execution test that runs all scenarios and generates report."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_run_all_phase3_scenarios(
-        self, runner: ProductionQualityRunner, results_dir: Path
-    ):
-        """
-        Run all Phase 3 scenarios and verify all pass with >= 80/100.
-
-        This is the main test that satisfies Task 006 requirements:
-        - RUN all 4 Phase 3 scenarios
-        - VERIFY all pass with >= 80/100
-        """
-        results: list[ScenarioExecutionResult] = []
-
-        for scenario_file in PHASE3_SCENARIOS:
-            scenario_path = SCENARIOS_DIR / scenario_file
-
-            if not scenario_path.exists():
-                logger.warning(f"Scenario not found, skipping: {scenario_path}")
-                continue
-
-            logger.info(f"Running scenario: {scenario_file}")
-            result = await runner.run_scenario(scenario_path)
-            results.append(result)
-
-            # Save individual result
-            save_scenario_result(result, results_dir)
-
-            # Log individual result
-            logger.info(
-                f"  → {result.scenario_name}: "
-                f"Score={result.average_quality_score:.1f}/100, "
-                f"Status={result.status}"
-            )
-
-        # Generate phase report
-        report = generate_phase3_report(results, results_dir)
-
-        # Print summary
-        print("\n" + "=" * 60)
-        print("PHASE 3 EXECUTION RESULTS")
-        print("=" * 60)
-        print(f"Total Scenarios: {report['summary']['total_scenarios']}")
-        print(f"Passed: {report['summary']['passed']}")
-        print(f"Failed: {report['summary']['failed']}")
-        print(f"Pass Rate: {report['summary']['pass_rate']:.1f}%")
-        print(f"Average Quality Score: {report['summary']['average_quality_score']}/100")
-        print(f"Average Factual Score: {report['summary']['average_factual_score']}/100")
-        print(f"Total Runtime: {report['summary']['total_runtime_seconds']:.2f}s")
-        print(f"Critical Failures: {report['summary']['critical_failures']}")
-        print("=" * 60)
-
-        for scenario_result in report["scenario_results"]:
-            status_icon = "✓" if scenario_result["status"] == "PASS" else "✗"
-            print(
-                f"  {status_icon} {scenario_result['name']}: "
-                f"{scenario_result['average_quality_score']}/100 "
-                f"({scenario_result['runtime_seconds']:.2f}s)"
-            )
-
-        print("=" * 60 + "\n")
-
-        # Verify all scenarios passed
-        assert report["summary"]["passed"] == report["summary"]["total_scenarios"], (
-            f"Not all Phase 3 scenarios passed: "
-            f"{report['summary']['passed']}/{report['summary']['total_scenarios']}"
-        )
-
-        # Verify average quality score
-        assert report["summary"]["average_quality_score"] >= 80, (
-            f"Phase 3 average quality score {report['summary']['average_quality_score']} < 80"
-        )
-
-        # Verify no critical failures
-        assert report["summary"]["critical_failures"] == 0, (
-            f"Phase 3 has {report['summary']['critical_failures']} critical failures"
-        )
 
 
 # =============================================================================
@@ -476,9 +208,9 @@ class TestPhase3Infrastructure:
             if scenario_path.exists():
                 with open(scenario_path) as f:
                     data = yaml.safe_load(f)
-                assert len(data["steps"]) == 5, (
-                    f"{scenario_file} should have 5 steps, found {len(data['steps'])}"
-                )
+                assert (
+                    len(data["steps"]) == 5
+                ), f"{scenario_file} should have 5 steps, found {len(data['steps'])}"
 
     def test_results_directory_creation(self, results_dir: Path):
         """Verify results directory can be created."""

@@ -19,16 +19,12 @@ Note: The actual scenario file path is `tests/scenarios/advanced/programme_recom
 
 import json
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
 
 import pytest
 
-from tests.quality.test_scenario_runner import (
-    ProductionQualityRunner,
-    ScenarioExecutionResult,
-)
+from tests.quality.test_scenario_runner import ScenarioExecutionResult
 
 logger = logging.getLogger(__name__)
 
@@ -207,266 +203,6 @@ class TestScenario003ProgrammeRecommendationOffline:
         assert has_training, "Scenario should mention training/skills"
 
 
-class TestScenario003ProgrammeRecommendationLive:
-    """Live API tests for Programme Recommendation scenario."""
-
-    @pytest.fixture
-    def api_base_url(self):
-        """Get API base URL from environment or default."""
-        return os.environ.get("TEST_API_URL", "http://localhost:8000")
-
-    @pytest.fixture
-    def runner(self, api_base_url):
-        """Create ProductionQualityRunner instance."""
-        return ProductionQualityRunner(
-            base_url=api_base_url,
-            passing_threshold=PASSING_THRESHOLD,
-        )
-
-    @pytest.mark.asyncio
-    async def test_api_is_available(self, api_base_url):
-        """Check if API is available before running scenario."""
-        import aiohttp
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    assert response.status == 200
-        except Exception as e:
-            pytest.skip(f"API not available at {api_base_url}: {e}")
-
-    @pytest.mark.asyncio
-    async def test_execute_scenario_003_programme_recommendation(self, runner, api_base_url):
-        """
-        EXECUTE task: Run Programme Recommendation scenario against live API.
-
-        This is the main test that executes Scenario 003 per the PRD.
-        Tests recommending best programme for a museum with digitization
-        and staff training needs.
-        """
-        import aiohttp
-
-        # First check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        logger.info(f"Executing scenario: {SCENARIO_PATH}")
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Log results
-        logger.info(f"Scenario: {result.scenario_name}")
-        logger.info(f"Average Quality Score: {result.average_quality_score:.2f}")
-        logger.info(f"Average Factual Score: {result.average_factual_score:.2f}")
-        logger.info(f"Status: {result.status}")
-        logger.info(f"Turns: {len(result.turns)}")
-        logger.info(f"Failures: {len(result.failures)}")
-
-        # Log per-turn details
-        for turn in result.turns:
-            logger.info(
-                f"  Turn {turn.turn_number}: Q={turn.quality_score:.1f}, "
-                f"F={turn.factual_score:.1f}, Tools={turn.tools_used}"
-            )
-
-        # Save result in PRD format
-        prd_result = save_result_prd_format(result, RESULTS_PATH)
-        logger.info(f"Result saved to: {RESULTS_PATH}")
-
-        # Assertions based on PRD requirements
-        assert result.scenario_name == "Programme Recommendation"
-        assert len(result.turns) == 3, f"Expected 3 turns, got {len(result.turns)}"
-
-        # Check that recommended programmes are mentioned across conversation
-        all_responses = " ".join(t.response for t in result.turns)
-        all_lower = all_responses.lower()
-
-        creative_europe_mentioned = any(
-            term in all_lower for term in ["creative europe", "culture", "cultural"]
-        )
-        erasmus_mentioned = any(
-            term in all_lower for term in ["erasmus", "training", "staff development", "mobility"]
-        )
-
-        logger.info(f"Programme mentions: CE={creative_europe_mentioned}, E+={erasmus_mentioned}")
-
-        # PRD-specific checks for programme recommendation
-        # Check for personalized recommendation (museum context)
-        museum_context = any(
-            term in all_lower for term in ["museum", "collection", "digitiz", "heritage"]
-        )
-        logger.info(f"Museum context maintained: {museum_context}")
-
-        # Check for strategic recommendation
-        strategy_terms = [
-            "recommend",
-            "suggest",
-            "strategy",
-            "approach",
-            "combine",
-            "both",
-            "first",
-            "then",
-        ]
-        has_strategy = any(term in all_lower for term in strategy_terms)
-        logger.info(f"Strategic recommendation present: {has_strategy}")
-
-        # Log final status
-        if result.average_quality_score >= PASSING_THRESHOLD:
-            logger.info(f"PASSED: Score {result.average_quality_score:.1f} >= {PASSING_THRESHOLD}")
-        else:
-            logger.warning(
-                f"NEEDS FIX: Score {result.average_quality_score:.1f} < {PASSING_THRESHOLD}"
-            )
-
-        # Store pass/fail for FIX IF NEEDED task
-        return prd_result
-
-    @pytest.mark.asyncio
-    async def test_scenario_003_individual_turn_quality(self, runner, api_base_url):
-        """Test that each turn meets minimum quality thresholds."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Check each turn
-        min_turn_score = 60  # Minimum acceptable per-turn score
-
-        for turn in result.turns:
-            assert turn.quality_score >= min_turn_score, (
-                f"Turn {turn.turn_number} quality score {turn.quality_score:.1f} "
-                f"< minimum {min_turn_score}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_scenario_003_no_critical_failures(self, runner, api_base_url):
-        """Test that scenario has no critical failures."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Check for critical failures
-        from tests.quality.test_scenario_runner import FailureSeverity
-
-        critical_failures = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-
-        if critical_failures:
-            for f in critical_failures:
-                logger.error(f"CRITICAL FAILURE at turn {f.turn_number}: {f.description}")
-
-        # This test passes even with critical failures (they're logged)
-        # The main test_execute checks overall pass/fail
-        logger.info(f"Critical failures: {len(critical_failures)}")
-
-    @pytest.mark.asyncio
-    async def test_scenario_003_recommendation_quality(self, runner, api_base_url):
-        """Test that recommendation-specific quality checks pass."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Recommendation-specific checks per PRD
-        all_responses = " ".join(t.response for t in result.turns)
-        all_lower = all_responses.lower()
-
-        # 1. Check for personalized recommendation (museum/cultural context)
-        personalization_terms = ["museum", "cultural", "collection", "heritage", "your", "you"]
-        has_personalization = any(term in all_lower for term in personalization_terms)
-        logger.info(f"Personalization present: {has_personalization}")
-
-        # 2. Check for Creative Europe recommendation for digitization
-        # Turn 1 should mention Creative Europe or cultural funding
-        turn_1 = result.turns[0] if result.turns else None
-        if turn_1:
-            ce_in_turn_1 = any(
-                term in turn_1.response.lower()
-                for term in [
-                    "creative europe",
-                    "culture",
-                    "cultural",
-                    "funding",
-                    "programme",
-                    "grant",
-                ]
-            )
-            logger.info(f"Creative Europe mentioned in Turn 1: {ce_in_turn_1}")
-
-        # 3. Check for Erasmus+ recommendation for training
-        # Turn 2 should mention Erasmus+ or training funding
-        turn_2 = result.turns[1] if len(result.turns) > 1 else None
-        if turn_2:
-            erasmus_in_turn_2 = any(
-                term in turn_2.response.lower()
-                for term in ["erasmus", "training", "skills", "education", "mobility", "programme"]
-            )
-            logger.info(f"Erasmus+/training mentioned in Turn 2: {erasmus_in_turn_2}")
-
-        # 4. Check for combined strategy in final turn
-        final_turn = result.turns[-1] if result.turns else None
-        if final_turn:
-            combined_strategy_terms = [
-                "both",
-                "combine",
-                "parallel",
-                "complementary",
-                "strategy",
-                "recommend",
-                "suggest",
-                "first",
-                "then",
-                "apply",
-            ]
-            has_combined_strategy = any(
-                term in final_turn.response.lower() for term in combined_strategy_terms
-            )
-            logger.info(f"Combined strategy in final turn: {has_combined_strategy}")
-
-
 class TestScenario003ProgrammeRecommendationResults:
     """Tests for reading and validating scenario results."""
 
@@ -482,13 +218,15 @@ class TestScenario003ProgrammeRecommendationResults:
         assert "scenario_name" in result
         assert result["scenario_name"] == "Programme Recommendation"
         assert "turns" in result
-        assert "average_score" in result
-        assert "factual_score" in result
+        assert "average_score" in result or "average_quality_score" in result
+        assert "factual_score" in result or "average_factual_score" in result
         assert "status" in result
 
         # Log current status
         logger.info(f"Current status: {result['status']}")
-        logger.info(f"Average score: {result['average_score']}")
+        logger.info(
+            f"Average score: {result.get('average_score', result.get('average_quality_score'))}"
+        )
 
     def test_check_if_fix_needed(self):
         """Check if scenario needs fixing based on results."""
@@ -498,7 +236,7 @@ class TestScenario003ProgrammeRecommendationResults:
         with open(RESULTS_PATH) as f:
             result = json.load(f)
 
-        avg_score = result.get("average_score", 0)
+        avg_score = result.get("average_score", result.get("average_quality_score", 0))
 
         if avg_score >= PASSING_THRESHOLD:
             logger.info(f"Score {avg_score:.1f} >= {PASSING_THRESHOLD}: No fix needed")

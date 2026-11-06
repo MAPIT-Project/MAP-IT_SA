@@ -79,22 +79,42 @@ def codex_output_schema(schema):
 def omit_optional_nulls(value, schema):
     if not isinstance(schema, dict):
         return value
-    for keyword in ("anyOf", "oneOf"):
-        if keyword in schema:
-            for branch in schema[keyword]:
-                candidate = omit_optional_nulls(value, branch)
-                if validators.validator_for(branch)(branch).is_valid(candidate):
+    root_validator = validate_schema(schema)
+
+    def clean(item, node):
+        if not isinstance(node, dict):
+            return item
+        # Pydantic's tool envelopes namespace references under the root $defs.
+        # Detached branch validators lose that root and fail on otherwise valid
+        # budget/tool calls. Resolve local pointers for cleanup and preserve the
+        # root resolver when selecting an anyOf/oneOf branch.
+        ref = node.get("$ref")
+        if isinstance(ref, str) and ref.startswith("#/"):
+            target = schema
+            try:
+                for token in ref[2:].split("/"):
+                    target = target[token.replace("~1", "/").replace("~0", "~")]
+            except (KeyError, TypeError):
+                raise ValueError("Local JSON schema reference is unresolved") from None
+            if target is not node:
+                return clean(item, target)
+        for keyword in ("anyOf", "oneOf"):
+            for branch in node.get(keyword, []):
+                candidate = clean(item, branch)
+                if root_validator.evolve(schema=branch).is_valid(candidate):
                     return candidate
-    for branch in schema.get("allOf", []):
-        value = omit_optional_nulls(value, branch)
-    if isinstance(value, dict):
-        required = schema.get("required", [])
-        properties = schema.get("properties", {})
-        return {
-            key: omit_optional_nulls(item, properties.get(key, {}))
-            for key, item in value.items()
-            if not (key in properties and key not in required and item is None)
-        }
-    if isinstance(value, list):
-        return [omit_optional_nulls(item, schema.get("items", {})) for item in value]
-    return value
+        for branch in node.get("allOf", []):
+            item = clean(item, branch)
+        if isinstance(item, dict):
+            required = node.get("required", [])
+            properties = node.get("properties", {})
+            return {
+                key: clean(entry, properties.get(key, {}))
+                for key, entry in item.items()
+                if not (key in properties and key not in required and entry is None)
+            }
+        if isinstance(item, list):
+            return [clean(entry, node.get("items", {})) for entry in item]
+        return item
+
+    return clean(value, schema)

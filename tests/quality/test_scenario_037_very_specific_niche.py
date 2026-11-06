@@ -386,9 +386,9 @@ related topics that could accommodate your project.
 4. **Consider writing to the EC** - for novel interdisciplinary topics"""
 
         result = evaluator.evaluate(query, excellent_response)
-        assert result["total_score"] >= 75, (
-            f"Expected excellent response to score 75+, got {result['total_score']}"
-        )
+        assert (
+            result["total_score"] >= 75
+        ), f"Expected excellent response to score 75+, got {result['total_score']}"
         assert result["passed"] is True
 
     def test_partial_response_scores_medium(self, evaluator):
@@ -403,9 +403,9 @@ Here are the results:
 These calls are available on the EU Portal."""
 
         result = evaluator.evaluate(query, partial_response)
-        assert result["total_score"] < 75, (
-            f"Expected partial response to score below 75, got {result['total_score']}"
-        )
+        assert (
+            result["total_score"] < 75
+        ), f"Expected partial response to score below 75, got {result['total_score']}"
         assert result["passed"] is False
 
     def test_hallucinating_response_fails(self, evaluator):
@@ -425,9 +425,9 @@ These calls are exactly what you need!"""
 
         result = evaluator.evaluate(query, hallucinating_response)
         # Hallucinating response should fail due to factual accuracy issues
-        assert result["dimensions"]["factual_accuracy"] < 15, (
-            "Hallucinating response should score low on factual accuracy"
-        )
+        assert (
+            result["dimensions"]["factual_accuracy"] < 15
+        ), "Hallucinating response should score low on factual accuracy"
 
     def test_honest_no_results_response(self, evaluator):
         """Test that an honest 'no exact matches' response scores reasonably."""
@@ -460,9 +460,9 @@ strategies for finding appropriate funding.
 
         result = evaluator.evaluate(query, honest_response)
         # Honest response should score reasonably well even without exact matches
-        assert result["dimensions"]["factual_accuracy"] >= 15, (
-            "Honest response should score well on factual accuracy"
-        )
+        assert (
+            result["dimensions"]["factual_accuracy"] >= 15
+        ), "Honest response should score well on factual accuracy"
 
     def test_detects_interdisciplinary_domains(self, evaluator):
         """Test that the evaluator correctly detects query domains."""
@@ -528,79 +528,6 @@ the calls listed above, 4) Register on the portal if you haven't already."""
     # --------------------------------------------------------------------------
     # Live API tests
     # --------------------------------------------------------------------------
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        not pytest.importorskip("httpx"),
-        reason="httpx not available for live tests",
-    )
-    async def test_live_api_niche_query(self, evaluator):
-        """Test niche query against live API."""
-        query = "Funding for underwater archaeology using AI in the Mediterranean"
-
-        try:
-            response_text, conv_id, tools_used = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"Live API not available: {e}")
-
-        # Evaluate response
-        result = evaluator.evaluate(query, response_text)
-        save_result(result, query, response_text)
-
-        # Check that at least some tools were used
-        assert len(tools_used) > 0, "Should use at least one tool"
-
-        # Check that response meets minimum threshold
-        assert result["total_score"] >= 60, (
-            f"Response scored only {result['total_score']}, expected at least 60 for niche queries"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        not pytest.importorskip("httpx"),
-        reason="httpx not available for live tests",
-    )
-    async def test_live_api_different_niche_queries(self, evaluator):
-        """Test various niche queries against live API."""
-        niche_queries = [
-            "Grants for traditional crafts preservation using blockchain",
-            "Support for indigenous language revitalization with NLP",
-            "Funding for alpine glacier monitoring with drone swarms",
-        ]
-
-        for query in niche_queries:
-            try:
-                response_text, conv_id, tools_used = await send_query(query)
-            except Exception as e:
-                pytest.skip(f"Live API not available: {e}")
-
-            result = evaluator.evaluate(query, response_text)
-
-            # Even niche queries should get some reasonable response
-            assert result["total_score"] >= 40, (
-                f"Query '{query}' scored only {result['total_score']}, expected at least 40"
-            )
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        not pytest.importorskip("httpx"),
-        reason="httpx not available for live tests",
-    )
-    async def test_live_api_no_hallucination(self, evaluator):
-        """Test that live API doesn't hallucinate fake calls for niche queries."""
-        query = "Funding for underwater archaeology using AI in the Mediterranean"
-
-        try:
-            response_text, conv_id, tools_used = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"Live API not available: {e}")
-
-        result = evaluator.evaluate(query, response_text)
-
-        # Critical: no hallucination
-        assert result["dimensions"]["factual_accuracy"] >= 10, (
-            "Response may contain hallucinated call IDs"
-        )
 
     # --------------------------------------------------------------------------
     # Edge case tests

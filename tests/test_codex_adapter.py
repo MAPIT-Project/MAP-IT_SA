@@ -108,7 +108,8 @@ def fake_cli(tmp_path, local_settings):
             "print('non-json diagnostic line')\n"
             + (
                 "print(json.dumps({'type': 'thread.started', 'model': 'synthetic-model'}))\n"
-                if model_event else ""
+                if model_event
+                else ""
             )
             + "print(json.dumps({'type': 'turn.completed', 'usage': {'input_tokens': 3, 'output_tokens': 2}}))\n"
             "if MODE == 'tool':\n"
@@ -165,8 +166,15 @@ async def assert_processes_stopped(pids):
 def test_sync_inference_uses_stdin_safe_arguments_and_clean_environment(fake_cli, monkeypatch):
     cli = fake_cli()
     for name in (
-        "OPENAI_API_KEY", "GEMINI_API_KEY", "OPENROUTER_API_KEY", "BUZZ_SECRET",
-        "CODEX_API_KEY", "HTTP_PROXY", "LD_PRELOAD", "BASH_ENV", "NODE_OPTIONS",
+        "OPENAI_API_KEY",
+        "GEMINI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "BUZZ_SECRET",
+        "CODEX_API_KEY",
+        "HTTP_PROXY",
+        "LD_PRELOAD",
+        "BASH_ENV",
+        "NODE_OPTIONS",
     ):
         monkeypatch.setenv(name, "synthetic-sensitive-value")
     monkeypatch.setenv("HOME", "/synthetic-home")
@@ -191,7 +199,8 @@ def test_sync_inference_uses_stdin_safe_arguments_and_clean_environment(fake_cli
     assert "--dangerously-bypass-approvals-and-sandbox" not in argv
     overrides = {
         argv[i + 1].split("=", 1)[0]: argv[i + 1].split("=", 1)[1]
-        for i, value in enumerate(argv) if value == "-c"
+        for i, value in enumerate(argv)
+        if value == "-c"
     }
     assert json.loads(overrides["approval_policy"]) == "never"
     assert json.loads(overrides["web_search"]) == "disabled"
@@ -253,8 +262,10 @@ def test_explicit_model_is_forwarded_and_reported_model_is_preserved(fake_cli):
 async def test_schema_is_forwarded_and_result_validated(fake_cli):
     cli = fake_cli(answer='{"ok":true}')
     schema = {
-        "type": "object", "properties": {"ok": {"type": "boolean"}},
-        "required": ["ok"], "additionalProperties": False,
+        "type": "object",
+        "properties": {"ok": {"type": "boolean"}},
+        "required": ["ok"],
+        "additionalProperties": False,
     }
 
     response = await cli.model.generate_content_async(
@@ -270,9 +281,11 @@ async def test_schema_is_forwarded_and_result_validated(fake_cli):
     "answer,config,message",
     [
         ("invalid JSON", {"response_mime_type": "application/json"}, "not valid JSON"),
-        ('{"ok":"wrong"}', {"response_schema": {
-            "type": "object", "properties": {"ok": {"type": "boolean"}}
-        }}, "does not match"),
+        (
+            '{"ok":"wrong"}',
+            {"response_schema": {"type": "object", "properties": {"ok": {"type": "boolean"}}}},
+            "does not match",
+        ),
     ],
 )
 def test_structured_output_rejects_invalid_results(fake_cli, answer, config, message):
@@ -282,6 +295,50 @@ def test_structured_output_rejects_invalid_results(fake_cli, answer, config, mes
         cli.model.generate_content("Synthetic JSON prompt", generation_config=config)
 
     assert_job_cleaned(cli)
+
+
+def test_optional_null_cleanup_keeps_root_definitions_when_selecting_tool_branches():
+    schema = {
+        "$defs": {
+            "budget": {
+                "type": "object",
+                "properties": {
+                    "total": {"type": "number"},
+                    "optional_note": {"type": "string"},
+                },
+                "required": ["total"],
+                "additionalProperties": False,
+            }
+        },
+        "type": "object",
+        "properties": {
+            "tool_calls": {
+                "type": "array",
+                "items": {
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "properties": {
+                                "name": {"const": "calculate_budget"},
+                                "arguments": {"$ref": "#/$defs/budget"},
+                            },
+                            "required": ["name", "arguments"],
+                            "additionalProperties": False,
+                        }
+                    ]
+                },
+            }
+        },
+        "required": ["tool_calls"],
+    }
+    value = {
+        "tool_calls": [
+            {"name": "calculate_budget", "arguments": {"total": 5000000, "optional_note": None}}
+        ]
+    }
+    cleaned = omit_optional_nulls(value, schema)
+    assert cleaned["tool_calls"][0]["arguments"] == {"total": 5000000}
+    validate_json(json.dumps(cleaned), schema)
 
 
 def test_json_mode_without_schema_adds_json_instruction(fake_cli):
@@ -300,11 +357,14 @@ def test_json_validation_rejects_external_schema_references():
         validate_json("{}", {"$ref": "https://synthetic.invalid/schema.json"})
 
 
-@pytest.mark.parametrize("mode,message", [
-    ("failure", "exited with status 7"),
-    ("missing-output", "missing or oversized"),
-    ("tool", "tool operation"),
-])
+@pytest.mark.parametrize(
+    "mode,message",
+    [
+        ("failure", "exited with status 7"),
+        ("missing-output", "missing or oversized"),
+        ("tool", "tool operation"),
+    ],
+)
 def test_subprocess_and_output_failures_are_redacted_and_cleaned(fake_cli, mode, message):
     cli = fake_cli(mode=mode)
 
@@ -317,10 +377,14 @@ def test_subprocess_and_output_failures_are_redacted_and_cleaned(fake_cli, mode,
     assert_job_cleaned(cli)
 
 
-@pytest.mark.parametrize("answer,limit,message", [
-    ("   ", 4096, "empty final"),
-    ("x" * 8192, 4096, "oversized"),
-], ids=["empty", "oversized"])
+@pytest.mark.parametrize(
+    "answer,limit,message",
+    [
+        ("   ", 4096, "empty final"),
+        ("x" * 8192, 4096, "oversized"),
+    ],
+    ids=["empty", "oversized"],
+)
 def test_empty_and_oversized_outputs_fail(fake_cli, monkeypatch, answer, limit, message):
     cli = fake_cli(answer=answer)
     cli.model._max_output_bytes = limit
@@ -332,11 +396,14 @@ def test_empty_and_oversized_outputs_fail(fake_cli, monkeypatch, answer, limit, 
     assert_job_cleaned(cli)
 
 
-@pytest.mark.parametrize("mode,message", [
-    ("old-cli", "required isolation flags"),
-    ("logged-out", "codex login"),
-    ("api-key-login", "ChatGPT CLI login"),
-])
+@pytest.mark.parametrize(
+    "mode,message",
+    [
+        ("old-cli", "required isolation flags"),
+        ("logged-out", "codex login"),
+        ("api-key-login", "ChatGPT CLI login"),
+    ],
+)
 @pytest.mark.asyncio
 async def test_preflight_rejects_unsupported_cli_or_login(fake_cli, mode, message):
     cli = fake_cli(mode=mode)
@@ -442,9 +509,9 @@ async def test_success_also_kills_descendants_left_by_cli(fake_cli):
 async def test_concurrent_jobs_use_distinct_temporary_directories(fake_cli):
     cli = fake_cli()
 
-    responses = await asyncio.gather(*(
-        cli.model.generate_content_async(f"Synthetic prompt {i}") for i in range(3)
-    ))
+    responses = await asyncio.gather(
+        *(cli.model.generate_content_async(f"Synthetic prompt {i}") for i in range(3))
+    )
 
     assert len({record["cwd"] for record in records(cli)}) == 3
     assert [response.text for response in responses] == ["Synthetic answer"] * 3
@@ -509,7 +576,8 @@ def test_unsupported_step_and_disabled_codex_fail_clearly(local_settings):
 def test_settings_validate_provider_and_step_names():
     required = {
         "database_url": "postgresql://dummy:dummy@localhost:1/dummy",
-        "supabase_url": "http://localhost:1", "supabase_service_key": "dummy",
+        "supabase_url": "http://localhost:1",
+        "supabase_service_key": "dummy",
     }
     with pytest.raises(ValidationError):
         Settings(_env_file=None, default_ai_provider="invented", **required)
@@ -527,15 +595,19 @@ def test_reasoning_effort_settings_and_example(local_settings, monkeypatch):
     assert local_settings.codex_reasoning_effort is None
     monkeypatch.setenv("CODEX_REASONING_EFFORT", "high")
     config = Settings(
-        _env_file=None, database_url=local_settings.database_url,
-        supabase_url=local_settings.supabase_url, supabase_service_key="dummy",
+        _env_file=None,
+        database_url=local_settings.database_url,
+        supabase_url=local_settings.supabase_url,
+        supabase_service_key="dummy",
     )
     assert config.codex_reasoning_effort == "high"
     monkeypatch.setenv("CODEX_REASONING_EFFORT", "invented")
     with pytest.raises(ValidationError, match="codex_reasoning_effort"):
         Settings(
-            _env_file=None, database_url=local_settings.database_url,
-            supabase_url=local_settings.supabase_url, supabase_service_key="dummy",
+            _env_file=None,
+            database_url=local_settings.database_url,
+            supabase_url=local_settings.supabase_url,
+            supabase_service_key="dummy",
         )
 
     # Only the public template is read. Real environment/credential files are excluded.
@@ -561,7 +633,8 @@ def test_reasoning_effort_forwarded_without_changing_isolation(fake_cli, local_s
     argv = records(cli)[0]["argv"]
     overrides = {
         argv[index + 1].split("=", 1)[0]: argv[index + 1].split("=", 1)[1]
-        for index, value in enumerate(argv) if value == "-c"
+        for index, value in enumerate(argv)
+        if value == "-c"
     }
     if effort is None:
         assert "model_reasoning_effort" not in overrides
@@ -610,7 +683,9 @@ class SyntheticModel:
 
 
 @pytest.mark.asyncio
-async def test_cached_model_routes_concurrent_request_scopes_independently(local_settings, monkeypatch):
+async def test_cached_model_routes_concurrent_request_scopes_independently(
+    local_settings, monkeypatch
+):
     monkeypatch.setattr(factory, "CodexTextModel", lambda config: SyntheticModel("codex"))
     monkeypatch.setattr(factory, "APITextModel", lambda provider, *args: SyntheticModel(provider))
     shared = factory.create_text_model("chat_reasoning", model="gemini-legacy")
@@ -700,7 +775,9 @@ async def test_codex_only_needs_no_api_keys_and_never_falls_back(local_settings,
     gemini_factory.assert_not_called()
 
 
-def test_global_codex_leaves_google_embeddings_and_dimensions_unchanged(local_settings, monkeypatch):
+def test_global_codex_leaves_google_embeddings_and_dimensions_unchanged(
+    local_settings, monkeypatch
+):
     import google.generativeai as genai
 
     from app.services.embedding.incremental_embedding_service import IncrementalEmbeddingService
@@ -722,7 +799,8 @@ def test_global_codex_leaves_google_embeddings_and_dimensions_unchanged(local_se
     embedding.assert_called_once_with(
         model="models/gemini-embedding-001",
         content="Synthetic project text for an embedding test",
-        task_type="retrieval_document", output_dimensionality=3072,
+        task_type="retrieval_document",
+        output_dimensionality=3072,
     )
 
 
@@ -761,13 +839,24 @@ def test_strict_schema_normalization_closes_objects_and_preserves_source():
     assert item["properties"]["label"] == {"anyOf": [{"type": "string"}, {"type": "null"}]}
 
 
-@pytest.mark.parametrize("schema", [
-    {"type": "object", "additionalProperties": {"type": "string"}},
-    {"type": "object", "properties": {"label": {"type": "string"}}, "additionalProperties": True},
-    {"type": "object", "properties": {"label": {"type": "string"}}, "additionalProperties": {"type": "string"}},
-    {"$ref": "#/$defs/item", "$defs": {"item": {"type": "string"}}},
-    {"type": "object", "properties": {"metadata": {"type": "object"}}},
-])
+@pytest.mark.parametrize(
+    "schema",
+    [
+        {"type": "object", "additionalProperties": {"type": "string"}},
+        {
+            "type": "object",
+            "properties": {"label": {"type": "string"}},
+            "additionalProperties": True,
+        },
+        {
+            "type": "object",
+            "properties": {"label": {"type": "string"}},
+            "additionalProperties": {"type": "string"},
+        },
+        {"$ref": "#/$defs/item", "$defs": {"item": {"type": "string"}}},
+        {"type": "object", "properties": {"metadata": {"type": "object"}}},
+    ],
+)
 def test_open_maps_and_references_use_prompted_json(schema):
     assert codex_output_schema(schema) is None
 
@@ -820,12 +909,16 @@ def test_optional_null_cleanup_handles_normalized_union_branches(union):
 @pytest.mark.asyncio
 async def test_adapter_omits_optional_nulls_before_original_schema_validation(fake_cli):
     schema = {
-        "type": "object", "properties": {
-            "title": {"type": "string"}, "optional": {"type": "string"},
-            "entries": {"type": "array", "items": {
-                "type": "object", "properties": {"detail": {"type": "string"}}
-            }},
-        }, "required": ["title", "entries"],
+        "type": "object",
+        "properties": {
+            "title": {"type": "string"},
+            "optional": {"type": "string"},
+            "entries": {
+                "type": "array",
+                "items": {"type": "object", "properties": {"detail": {"type": "string"}}},
+            },
+        },
+        "required": ["title", "entries"],
     }
     cli = fake_cli(answer='{"title":"Synthetic","optional":null,"entries":[{"detail":null}]}')
 

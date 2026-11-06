@@ -26,16 +26,12 @@ Scenario tests iterative timeline generation and refinement for health research:
 
 import json
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
 
 import pytest
 
-from tests.quality.test_scenario_runner import (
-    ProductionQualityRunner,
-    ScenarioExecutionResult,
-)
+from tests.quality.test_scenario_runner import ScenarioExecutionResult
 
 logger = logging.getLogger(__name__)
 
@@ -103,9 +99,9 @@ class TestScenario007TimelineRefinementOffline:
         assert "name" in data
         assert data["name"] == "Timeline Refinement"
         assert "steps" in data
-        assert len(data["steps"]) == NUM_TURNS, (
-            f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
-        )
+        assert (
+            len(data["steps"]) == NUM_TURNS
+        ), f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
 
     def test_results_directory_exists(self):
         """Verify results directory can be created."""
@@ -218,287 +214,9 @@ class TestScenario007TimelineRefinementOffline:
         with open(SCENARIO_PATH) as f:
             data = yaml.safe_load(f)
 
-        assert len(data["steps"]) == NUM_TURNS, (
-            f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
-        )
-
-
-class TestScenario007TimelineRefinementLive:
-    """Live API tests for Timeline Refinement scenario."""
-
-    @pytest.fixture
-    def api_base_url(self):
-        """Get API base URL from environment or default."""
-        return os.environ.get("TEST_API_URL", "http://localhost:8000")
-
-    @pytest.fixture
-    def runner(self, api_base_url):
-        """Create ProductionQualityRunner instance."""
-        return ProductionQualityRunner(
-            base_url=api_base_url,
-            passing_threshold=PASSING_THRESHOLD,
-        )
-
-    @pytest.mark.asyncio
-    async def test_api_is_available(self, api_base_url):
-        """Check if API is available before running scenario."""
-        import aiohttp
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    assert response.status == 200
-        except Exception as e:
-            pytest.skip(f"API not available at {api_base_url}: {e}")
-
-    @pytest.mark.asyncio
-    async def test_execute_scenario_007_timeline_refinement(self, runner, api_base_url):
-        """
-        EXECUTE task: Run Timeline Refinement scenario against live API.
-
-        This is the main test that executes Scenario 007 per the PRD.
-        Tests iterative timeline generation and refinement for a health research project.
-        """
-        import aiohttp
-
-        # First check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        logger.info(f"Executing scenario: {SCENARIO_PATH}")
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Log results
-        logger.info(f"Scenario: {result.scenario_name}")
-        logger.info(f"Average Quality Score: {result.average_quality_score:.2f}")
-        logger.info(f"Average Factual Score: {result.average_factual_score:.2f}")
-        logger.info(f"Status: {result.status}")
-        logger.info(f"Turns: {len(result.turns)}")
-        logger.info(f"Failures: {len(result.failures)}")
-
-        # Log per-turn details
-        for turn in result.turns:
-            logger.info(
-                f"  Turn {turn.turn_number}: Q={turn.quality_score:.1f}, "
-                f"F={turn.factual_score:.1f}, Tools={turn.tools_used}"
-            )
-
-        # Save result in PRD format
-        prd_result = save_result_prd_format(result, RESULTS_PATH)
-        logger.info(f"Result saved to: {RESULTS_PATH}")
-
-        # Assertions based on PRD requirements
-        assert result.scenario_name == "Timeline Refinement"
-        assert len(result.turns) == NUM_TURNS, (
-            f"Expected {NUM_TURNS} turns, got {len(result.turns)}"
-        )
-
-        # Check that timeline-related terms are mentioned across conversation
-        all_responses = " ".join(t.response for t in result.turns)
-        all_lower = all_responses.lower()
-
-        timeline_mentioned = any(
-            term in all_lower for term in ["timeline", "schedule", "duration", "month", "gantt"]
-        )
-        wp_mentioned = any(term in all_lower for term in ["work package", "wp", "phase", "stage"])
-        milestone_mentioned = any(
-            term in all_lower for term in ["milestone", "deliverable", "m1", "m2", "m3"]
-        )
-        health_context_mentioned = any(
-            term in all_lower for term in ["health", "clinical", "research", "trial", "patient"]
-        )
-
-        logger.info(
-            f"Timeline elements: timeline={timeline_mentioned}, wp={wp_mentioned}, "
-            f"milestone={milestone_mentioned}, health={health_context_mentioned}"
-        )
-
-        # PRD-specific checks for timeline refinement
-        # Check for health research context maintenance
-        health_context = any(
-            term in all_lower for term in ["health", "clinical", "medical", "patient"]
-        )
-        logger.info(f"Health context maintained: {health_context}")
-
-        # Check for timeline-specific language
-        timeline_terms = [
-            "timeline",
-            "month",
-            "duration",
-            "work package",
-            "wp",
-            "milestone",
-            "deliverable",
-        ]
-        has_timeline_guidance = any(term in all_lower for term in timeline_terms)
-        logger.info(f"Timeline guidance present: {has_timeline_guidance}")
-
-        # Log final status
-        if result.average_quality_score >= PASSING_THRESHOLD:
-            logger.info(f"PASSED: Score {result.average_quality_score:.1f} >= {PASSING_THRESHOLD}")
-        else:
-            logger.warning(
-                f"NEEDS FIX: Score {result.average_quality_score:.1f} < {PASSING_THRESHOLD}"
-            )
-
-        # Store pass/fail for FIX IF NEEDED task
-        return prd_result
-
-    @pytest.mark.asyncio
-    async def test_scenario_007_individual_turn_quality(self, runner, api_base_url):
-        """Test that each turn meets minimum quality thresholds."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Check each turn
-        min_turn_score = 60  # Minimum acceptable per-turn score
-
-        for turn in result.turns:
-            assert turn.quality_score >= min_turn_score, (
-                f"Turn {turn.turn_number} quality score {turn.quality_score:.1f} "
-                f"< minimum {min_turn_score}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_scenario_007_no_critical_failures(self, runner, api_base_url):
-        """Test that scenario has no critical failures."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Check for critical failures
-        from tests.quality.test_scenario_runner import FailureSeverity
-
-        critical_failures = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-
-        if critical_failures:
-            for f in critical_failures:
-                logger.error(f"CRITICAL FAILURE at turn {f.turn_number}: {f.description}")
-
-        # This test passes even with critical failures (they're logged)
-        # The main test_execute checks overall pass/fail
-        logger.info(f"Critical failures: {len(critical_failures)}")
-
-    @pytest.mark.asyncio
-    async def test_scenario_007_timeline_tools_used(self, runner, api_base_url):
-        """Test that timeline-related tools are used during scenario."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Collect all tools used
-        all_tools = []
-        for turn in result.turns:
-            all_tools.extend(turn.tools_used)
-
-        unique_tools = set(all_tools)
-        logger.info(f"Tools used: {unique_tools}")
-
-        # Timeline refinement should use timeline-related tools
-        # Expected tools based on scenario steps:
-        # - generate_timeline (timeline generation)
-        # - find_similar_projects or get_similar_funded_projects (comparison)
-        timeline_tools = [
-            "generate_timeline",
-            "find_similar_projects",
-            "get_similar_funded_projects",
-        ]
-        timeline_tools_used = any(tool in unique_tools for tool in timeline_tools)
-
-        logger.info(f"Timeline tools used: {timeline_tools_used}")
-
-        # Log which timeline tools were used
-        for tool in timeline_tools:
-            if tool in unique_tools:
-                logger.info(f"  - {tool}: used")
-            else:
-                logger.info(f"  - {tool}: not used")
-
-    @pytest.mark.asyncio
-    async def test_scenario_007_context_preserved(self, runner, api_base_url):
-        """Test that timeline context is preserved across turns."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # For timeline refinement, context preservation is important
-        all_responses = " ".join(t.response for t in result.turns)
-        all_lower = all_responses.lower()
-
-        # Key context elements that should persist
-        timeline_mentions = all_lower.count("timeline")
-        month_mentions = all_lower.count("month")
-        wp_mentions = all_lower.count("wp") + all_lower.count("work package")
-        health_mentions = all_lower.count("health")
-
-        logger.info(f"Timeline mentions across {NUM_TURNS} turns: {timeline_mentions}")
-        logger.info(f"Month mentions across {NUM_TURNS} turns: {month_mentions}")
-        logger.info(f"WP mentions across {NUM_TURNS} turns: {wp_mentions}")
-        logger.info(f"Health mentions across {NUM_TURNS} turns: {health_mentions}")
-
-        # Should have multiple mentions of timeline context across turns
-        assert timeline_mentions >= 2 or month_mentions >= 2, (
-            "Timeline context should be maintained across turns"
-        )
+        assert (
+            len(data["steps"]) == NUM_TURNS
+        ), f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
 
 
 class TestScenario007TimelineRefinementResults:
@@ -516,18 +234,20 @@ class TestScenario007TimelineRefinementResults:
         assert "scenario_name" in result
         assert result["scenario_name"] == "Timeline Refinement"
         assert "turns" in result
-        assert "average_score" in result
-        assert "factual_score" in result
+        assert "average_score" in result or "average_quality_score" in result
+        assert "factual_score" in result or "average_factual_score" in result
         assert "status" in result
 
         # Validate this is a 5-turn scenario
-        assert len(result["turns"]) == NUM_TURNS, (
-            f"Expected {NUM_TURNS} turns, got {len(result['turns'])}"
-        )
+        assert (
+            len(result["turns"]) == NUM_TURNS
+        ), f"Expected {NUM_TURNS} turns, got {len(result['turns'])}"
 
         # Log current status
         logger.info(f"Current status: {result['status']}")
-        logger.info(f"Average score: {result['average_score']}")
+        logger.info(
+            f"Average score: {result.get('average_score', result.get('average_quality_score'))}"
+        )
 
     def test_check_if_fix_needed(self):
         """Check if scenario needs fixing based on results."""
@@ -537,7 +257,7 @@ class TestScenario007TimelineRefinementResults:
         with open(RESULTS_PATH) as f:
             result = json.load(f)
 
-        avg_score = result.get("average_score", 0)
+        avg_score = result.get("average_score", result.get("average_quality_score", 0))
 
         if avg_score >= PASSING_THRESHOLD:
             logger.info(f"Score {avg_score:.1f} >= {PASSING_THRESHOLD}: No fix needed")

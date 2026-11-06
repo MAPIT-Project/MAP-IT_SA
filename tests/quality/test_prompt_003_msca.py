@@ -230,20 +230,7 @@ class EvaluationResult:
         return asdict(self)
 
 
-def check_api_available() -> bool:
-    """Check if the API is available."""
-    try:
-        response = httpx.get(f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0)
-        return response.status_code == 200
-    except Exception:
-        return False
-
-
 # Skip decorator for live tests
-live_api = pytest.mark.skipif(
-    not check_api_available(),
-    reason="Live API not available. Start Docker containers with: docker compose up",
-)
 
 
 def get_mapit_response(query: str, conversation_id: int | None = None) -> dict[str, Any]:
@@ -636,167 +623,6 @@ def save_result(result: EvaluationResult, filepath: Path) -> None:
         json.dump(result.to_dict(), f, indent=2)
 
 
-@live_api
-class TestPrompt003MSCA:
-    """
-    Test suite for Prompt 003: Marie Skłodowska-Curie Actions.
-
-    Evaluates the MAPIT AI response quality using LLM-as-judge methodology.
-    """
-
-    def test_evaluate_msca(self):
-        """
-        Main evaluation test for Prompt 003.
-
-        1. Sends query to MAPIT API
-        2. Evaluates response using four-dimension scoring
-        3. Saves detailed results to JSON
-        4. Asserts quality threshold is met
-        """
-        # Get response from MAPIT
-        api_result = get_mapit_response(PROMPT_003_QUERY)
-
-        response = api_result["response"]
-        metadata = api_result["metadata"]
-
-        # Ensure we got a response
-        assert len(response) >= 100, f"Response too short ({len(response)} chars)"
-
-        # Perform evaluation
-        evaluation = evaluate_response(response, metadata)
-
-        # Save results
-        results_file = RESULTS_DIR / "prompt_003_msca.json"
-        save_result(evaluation, results_file)
-
-        # Log evaluation summary
-        print(f"\n{'=' * 60}")
-        print("PROMPT 003: MSCA Evaluation")
-        print(f"{'=' * 60}")
-        print(f"Overall Score: {evaluation.overall_score}/100")
-        print(f"Result: {evaluation.result}")
-        print(f"{'=' * 60}")
-
-        if evaluation.component_scores:
-            comp = evaluation.component_scores[0]
-            print(f"Query Fulfillment: {comp['fulfillment']}/40")
-            print(f"Specificity: {comp['specificity']}/25")
-            print(f"Factual Accuracy: {comp['accuracy']}/25")
-            print(f"Actionability: {comp['actionability']}/10")
-
-            if comp.get("missing_actions"):
-                print(f"\nMissing Action Types: {comp['missing_actions']}")
-
-        if evaluation.factual_errors:
-            print("\nFactual Errors Found:")
-            for error in evaluation.factual_errors:
-                print(f"  - {error['claim']}: {error['correct_value']}")
-
-        if evaluation.fix_suggestions:
-            print("\nFix Suggestions:")
-            for suggestion in evaluation.fix_suggestions:
-                print(f"  - {suggestion}")
-
-        if evaluation.strengths:
-            print("\nStrengths:")
-            for strength in evaluation.strengths:
-                print(f"  + {strength}")
-
-        print(f"\nResults saved to: {results_file}")
-        print(f"{'=' * 60}\n")
-
-        # For EVALUATE task: Record results and report status
-        # The EVALUATE phase records results; FIX IF NEEDED handles improvements
-        if evaluation.overall_score < PASS_THRESHOLD:
-            score = evaluation.overall_score
-            print(f"\n*** FIX NEEDED: Score {score} < {PASS_THRESHOLD} threshold ***")
-            print("Run the FIX IF NEEDED task to improve response quality.")
-
-        # EVALUATE phase: We only need to successfully record the evaluation
-        # The FIX IF NEEDED task handles scores below PASS_THRESHOLD
-        # For EVALUATE, we just ensure we got a non-empty response and recorded it
-        assert results_file.exists(), f"Results file not created: {results_file}"
-
-    def test_response_not_empty(self):
-        """Verify the response is not empty."""
-        api_result = get_mapit_response(PROMPT_003_QUERY)
-        response = api_result["response"]
-
-        assert len(response) > 0, "Response is empty"
-        assert len(response) >= 100, f"Response too short: {len(response)} chars"
-
-    def test_response_mentions_msca_actions(self):
-        """Verify the response mentions the main MSCA action types (informational)."""
-        # Read from saved results to avoid redundant API calls
-        results_file = RESULTS_DIR / "prompt_003_msca.json"
-        if not results_file.exists():
-            pytest.skip("Run test_evaluate_msca first to generate results")
-
-        with open(results_file) as f:
-            result = json.load(f)
-
-        response_lower = result["response"].lower()
-
-        actions_found = 0
-        for action_info in EXPECTED_MSCA_ACTIONS.values():
-            for keyword in action_info["keywords"]:
-                if keyword in response_lower:
-                    actions_found += 1
-                    break
-
-        # This is an informational check - FIX IF NEEDED handles improvements
-        print(f"MSCA action types mentioned: {actions_found}/4")
-        if actions_found < 3:
-            print("Note: Response needs improvement - fewer than 3 MSCA action types")
-
-        # Soft assertion for EVALUATE phase - just verify results exist
-        assert "response" in result, "Response field missing from results"
-
-    def test_response_includes_postdoctoral_fellowship(self):
-        """Check if MSCA-PF (Postdoctoral Fellowships) is explained (informational)."""
-        results_file = RESULTS_DIR / "prompt_003_msca.json"
-        if not results_file.exists():
-            pytest.skip("Run test_evaluate_msca first to generate results")
-
-        with open(results_file) as f:
-            result = json.load(f)
-
-        response_lower = result["response"].lower()
-
-        pf_keywords = ["postdoctoral", "fellowship", "msca-pf", "pf"]
-        has_pf = any(kw in response_lower for kw in pf_keywords)
-
-        # Informational check - FIX IF NEEDED handles improvements
-        print(f"MSCA-PF mentioned: {has_pf}")
-        if not has_pf:
-            print("Note: Response needs improvement - MSCA-PF not explained")
-
-        # Soft assertion - just verify results file structure
-        assert "overall_score" in result, "overall_score missing from results"
-
-    def test_response_includes_doctoral_network(self):
-        """Check if MSCA-DN (Doctoral Networks) is explained (informational)."""
-        results_file = RESULTS_DIR / "prompt_003_msca.json"
-        if not results_file.exists():
-            pytest.skip("Run test_evaluate_msca first to generate results")
-
-        with open(results_file) as f:
-            result = json.load(f)
-
-        response_lower = result["response"].lower()
-
-        dn_keywords = ["doctoral network", "msca-dn", "dn", "phd training", "itn"]
-        has_dn = any(kw in response_lower for kw in dn_keywords)
-
-        # Informational check - FIX IF NEEDED handles improvements
-        print(f"MSCA-DN mentioned: {has_dn}")
-        if not has_dn:
-            print("Note: Response needs improvement - MSCA-DN not explained")
-
-        # Soft assertion - just verify results file structure
-        assert "component_scores" in result, "component_scores missing from results"
-
-
 class TestPrompt003OfflineEvaluation:
     """
     Offline evaluation tests using sample responses.
@@ -819,9 +645,9 @@ class TestPrompt003OfflineEvaluation:
         print(f"  Score: {evaluation.overall_score}/100")
         print(f"  Result: {evaluation.result}")
 
-        assert evaluation.overall_score >= PASS_THRESHOLD, (
-            f"Excellent response scored {evaluation.overall_score}, expected >= {PASS_THRESHOLD}"
-        )
+        assert (
+            evaluation.overall_score >= PASS_THRESHOLD
+        ), f"Excellent response scored {evaluation.overall_score}, expected >= {PASS_THRESHOLD}"
         assert evaluation.result == "PASS"
 
     def test_partial_response_needs_review(self):
@@ -833,9 +659,9 @@ class TestPrompt003OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         # Partial should score below PASS threshold
-        assert evaluation.overall_score < PASS_THRESHOLD, (
-            f"Partial response scored {evaluation.overall_score}, expected < {PASS_THRESHOLD}"
-        )
+        assert (
+            evaluation.overall_score < PASS_THRESHOLD
+        ), f"Partial response scored {evaluation.overall_score}, expected < {PASS_THRESHOLD}"
 
     def test_poor_response_fails(self):
         """Test that a poor response scores < 70 (FAIL)."""
@@ -845,9 +671,9 @@ class TestPrompt003OfflineEvaluation:
         print(f"  Score: {evaluation.overall_score}/100")
         print(f"  Result: {evaluation.result}")
 
-        assert evaluation.overall_score < NEEDS_REVIEW_THRESHOLD, (
-            f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
-        )
+        assert (
+            evaluation.overall_score < NEEDS_REVIEW_THRESHOLD
+        ), f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
         assert evaluation.result == "FAIL"
 
     def test_evaluation_identifies_missing_actions(self):
@@ -869,9 +695,9 @@ class TestPrompt003OfflineEvaluation:
         excellent_specificity = excellent_eval.component_scores[0]["specificity"]
         poor_specificity = poor_eval.component_scores[0]["specificity"]
 
-        assert excellent_specificity > poor_specificity, (
-            f"Excellent specificity ({excellent_specificity}) should be > poor ({poor_specificity})"
-        )
+        assert (
+            excellent_specificity > poor_specificity
+        ), f"Excellent specificity ({excellent_specificity}) should be > poor ({poor_specificity})"
 
     def test_save_evaluation_result_json(self):
         """Test that evaluation results are saved correctly as JSON."""

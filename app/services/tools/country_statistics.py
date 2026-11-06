@@ -9,12 +9,15 @@ Includes country code resolution, eligibility checks, top organizations,
 and aggregate funding statistics.
 """
 
+import asyncio
 import logging
 import os
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+NEO4J_TIMEOUT = 10.0
+SQL_TIMEOUT = 10.0
 
 # Country name/adjective to ISO 3166-1 alpha-2 code mapping
 COUNTRY_CODES: dict[str, str] = {
@@ -174,7 +177,6 @@ async def get_country_statistics_execute(country: str) -> dict[str, Any]:
     # Track sources and degradation
     sources_used: list[str] = []
     degradation_reason: str | None = None
-    neo4j_timeout = 10.0  # seconds
 
     # ==================================================================
     # ATTEMPT 1: Try Neo4j graph database (primary source)
@@ -183,29 +185,28 @@ async def get_country_statistics_execute(country: str) -> dict[str, Any]:
     try:
         from ..data_intelligence.graph_service import GraphSearchService
 
-        graph = GraphSearchService()
-
         def get_neo4j_data():
-            """Fetch all Neo4j data in a single thread."""
+            """Construct and query the synchronous graph service off the event loop."""
+            graph = GraphSearchService()
             eligibility = graph.check_country_eligibility(country_code)
             top_orgs = graph.get_top_organizations(None, country_code, 10)
             return {"eligibility": eligibility, "top_orgs": top_orgs}
 
-        # Execute with timeout
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(get_neo4j_data)
-            try:
-                graph_result = future.result(timeout=neo4j_timeout)
-                sources_used.append("neo4j")
-                logger.info(f"Neo4j country stats for {country_code}: success")
-            except FuturesTimeoutError:
-                degradation_reason = "timeout"
-                logger.warning(
-                    f"Neo4j timeout for country stats ({neo4j_timeout}s) - falling back to SQL"
-                )
-            except Exception as e:
-                degradation_reason = "connection_error"
-                logger.warning(f"Neo4j error: {e} - falling back to SQL")
+        # Cancelling the wait does not join a still-running database thread.
+        try:
+            graph_result = await asyncio.wait_for(
+                asyncio.to_thread(get_neo4j_data), timeout=NEO4J_TIMEOUT
+            )
+            sources_used.append("neo4j")
+            logger.info(f"Neo4j country stats for {country_code}: success")
+        except TimeoutError:
+            degradation_reason = "timeout"
+            logger.warning("Neo4j country statistics timed out; falling back to SQL")
+        except Exception as exc:
+            degradation_reason = "connection_error"
+            logger.warning(
+                "Neo4j country statistics failed (%s); falling back to SQL", type(exc).__name__
+            )
 
     except ImportError:
         degradation_reason = "service_unavailable"
@@ -289,6 +290,17 @@ async def _get_country_stats_sql(country_code: str) -> dict[str, Any] | None:
     Returns:
         Dictionary with SQL-based country statistics, or None if unavailable.
     """
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(_fetch_country_stats_sql, country_code), timeout=SQL_TIMEOUT
+        )
+    except TimeoutError:
+        logger.warning("SQL country statistics timed out")
+        return None
+
+
+def _fetch_country_stats_sql(country_code: str) -> dict[str, Any] | None:
+    """Run synchronous SQL with database timeouts and close resources on failure."""
     import psycopg2
     from psycopg2.extras import RealDictCursor
 
@@ -297,8 +309,14 @@ async def _get_country_stats_sql(country_code: str) -> dict[str, Any] | None:
         logger.warning("DATABASE_URL not set - SQL fallback unavailable")
         return None
 
+    conn = None
+    cursor = None
     try:
-        conn = psycopg2.connect(db_url)
+        conn = psycopg2.connect(
+            db_url,
+            connect_timeout=max(1, int(SQL_TIMEOUT)),
+            options=f"-c statement_timeout={max(1, int(SQL_TIMEOUT * 1000))}",
+        )
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         # Get top organizations in this country
@@ -349,9 +367,6 @@ async def _get_country_stats_sql(country_code: str) -> dict[str, Any] | None:
         cursor.execute(country_stats_query, [country_code])
         stats_row = cursor.fetchone()
 
-        cursor.close()
-        conn.close()
-
         # Build eligibility info based on known country lists
         if country_code in EU_MEMBERS:
             eligibility_status = "EU Member State - Full eligibility"
@@ -378,6 +393,11 @@ async def _get_country_stats_sql(country_code: str) -> dict[str, Any] | None:
             },
         }
 
-    except Exception as e:
-        logger.error(f"SQL country stats fallback error: {e}")
+    except Exception as exc:
+        logger.error("SQL country stats fallback failed (%s)", type(exc).__name__)
         return None
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conn is not None:
+            conn.close()

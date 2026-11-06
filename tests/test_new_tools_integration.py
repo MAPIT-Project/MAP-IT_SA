@@ -25,6 +25,8 @@ These tests verify:
 import asyncio
 import os
 import sys
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -65,9 +67,9 @@ class TestMultiProgrammeSearchConfiguration:
 
         for programme in ["horizon_europe", "erasmus_plus", "eu4health"]:
             assert programme in PROGRAMME_KEYWORDS
-            assert len(PROGRAMME_KEYWORDS[programme]) >= 10, (
-                f"Programme {programme} should have at least 10 keywords"
-            )
+            assert (
+                len(PROGRAMME_KEYWORDS[programme]) >= 10
+            ), f"Programme {programme} should have at least 10 keywords"
 
 
 class TestGetProgrammeInfo:
@@ -214,7 +216,28 @@ class TestQuickQualityCheck:
         The expected result is a scalable platform that can be deployed across
         multiple European regions. We will measure success using quantitative
         metrics including 95% accuracy in detection and 50% reduction in response time.
+
+        Work package one will establish a baseline using historical observations from
+        three pilot regions. Researchers will document data coverage, sensor resolution,
+        seasonal variation, and the uncertainty associated with each observation.
+        Work package two will compare candidate models against the baseline using
+        held out regions rather than randomly splitting neighboring satellite pixels.
+        This design tests whether the approach transfers to locations absent from
+        training data and reduces leakage between the training and evaluation sets.
+
+        Each pilot will involve local monitoring authorities and independent technical
+        reviewers. They will assess whether the resulting alerts identify actionable
+        environmental changes and whether response teams can explain the evidence
+        supporting each alert. We will record false positives, missed events, processing
+        latency, and operating costs using a common evaluation protocol.
+        The consortium will publish the evaluation protocol and document model
+        limitations before deployment. During the final validation period, regional
+        teams will compare the prototype with their existing monitoring workflow.
+        Results will include reproducible measurements, an operational adoption plan,
+        and a risk register with named owners for unresolved technical issues.
         """
+
+        assert len(good_text.split()) >= 200
 
         result = asyncio.run(quick_quality_check_execute(text=good_text, context="objectives"))
 
@@ -238,9 +261,27 @@ class TestProposalSectionScoring:
     """Tests for score_proposal_section_execute function."""
 
     @pytest.mark.asyncio
-    async def test_score_excellence_section(self):
+    async def test_score_excellence_section(self, monkeypatch):
         """Test scoring an excellence section."""
-        from app.services.tools.proposal_quality_scorer import score_proposal_section_execute
+        from app.services.tools.proposal_quality_scorer import (
+            ProposalQualityScorerTool,
+            score_proposal_section_execute,
+        )
+
+        evaluator = SimpleNamespace(
+            evaluate_section=AsyncMock(
+                return_value=SimpleNamespace(
+                    overall_score=3.5,
+                    criterion_scores=[],
+                    esr_summary="Synthetic assessment",
+                    strengths=["Measurable objective"],
+                    weaknesses=["Validation needs detail"],
+                    top_improvements=["Describe the validation baseline"],
+                    confidence=0.8,
+                )
+            )
+        )
+        monkeypatch.setattr(ProposalQualityScorerTool, "_get_evaluator", lambda owner: evaluator)
 
         content = """
         Our project aims to advance the state of the art in renewable energy storage.
@@ -256,8 +297,15 @@ class TestProposalSectionScoring:
 
         assert result["success"] is True
         assert "score" in result
-        assert 0 <= result["score"] <= 5.0
+        assert result["score"] == 3.5
         assert "quality_level" in result
+        evaluator.evaluate_section.assert_awaited_once_with(
+            section_text=content,
+            section_type="excellence",
+            section_id="objectives",
+            call_id=None,
+            action_type="RIA",
+        )
 
     @pytest.mark.asyncio
     async def test_short_content_rejected(self):
@@ -502,7 +550,10 @@ class TestToolAwareAgentIntegration:
         """Verify new tools are registered in ToolAwareAgent."""
         from app.services.agents.tool_aware_agent import ToolAwareAgent
 
-        agent = ToolAwareAgent()
+        # Tool registration is independent of model/Redis/client construction.
+        agent = ToolAwareAgent.__new__(ToolAwareAgent)
+        agent.tools = {}
+        agent._init_tools()
 
         # Check multi-programme tools
         assert "search_all_programmes" in agent.tools
@@ -521,7 +572,9 @@ class TestToolAwareAgentIntegration:
         """Verify tool implementation methods exist."""
         from app.services.agents.tool_aware_agent import ToolAwareAgent
 
-        agent = ToolAwareAgent()
+        agent = ToolAwareAgent.__new__(ToolAwareAgent)
+        agent.tools = {}
+        agent._init_tools()
 
         # Multi-programme tools
         assert hasattr(agent, "_tool_search_all_programmes")
@@ -540,7 +593,9 @@ class TestToolAwareAgentIntegration:
         """Verify all tools have descriptions for LLM."""
         from app.services.agents.tool_aware_agent import ToolAwareAgent
 
-        agent = ToolAwareAgent()
+        agent = ToolAwareAgent.__new__(ToolAwareAgent)
+        agent.tools = {}
+        agent._init_tools()
 
         for tool_name in ["search_all_programmes", "validate_budget", "score_proposal_section"]:
             tool = agent.tools.get(tool_name)

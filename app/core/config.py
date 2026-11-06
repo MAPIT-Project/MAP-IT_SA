@@ -2,6 +2,8 @@
 Application configuration settings.
 """
 
+from typing import Literal
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
@@ -28,6 +30,12 @@ class Settings(BaseSettings):
     openrouter_api_key: str | None = None
     default_ai_provider: AIProvider = "gemini"
     ai_step_providers: dict[str, AIProvider] = Field(default_factory=dict)
+    agent_framework: Literal["pydantic", "legacy"] = "pydantic"
+    agent_model_timeout_seconds: float = Field(default=30.0, gt=0, le=600)
+    agent_run_timeout_seconds: float = Field(default=300.0, gt=0, le=1800)
+    agent_tool_timeout_seconds: float = Field(default=60.0, gt=0, le=600)
+    agent_max_tool_calls: int = Field(default=20, ge=1, le=100)
+    agent_tool_result_max_chars: int = Field(default=20000, ge=1000, le=200000)
     # Local CLI integration is opt-in, independently of provider selection.
     codex_enabled: bool = False
     codex_cli_path: str = "codex"

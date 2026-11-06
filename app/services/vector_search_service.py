@@ -11,6 +11,7 @@ from typing import Any
 import numpy as np
 
 from ..core.config import settings
+from .document_content import clean_document_text, is_usable_document_text
 from .embedding_service import EmbeddingService
 from .supabase_client import SupabaseVectorStore
 
@@ -128,10 +129,12 @@ class VectorSearchService:
             # Convert to SearchResult objects
             results = []
             for r in raw_results:
+                if not is_usable_document_text(r["content"]):
+                    continue
                 result = SearchResult(
                     chunk_id=r["chunk_id"],
                     document_id=r["document_id"],
-                    content=r["content"],
+                    content=clean_document_text(r["content"]),
                     document_title=r["document_title"],
                     document_type=r.get("document_type", "unknown"),
                     score=r["similarity"],
@@ -179,10 +182,12 @@ class VectorSearchService:
             # Convert to SearchResult objects
             results = []
             for r in raw_results.data:
+                if not is_usable_document_text(r["content"]):
+                    continue
                 result = SearchResult(
                     chunk_id=r["chunk_id"],
                     document_id=r["document_id"],
-                    content=r["content"],
+                    content=clean_document_text(r["content"]),
                     document_title=r["document_title"],
                     document_type=r.get("document_type", "unknown"),
                     score=r["score"],
@@ -211,6 +216,12 @@ class VectorSearchService:
         """Hybrid search combining semantic and keyword search."""
 
         try:
+            # The existing hybrid RPC does not return document_type and cannot
+            # accept these filters. Use the existing filtered semantic RPC;
+            # filtering absent fields locally otherwise discards every hit.
+            if filters and (filters.get("document_type") or filters.get("year")):
+                return self.semantic_search(query, num_results, filters, similarity_threshold)
+
             # Generate query embedding
             query_embedding = self.embedder.generate_query_embedding(query)
 
@@ -229,10 +240,12 @@ class VectorSearchService:
             # Convert to SearchResult objects
             results = []
             for r in raw_results:
+                if not is_usable_document_text(r["content"]):
+                    continue
                 result = SearchResult(
                     chunk_id=r["chunk_id"],
                     document_id=r["document_id"],
-                    content=r["content"],
+                    content=clean_document_text(r["content"]),
                     document_title=r["document_title"],
                     document_type=r.get("document_type", "unknown"),
                     score=r["combined_score"],

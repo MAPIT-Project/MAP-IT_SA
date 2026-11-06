@@ -17,13 +17,15 @@ Pass threshold: 75/100
 
 import pytest
 
+from tests.agent_test_support import isolate_agent_loop
+
 
 class TestLanguageDetection:
     """Unit tests for the detect_query_language function."""
 
     def test_imports(self):
         """Test that required imports work."""
-        from app.services.agents.tool_aware_agent import (
+        from app.services.agents.query_preprocessing import (
             LANGUAGE_INDICATORS,
             LanguageDetectionResult,
             TranslationResult,
@@ -42,7 +44,7 @@ class TestLanguageDetection:
 
     def test_language_detection_result_dataclass(self):
         """Test LanguageDetectionResult dataclass structure."""
-        from app.services.agents.tool_aware_agent import LanguageDetectionResult
+        from app.services.agents.query_preprocessing import LanguageDetectionResult
 
         result = LanguageDetectionResult(
             original_query="Trouvez des appels",
@@ -63,7 +65,7 @@ class TestLanguageDetection:
 
     def test_translation_result_dataclass(self):
         """Test TranslationResult dataclass structure."""
-        from app.services.agents.tool_aware_agent import TranslationResult
+        from app.services.agents.query_preprocessing import TranslationResult
 
         result = TranslationResult(
             original_query="Trouvez des appels",
@@ -82,7 +84,7 @@ class TestLanguageDetection:
 
     def test_empty_query_detection(self):
         """Test handling of empty queries."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         result = detect_query_language("")
         assert result.is_english is True
@@ -91,7 +93,7 @@ class TestLanguageDetection:
 
     def test_english_query_detection(self):
         """Test that English queries are correctly identified."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         queries = [
             "Find funding calls for renewable energy",
@@ -111,7 +113,7 @@ class TestFrenchDetection:
 
     def test_french_query_prd_example(self):
         """Test the exact PRD example: 'Trouvez des appels pour l'énergie renouvelable'."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Trouvez des appels pour l'énergie renouvelable"
         result = detect_query_language(query)
@@ -123,7 +125,7 @@ class TestFrenchDetection:
 
     def test_french_funding_query(self):
         """Test French funding-related query."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Quels sont les appels de financement pour la recherche?"
         result = detect_query_language(query)
@@ -133,7 +135,7 @@ class TestFrenchDetection:
 
     def test_french_eligibility_query(self):
         """Test French eligibility question."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Est-ce qu'une université française peut participer à Horizon Europe?"
         result = detect_query_language(query)
@@ -143,7 +145,7 @@ class TestFrenchDetection:
 
     def test_french_contraction_detection(self):
         """Test detection via French contractions (l', d', qu', etc.)."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Je cherche d'autres subventions pour l'innovation"
         result = detect_query_language(query)
@@ -157,7 +159,7 @@ class TestGermanDetection:
 
     def test_german_funding_query(self):
         """Test German funding-related query."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Finden Sie Förderungsmöglichkeiten für erneuerbare Energie"
         result = detect_query_language(query)
@@ -168,7 +170,7 @@ class TestGermanDetection:
 
     def test_german_research_query(self):
         """Test German research query."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Welche Forschungsprojekte gibt es für künstliche Intelligenz?"
         result = detect_query_language(query)
@@ -178,7 +180,7 @@ class TestGermanDetection:
 
     def test_german_eligibility_query(self):
         """Test German eligibility question."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Können wir als deutsches Unternehmen an EU-Projekten teilnehmen?"
         result = detect_query_language(query)
@@ -192,7 +194,7 @@ class TestSpanishDetection:
 
     def test_spanish_funding_query(self):
         """Test Spanish funding-related query."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Buscar convocatorias para energía renovable"
         result = detect_query_language(query)
@@ -203,7 +205,7 @@ class TestSpanishDetection:
 
     def test_spanish_project_query(self):
         """Test Spanish project search query."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Encontrar proyectos de investigación sobre cambio climático"
         result = detect_query_language(query)
@@ -217,7 +219,7 @@ class TestItalianDetection:
 
     def test_italian_funding_query(self):
         """Test Italian funding-related query."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Cercare bandi per finanziamento ricerca"
         result = detect_query_language(query)
@@ -228,7 +230,7 @@ class TestItalianDetection:
 
     def test_italian_eligibility_query(self):
         """Test Italian eligibility question."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Possiamo partecipare come università italiana?"
         result = detect_query_language(query)
@@ -242,7 +244,7 @@ class TestPortugueseDetection:
 
     def test_portuguese_funding_query(self):
         """Test Portuguese funding-related query."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Encontrar chamadas para financiamento de pesquisa"
         result = detect_query_language(query)
@@ -257,7 +259,7 @@ class TestDutchDetection:
 
     def test_dutch_funding_query(self):
         """Test Dutch funding-related query."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Zoeken naar subsidies voor hernieuwbare energie onderzoek"
         result = detect_query_language(query)
@@ -272,7 +274,7 @@ class TestPolishDetection:
 
     def test_polish_funding_query(self):
         """Test Polish funding-related query with diacritics."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Szukać nabory dla badania energii odnawialnej"
         result = detect_query_language(query)
@@ -287,7 +289,7 @@ class TestTranslation:
 
     def test_translation_without_llm(self):
         """Test that translation gracefully handles missing LLM."""
-        from app.services.agents.tool_aware_agent import translate_query_to_english
+        from app.services.agents.query_preprocessing import translate_query_to_english
 
         result = translate_query_to_english(
             query="Trouvez des appels",
@@ -303,7 +305,7 @@ class TestTranslation:
 
     def test_translation_result_structure(self):
         """Test TranslationResult has correct structure."""
-        from app.services.agents.tool_aware_agent import TranslationResult
+        from app.services.agents.query_preprocessing import TranslationResult
 
         result = TranslationResult(
             original_query="Test query",
@@ -328,7 +330,7 @@ class TestPreprocessNonEnglishQuery:
 
     def test_english_query_passthrough(self):
         """Test that English queries are passed through unchanged."""
-        from app.services.agents.tool_aware_agent import preprocess_non_english_query
+        from app.services.agents.query_preprocessing import preprocess_non_english_query
 
         query = "Find renewable energy funding calls"
         processed_query, metadata = preprocess_non_english_query(query)
@@ -338,7 +340,7 @@ class TestPreprocessNonEnglishQuery:
 
     def test_french_query_without_llm(self):
         """Test French query detection without LLM translation."""
-        from app.services.agents.tool_aware_agent import preprocess_non_english_query
+        from app.services.agents.query_preprocessing import preprocess_non_english_query
 
         query = "Trouvez des appels pour l'énergie renouvelable"
         processed_query, metadata = preprocess_non_english_query(query, llm=None)
@@ -351,7 +353,7 @@ class TestPreprocessNonEnglishQuery:
 
     def test_german_query_without_llm(self):
         """Test German query detection without LLM translation."""
-        from app.services.agents.tool_aware_agent import preprocess_non_english_query
+        from app.services.agents.query_preprocessing import preprocess_non_english_query
 
         query = "Finden Sie Förderungsmöglichkeiten für erneuerbare Energie"
         processed_query, metadata = preprocess_non_english_query(query, llm=None)
@@ -366,7 +368,7 @@ class TestLanguageIndicators:
 
     def test_all_languages_have_required_keys(self):
         """Test that all language entries have required keys."""
-        from app.services.agents.tool_aware_agent import LANGUAGE_INDICATORS
+        from app.services.agents.query_preprocessing import LANGUAGE_INDICATORS
 
         required_keys = ["words", "patterns", "name"]
 
@@ -376,21 +378,21 @@ class TestLanguageIndicators:
 
     def test_all_languages_have_words(self):
         """Test that all languages have word lists."""
-        from app.services.agents.tool_aware_agent import LANGUAGE_INDICATORS
+        from app.services.agents.query_preprocessing import LANGUAGE_INDICATORS
 
         for lang_code, indicators in LANGUAGE_INDICATORS.items():
             assert len(indicators["words"]) > 0, f"Language {lang_code} has no words"
 
     def test_all_languages_have_patterns(self):
         """Test that all languages have pattern lists."""
-        from app.services.agents.tool_aware_agent import LANGUAGE_INDICATORS
+        from app.services.agents.query_preprocessing import LANGUAGE_INDICATORS
 
         for lang_code, indicators in LANGUAGE_INDICATORS.items():
             assert len(indicators["patterns"]) >= 0, f"Language {lang_code} has no patterns"
 
     def test_supported_languages(self):
         """Test that we support expected EU languages."""
-        from app.services.agents.tool_aware_agent import LANGUAGE_INDICATORS
+        from app.services.agents.query_preprocessing import LANGUAGE_INDICATORS
 
         # Key EU languages that should be supported
         expected_languages = ["fr", "de", "es", "it", "pt", "nl", "pl"]
@@ -411,6 +413,7 @@ class TestProcessQueryIntegration:
 
         # Create a mock agent
         agent = ToolAwareAgent.__new__(ToolAwareAgent)
+        isolate_agent_loop(agent)
         agent.tools = {}
         agent.max_iterations = 1
         agent.speculative_executor = None
@@ -445,6 +448,9 @@ class TestProcessQueryIntegration:
         assert "translation_metadata" in result
         assert result["translation_metadata"]["original_language"] == "fr"
         assert result["translation_metadata"]["was_translated"] is True
+        assert agent._execute_react_loop.call_args.kwargs["query"] == (
+            "Find funding calls for renewable energy"
+        )
         assert "answer" in result
 
     @pytest.mark.asyncio
@@ -456,6 +462,7 @@ class TestProcessQueryIntegration:
 
         # Create a mock agent
         agent = ToolAwareAgent.__new__(ToolAwareAgent)
+        isolate_agent_loop(agent)
         agent.tools = {}
         agent.max_iterations = 1
         agent.speculative_executor = None
@@ -489,7 +496,7 @@ class TestEdgeCases:
 
     def test_mixed_language_query(self):
         """Test query with mixed English and French."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         # Query with mostly French but some English terms
         query = "Trouvez des appels Horizon Europe pour AI research"
@@ -500,7 +507,7 @@ class TestEdgeCases:
 
     def test_query_with_programme_names(self):
         """Test that EU programme names don't confuse detection."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Chercher des appels Creative Europe et Erasmus+"
         result = detect_query_language(query)
@@ -510,7 +517,7 @@ class TestEdgeCases:
 
     def test_short_query_defaults_to_english(self):
         """Test that very short queries default to English."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         # Single word that could be in multiple languages
         query = "help"
@@ -521,7 +528,7 @@ class TestEdgeCases:
 
     def test_numbers_only_query(self):
         """Test query with only numbers."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "12345"
         result = detect_query_language(query)
@@ -532,7 +539,7 @@ class TestEdgeCases:
 
     def test_special_characters_in_non_english(self):
         """Test French query with special characters."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Trouvez des appels pour l'énergie renouvelable & CO₂"
         result = detect_query_language(query)
@@ -546,7 +553,7 @@ class TestConfidenceScoring:
 
     def test_high_confidence_for_clear_french(self):
         """Test high confidence for clearly French query."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         query = "Je cherche des subventions européennes pour notre université française"
         result = detect_query_language(query)
@@ -556,7 +563,7 @@ class TestConfidenceScoring:
 
     def test_confidence_scales_with_matches(self):
         """Test that confidence increases with more word matches."""
-        from app.services.agents.tool_aware_agent import detect_query_language
+        from app.services.agents.query_preprocessing import detect_query_language
 
         # Short query with few French words
         short_query = "appels financement"
@@ -576,21 +583,21 @@ class TestTranslationPrompt:
 
     def test_translation_prompt_template_exists(self):
         """Test that translation prompt template is defined."""
-        from app.services.agents.tool_aware_agent import TRANSLATION_PROMPT_TEMPLATE
+        from app.services.agents.query_preprocessing import TRANSLATION_PROMPT_TEMPLATE
 
         assert TRANSLATION_PROMPT_TEMPLATE is not None
         assert len(TRANSLATION_PROMPT_TEMPLATE) > 0
 
     def test_translation_prompt_has_placeholders(self):
         """Test that prompt template has required placeholders."""
-        from app.services.agents.tool_aware_agent import TRANSLATION_PROMPT_TEMPLATE
+        from app.services.agents.query_preprocessing import TRANSLATION_PROMPT_TEMPLATE
 
         assert "{source_lang}" in TRANSLATION_PROMPT_TEMPLATE
         assert "{query}" in TRANSLATION_PROMPT_TEMPLATE
 
     def test_translation_prompt_mentions_eu_terms(self):
         """Test that prompt mentions preserving EU funding terms."""
-        from app.services.agents.tool_aware_agent import TRANSLATION_PROMPT_TEMPLATE
+        from app.services.agents.query_preprocessing import TRANSLATION_PROMPT_TEMPLATE
 
         # Should mention preserving programme names
         template_lower = TRANSLATION_PROMPT_TEMPLATE.lower()
@@ -610,6 +617,7 @@ class TestStreamingQueryHandling:
 
         # Create a mock agent
         agent = ToolAwareAgent.__new__(ToolAwareAgent)
+        isolate_agent_loop(agent)
         agent.tools = {}
         agent.max_iterations = 1
         agent.speculative_executor = None

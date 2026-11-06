@@ -37,6 +37,9 @@ Text generation can also use the authenticated local Codex CLI. See
 global and named-step selection, and host limitations. Google embeddings keep
 their existing model and 3072-dimensional vectors.
 
+This branch uses Pydantic AI for provider-independent Python tool calling in V3
+chat and V4 proposal sessions. See [agent migration and rollback](docs_tracked/PYDANTIC_AI_AGENT.md).
+
 ### Installation & Setup
 
 1. **Clone & Enter**
@@ -102,12 +105,13 @@ The project has transitioned to a **Simplified Agentic Architecture**:
 
 We use `make` for common tasks:
 ```bash
-make test    # Run all pytest scenarios
+make test    # Run guarded offline tests
 make lint    # Run ruff check (Excludes .claude templates)
 make format  # Auto-format with black, isort, and ruff
 ```
 
-**Testing Tip**: Scenario-based tests are located in `tests/scenarios/`. Use these to verify complex multi-turn conversation flows.
+See [test tiers and live prerequisites](docs_tracked/TESTING.md) for offline
+guards, `make test-live`, and the difference between mocked tests and live evaluation.
 
 ---
 

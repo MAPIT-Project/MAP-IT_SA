@@ -245,6 +245,8 @@ async def send_message(
 
         response_text = result.get("response", "")
         metadata = result.get("metadata", {})
+        if result.get("error"):
+            raise HTTPException(status_code=503, detail=result["error"])
 
         # Calculate response time
         response_time_ms = int((time.time() - start_time) * 1000)
@@ -271,6 +273,8 @@ async def send_message(
 
         return MessageResponse(response=response_text, metadata=metadata)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[V3] Error in send_message: {e}")
         status = "error"

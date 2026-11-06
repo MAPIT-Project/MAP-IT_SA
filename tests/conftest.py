@@ -24,6 +24,29 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--run-live",
+        action="store_true",
+        default=False,
+        help="Run tests requiring a provisioned MAPIT API, databases or real AI providers.",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    run_live = config.getoption("--run-live")
+    if run_live and os.environ.get("MAPIT_OFFLINE_TESTS") == "1":
+        raise pytest.UsageError("--run-live cannot be used with scripts/test_offline.py")
+    if not run_live:
+        requires_services = pytest.mark.skip(
+            reason="Live service test: provision a disposable test instance and use --run-live"
+        )
+        for item in items:
+            if item.get_closest_marker("live"):
+                item.add_marker(requires_services)
+
+
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

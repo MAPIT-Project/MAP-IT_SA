@@ -435,9 +435,9 @@ class TestScenario039UrgentDeadlineQuery:
         )
 
         result = evaluator.evaluate(query, excellent_response)
-        assert result["total_score"] >= 80, (
-            f"Excellent response should score 80+, got {result['total_score']}"
-        )
+        assert (
+            result["total_score"] >= 80
+        ), f"Excellent response should score 80+, got {result['total_score']}"
         assert result["passed"], "Excellent response should pass"
 
     def test_encouraging_response_scores_low(self, evaluator):
@@ -461,9 +461,9 @@ class TestScenario039UrgentDeadlineQuery:
 
         result = evaluator.evaluate(query, bad_response)
         # Should score low because it encourages unrealistic applications
-        assert result["total_score"] < 60, (
-            f"Encouraging rushed apps should score <60, got {result['total_score']}"
-        )
+        assert (
+            result["total_score"] < 60
+        ), f"Encouraging rushed apps should score <60, got {result['total_score']}"
         assert not result["passed"], "Encouraging rushed applications should fail"
 
     def test_neutral_response_with_no_warning_scores_medium(self, evaluator):
@@ -486,9 +486,9 @@ You can also contact your National Contact Point for guidance."""
 
         result = evaluator.evaluate(query, neutral_response)
         # Neutral without strong warnings should be medium
-        assert 40 <= result["total_score"] < 80, (
-            f"Neutral response should be 40-79, got {result['total_score']}"
-        )
+        assert (
+            40 <= result["total_score"] < 80
+        ), f"Neutral response should be 40-79, got {result['total_score']}"
 
     def test_good_response_with_alternatives(self, evaluator):
         """Test that a response with warnings and alternatives scores well."""
@@ -510,9 +510,9 @@ You can also contact your National Contact Point for guidance."""
         )
 
         result = evaluator.evaluate(query, good_response)
-        assert result["total_score"] >= 70, (
-            f"Good response should score 70+, got {result['total_score']}"
-        )
+        assert (
+            result["total_score"] >= 70
+        ), f"Good response should score 70+, got {result['total_score']}"
 
     def test_dimension_weights_correct(self, evaluator):
         """Test that dimension weights sum to 100."""
@@ -588,9 +588,9 @@ But you probably shouldn't apply because it's too late."""
 
         result = evaluator.evaluate(query, response_no_alternatives)
         # Partial fulfillment - warns but doesn't give alternatives
-        assert result["dimensions"]["query_fulfillment"] <= 30, (
-            "Should lose points for no alternatives"
-        )
+        assert (
+            result["dimensions"]["query_fulfillment"] <= 30
+        ), "Should lose points for no alternatives"
 
     def test_response_with_ncp_scores_higher(self, evaluator):
         """Test that mentioning NCP improves actionability score."""
@@ -623,139 +623,3 @@ But you probably shouldn't apply because it's too late."""
     # --------------------------------------------------------------------------
     # Live API tests (require running server)
     # --------------------------------------------------------------------------
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_live_api_primary_query(self, evaluator):
-        """Test primary query against live API."""
-        query = "Are there any calls closing this week I could apply to?"
-        response_text, conv_id, tools = await send_query(query)
-
-        result = evaluator.evaluate(query, response_text)
-        save_result(result, query, response_text)
-
-        # The response should pass
-        assert result["passed"], (
-            f"Live API response should pass (score: {result['total_score']}). "
-            f"Feedback: {result['feedback']}"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_live_api_has_realistic_assessment(self, evaluator):
-        """Test that live response includes realistic time assessment."""
-        query = "Are there any calls closing this week I could apply to?"
-        response_text, _, _ = await send_query(query)
-        response_lower = response_text.lower()
-
-        # Must have realistic assessment
-        realism_indicators = [
-            "not enough time",
-            "almost never enough",
-            "too late",
-            "unrealistic",
-            "not feasible",
-            "rushed",
-            "quality",
-            "success rate",
-        ]
-        has_realism = any(ind in response_lower for ind in realism_indicators)
-        assert has_realism, (
-            "Response should include realistic assessment about time. "
-            f"Response excerpt: {response_text[:500]}"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_live_api_does_not_encourage_rushing(self, evaluator):
-        """Test that live response does NOT encourage rushing to submit."""
-        query = "Are there any calls closing this week I could apply to?"
-        response_text, _, _ = await send_query(query)
-        response_lower = response_text.lower()
-
-        # Should NOT have encouraging patterns (without negation)
-        bad_patterns = [
-            "you can definitely apply",
-            "go for it",
-            "plenty of time",
-            "don't miss this",
-            "hurry up",
-            "quick and easy",
-        ]
-        for pattern in bad_patterns:
-            assert pattern not in response_lower, (
-                f"Response should NOT encourage rushing: found '{pattern}'"
-            )
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_live_api_suggests_alternatives(self, evaluator):
-        """Test that live response suggests alternatives."""
-        query = "Are there any calls closing this week I could apply to?"
-        response_text, _, _ = await send_query(query)
-        response_lower = response_text.lower()
-
-        # Should suggest alternatives
-        alternative_indicators = [
-            "next",
-            "later",
-            "instead",
-            "alternative",
-            "partner",
-            "option",
-            "cut-off",
-            "future",
-        ]
-        has_alternatives = any(ind in response_lower for ind in alternative_indicators)
-        assert has_alternatives, (
-            f"Response should suggest alternatives. Response excerpt: {response_text[:500]}"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_live_api_variant_closing_soon(self, evaluator):
-        """Test variant query: 'Any calls closing soon?'"""
-        query = "Any calls closing soon I could submit a proposal for?"
-        response_text, _, _ = await send_query(query)
-        response_lower = response_text.lower()
-
-        # Should still detect as imminent deadline query and warn
-        time_warning = any(
-            ind in response_lower
-            for ind in ["not enough", "time", "realistic", "weeks", "months", "preparation"]
-        )
-        assert time_warning, "Should warn about time requirements"
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_live_api_variant_deadline_this_week(self, evaluator):
-        """Test variant query: 'What deadlines are coming up this week?'"""
-        query = "What funding call deadlines are coming up this week?"
-        response_text, _, _ = await send_query(query)
-
-        result = evaluator.evaluate(query, response_text)
-        # Should have reasonable score
-        assert result["total_score"] >= 60, (
-            f"Variant query should score 60+, got {result['total_score']}"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.integration
-    async def test_live_api_mentions_typical_timeline(self, evaluator):
-        """Test that response mentions typical preparation timeline."""
-        query = "Are there any calls closing this week I could apply to?"
-        response_text, _, _ = await send_query(query)
-        response_lower = response_text.lower()
-
-        # Should mention typical preparation time
-        timeline_patterns = [
-            r"\d+.*week",
-            r"\d+.*month",
-            "typical.*time",
-            "minimum.*time",
-            "preparation.*time",
-        ]
-        has_timeline = any(re.search(pat, response_lower) for pat in timeline_patterns)
-        assert has_timeline, (
-            f"Response should mention typical preparation timeline. Response: {response_text[:600]}"
-        )

@@ -4,6 +4,7 @@ Each method delegates to a dedicated tool module in app/services/tools/.
 Extracted from tool_aware_agent.py for maintainability.
 """
 
+import asyncio
 import json
 import logging
 from typing import Any
@@ -103,6 +104,10 @@ class ToolExecutorsMixin:
 
             return await get_programme_statistics_execute(
                 programme=params.get("programme", ""),
+                metric=params.get("metric"),
+                year=params.get("year"),
+                year_from=params.get("year_from"),
+                year_to=params.get("year_to"),
             )
         except Exception as e:
             logger.error(f"Programme stats error: {e}")
@@ -116,6 +121,10 @@ class ToolExecutorsMixin:
             return await compare_programmes_execute(
                 programme_a=params.get("programme_a", ""),
                 programme_b=params.get("programme_b", ""),
+                metrics=params.get("metrics"),
+                year=params.get("year"),
+                year_from=params.get("year_from"),
+                year_to=params.get("year_to"),
             )
         except Exception as e:
             logger.error(f"Compare programmes error: {e}")
@@ -359,11 +368,15 @@ class ToolExecutorsMixin:
             logger.info(f"_tool_get_budget_benchmark: cluster param = {cluster_param!r}")
 
             tool = BudgetBenchmarkTool()
-            result = tool.get_benchmark(
+            result = await asyncio.to_thread(
+                tool.get_benchmark,
                 cluster=cluster_param,
                 action_type=params.get("action_type"),
                 topic_keywords=params.get("topic_keywords"),
                 year=params.get("year"),
+                programme=params.get("programme"),
+                year_from=params.get("year_from"),
+                year_to=params.get("year_to"),
             )
 
             return result
@@ -441,8 +454,6 @@ class ToolExecutorsMixin:
     async def _tool_get_similar_funded_projects(self, params: dict) -> dict:
         """Find funded projects semantically similar to a description."""
         try:
-            from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
-
             from ..tools.similar_projects import SimilarProjectsTool
 
             cluster_param = self._extract_cluster_param(params)
@@ -462,20 +473,18 @@ class ToolExecutorsMixin:
                     similarity_threshold=params.get("similarity_threshold", 0.3),
                 )
 
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(_execute)
-                try:
-                    result = future.result(timeout=60)
-                    return result
-                except FuturesTimeoutError:
-                    logger.warning("Similar projects tool timed out at agent level (60s)")
-                    return tool._get_keyword_fallback(
-                        description=params.get("description", ""),
-                        cluster=cluster_param,
-                        action_type=params.get("action_type"),
-                        limit=fetch_limit,
-                        fallback_reason="agent_level_timeout",
-                    )
+            try:
+                return await asyncio.wait_for(asyncio.to_thread(_execute), timeout=60)
+            except TimeoutError:
+                logger.warning("Similar projects tool timed out at agent level (60s)")
+                return await asyncio.to_thread(
+                    tool._get_keyword_fallback,
+                    description=params.get("description", ""),
+                    cluster=cluster_param,
+                    action_type=params.get("action_type"),
+                    limit=fetch_limit,
+                    fallback_reason="agent_level_timeout",
+                )
 
         except Exception as e:
             logger.error(f"Similar projects error: {e}")

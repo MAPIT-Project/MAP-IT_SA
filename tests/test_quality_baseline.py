@@ -18,7 +18,6 @@ Usage:
     pytest tests/test_quality_baseline.py::TestQualityBaseline::test_measure_quality_baseline -v
 """
 
-import asyncio
 import json
 import logging
 import os
@@ -28,10 +27,7 @@ from typing import Any
 
 import pytest
 
-from tests.agents.conversation_flow_agent import (
-    ConversationFlowAgent,
-    ConversationScenario,
-)
+from tests.agents.conversation_flow_agent import ConversationScenario
 from tests.agents.quality_evaluator_agent import (
     ConversationQualityResult,
     QualityEvaluatorAgent,
@@ -54,19 +50,17 @@ PASSING_THRESHOLD = 75  # Minimum quality score to pass
 # =============================================================================
 
 
+@pytest.fixture(autouse=True)
+def isolated_baseline_output(tmp_path, monkeypatch):
+    """Baseline measurements never overwrite committed evaluation history."""
+    monkeypatch.setattr(__name__ + ".RESULTS_DIR", tmp_path)
+    monkeypatch.setattr(__name__ + ".BASELINE_FILE", tmp_path / BASELINE_FILE.name)
+
+
 @pytest.fixture
 def api_base_url():
     """Get API base URL from environment or default."""
     return os.environ.get("TEST_API_URL", DEFAULT_API_URL)
-
-
-@pytest.fixture
-def conversation_agent(api_base_url):
-    """Create a conversation flow agent."""
-    return ConversationFlowAgent(
-        base_url=api_base_url,
-        timeout=DEFAULT_TIMEOUT,
-    )
 
 
 @pytest.fixture
@@ -224,211 +218,6 @@ def quality_result_to_dict(result: ConversationQualityResult) -> dict[str, Any]:
 # =============================================================================
 
 
-class TestQualityBaseline:
-    """Tests for measuring and recording quality baselines."""
-
-    @pytest.mark.asyncio
-    async def test_measure_quality_baseline(
-        self,
-        api_base_url: str,
-        quality_evaluator: QualityEvaluatorAgent,
-    ):
-        """
-        Measure quality baseline for all basic_flows scenarios.
-
-        Task 022: Quality Baseline Measurement
-        - Run all basic_flows scenarios and record quality scores
-        - Save baseline to tests/quality/results/conversation_quality_baseline.json
-        - Create summary of average scores per scenario
-        - Identify lowest scoring areas
-        """
-        # Load basic_flows scenarios
-        scenarios = load_basic_flows_scenarios()
-        assert len(scenarios) > 0, "No basic_flows scenarios found"
-
-        logger.info(f"Loaded {len(scenarios)} basic_flows scenarios")
-
-        # Results storage
-        scenario_results: dict[str, Any] = {}
-
-        # Run each scenario and evaluate quality
-        for scenario in scenarios:
-            logger.info(f"Running scenario: {scenario.name}")
-
-            # Create fresh agent for each scenario
-            agent = ConversationFlowAgent(
-                base_url=api_base_url,
-                timeout=DEFAULT_TIMEOUT,
-            )
-
-            turns_data = []
-            scenario_errors = []
-
-            # Execute all steps in the scenario
-            for step_index, step in enumerate(scenario.steps):
-                try:
-                    # Apply delay if specified
-                    if step.delay_ms > 0:
-                        await asyncio.sleep(step.delay_ms / 1000.0)
-
-                    turn = await agent.send_message(step.message)
-
-                    # Record turn data for quality evaluation
-                    turns_data.append(
-                        {
-                            "query": step.message,
-                            "response": turn.response_text or f"Error: {turn.error}",
-                            "tools_used": turn.tools_used,
-                            "has_error": turn.has_error,
-                            "processing_time_ms": turn.processing_time_ms,
-                        }
-                    )
-
-                    if turn.has_error:
-                        scenario_errors.append(
-                            {
-                                "step": step_index,
-                                "error": turn.error,
-                            }
-                        )
-                        logger.warning(f"  Step {step_index + 1} error: {turn.error}")
-                    else:
-                        logger.info(
-                            f"  Step {step_index + 1} completed: "
-                            f"{len(turn.response_text)} chars, "
-                            f"tools: {turn.tools_used}"
-                        )
-
-                except Exception as e:
-                    scenario_errors.append(
-                        {
-                            "step": step_index,
-                            "error": str(e),
-                        }
-                    )
-                    turns_data.append(
-                        {
-                            "query": step.message,
-                            "response": f"Exception: {str(e)}",
-                            "tools_used": [],
-                            "has_error": True,
-                        }
-                    )
-
-            # Evaluate quality for this scenario
-            if turns_data:
-                quality_result = await quality_evaluator.evaluate_conversation(turns_data)
-
-                # Store results
-                scenario_results[scenario.name] = {
-                    **quality_result_to_dict(quality_result),
-                    "steps_completed": len(turns_data),
-                    "steps_total": len(scenario.steps),
-                    "errors": scenario_errors,
-                    "turns_data": turns_data,
-                }
-
-                logger.info(
-                    f"  Quality: avg={quality_result.average_score:.1f}, "
-                    f"trend={quality_result.trend}, "
-                    f"degradation={quality_result.degradation_detected}"
-                )
-            else:
-                scenario_results[scenario.name] = {
-                    "error": "No turns completed",
-                    "errors": scenario_errors,
-                }
-
-        # Calculate summary statistics
-        summary = calculate_summary(scenario_results)
-
-        # Build final results
-        baseline_results = {
-            "scenarios": scenario_results,
-            "summary": summary,
-        }
-
-        # Save baseline to file
-        save_baseline_results(baseline_results)
-
-        # Log summary
-        logger.info("=" * 60)
-        logger.info("QUALITY BASELINE SUMMARY")
-        logger.info("=" * 60)
-        logger.info(f"Total scenarios: {summary['total_scenarios']}")
-        logger.info(f"Total turns evaluated: {summary['total_turns_evaluated']}")
-        logger.info(f"Overall average score: {summary['overall_average_score']:.1f}/100")
-        min_score = summary["overall_min_score"]
-        max_score = summary["overall_max_score"]
-        logger.info(f"Score range: {min_score:.0f} - {max_score:.0f}")
-        logger.info(f"Dimension averages: {summary['dimension_averages']}")
-        logger.info(f"Lowest scoring areas: {summary['lowest_scoring_areas']}")
-
-        if "lowest_scoring_scenarios" in summary:
-            logger.info(f"Lowest scoring scenarios: {summary['lowest_scoring_scenarios']}")
-
-        # Assertions
-        assert summary["total_scenarios"] > 0, "Should evaluate at least one scenario"
-        assert summary["total_turns_evaluated"] > 0, "Should evaluate at least one turn"
-
-        # Assert minimum quality threshold
-        assert summary["overall_average_score"] >= 60, (
-            f"Overall average quality too low: {summary['overall_average_score']:.1f}/100. "
-            f"Expected at least 60/100."
-        )
-
-    @pytest.mark.asyncio
-    async def test_individual_scenario_quality(
-        self,
-        api_base_url: str,
-        quality_evaluator: QualityEvaluatorAgent,
-    ):
-        """
-        Test quality for each basic_flows scenario individually.
-
-        Ensures each scenario meets minimum quality standards.
-        """
-        scenarios = load_basic_flows_scenarios()
-
-        for scenario in scenarios:
-            logger.info(f"Testing quality for: {scenario.name}")
-
-            agent = ConversationFlowAgent(
-                base_url=api_base_url,
-                timeout=DEFAULT_TIMEOUT,
-            )
-
-            turns_data = []
-
-            for step in scenario.steps:
-                if step.delay_ms > 0:
-                    await asyncio.sleep(step.delay_ms / 1000.0)
-
-                turn = await agent.send_message(step.message)
-                turns_data.append(
-                    {
-                        "query": step.message,
-                        "response": turn.response_text or f"Error: {turn.error}",
-                    }
-                )
-
-            if turns_data:
-                quality_result = await quality_evaluator.evaluate_conversation(turns_data)
-
-                # Each scenario should maintain reasonable quality
-                assert quality_result.average_score >= 55, (
-                    f"Scenario '{scenario.name}' quality too low: "
-                    f"{quality_result.average_score:.1f}/100"
-                )
-
-                # No significant degradation
-                assert not quality_result.degradation_detected, (
-                    f"Scenario '{scenario.name}' has quality degradation at turn "
-                    f"{quality_result.degradation_turn}: "
-                    f"dropped {quality_result.degradation_amount:.1f} points"
-                )
-
-
 class TestQualityDegradationDetection:
     """
     Tests for quality degradation detection.
@@ -436,51 +225,6 @@ class TestQualityDegradationDetection:
     Task 023 (partial): Add quality degradation detection
     - Fails if quality drops more than 15 points during a conversation
     """
-
-    @pytest.mark.asyncio
-    async def test_no_degradation_in_basic_flows(
-        self,
-        api_base_url: str,
-        quality_evaluator: QualityEvaluatorAgent,
-    ):
-        """
-        Test that basic_flows scenarios show no quality degradation.
-
-        Quality degradation is defined as a drop of 15+ points from one
-        turn to the next.
-        """
-        scenarios = load_basic_flows_scenarios()
-
-        for scenario in scenarios:
-            agent = ConversationFlowAgent(
-                base_url=api_base_url,
-                timeout=DEFAULT_TIMEOUT,
-            )
-
-            turns_data = []
-
-            for step in scenario.steps:
-                if step.delay_ms > 0:
-                    await asyncio.sleep(step.delay_ms / 1000.0)
-
-                turn = await agent.send_message(step.message)
-                turns_data.append(
-                    {
-                        "query": step.message,
-                        "response": turn.response_text or "",
-                    }
-                )
-
-            if len(turns_data) >= 2:
-                quality_result = await quality_evaluator.evaluate_conversation(turns_data)
-
-                # Check for degradation
-                assert not quality_result.degradation_detected, (
-                    f"Quality degradation detected in '{scenario.name}' "
-                    f"at turn {quality_result.degradation_turn}: "
-                    f"dropped {quality_result.degradation_amount:.1f} points. "
-                    f"Scores: {[s.total_score for s in quality_result.turn_scores]}"
-                )
 
     @pytest.mark.asyncio
     async def test_degradation_detection_mechanism(
@@ -536,12 +280,12 @@ class TestQualityDegradationDetection:
 
         # Verify degradation was detected
         assert result.degradation_detected, "Should detect degradation"
-        assert result.degradation_turn == 3, (
-            f"Should detect at turn 3, got {result.degradation_turn}"
-        )
-        assert result.degradation_amount >= 15, (
-            f"Drop should be >= 15, got {result.degradation_amount}"
-        )
+        assert (
+            result.degradation_turn == 3
+        ), f"Should detect at turn 3, got {result.degradation_turn}"
+        assert (
+            result.degradation_amount >= 15
+        ), f"Drop should be >= 15, got {result.degradation_amount}"
 
 
 # =============================================================================

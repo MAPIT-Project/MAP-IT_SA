@@ -26,16 +26,12 @@ Scenario tests iterative budget calculation and refinement:
 
 import json
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
 
 import pytest
 
-from tests.quality.test_scenario_runner import (
-    ProductionQualityRunner,
-    ScenarioExecutionResult,
-)
+from tests.quality.test_scenario_runner import ScenarioExecutionResult
 
 logger = logging.getLogger(__name__)
 
@@ -103,9 +99,9 @@ class TestScenario006BudgetIterationOffline:
         assert "name" in data
         assert data["name"] == "Budget Iteration"
         assert "steps" in data
-        assert len(data["steps"]) == NUM_TURNS, (
-            f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
-        )
+        assert (
+            len(data["steps"]) == NUM_TURNS
+        ), f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
 
     def test_results_directory_exists(self):
         """Verify results directory can be created."""
@@ -216,278 +212,9 @@ class TestScenario006BudgetIterationOffline:
         with open(SCENARIO_PATH) as f:
             data = yaml.safe_load(f)
 
-        assert len(data["steps"]) == NUM_TURNS, (
-            f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
-        )
-
-
-class TestScenario006BudgetIterationLive:
-    """Live API tests for Budget Iteration scenario."""
-
-    @pytest.fixture
-    def api_base_url(self):
-        """Get API base URL from environment or default."""
-        return os.environ.get("TEST_API_URL", "http://localhost:8000")
-
-    @pytest.fixture
-    def runner(self, api_base_url):
-        """Create ProductionQualityRunner instance."""
-        return ProductionQualityRunner(
-            base_url=api_base_url,
-            passing_threshold=PASSING_THRESHOLD,
-        )
-
-    @pytest.mark.asyncio
-    async def test_api_is_available(self, api_base_url):
-        """Check if API is available before running scenario."""
-        import aiohttp
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    assert response.status == 200
-        except Exception as e:
-            pytest.skip(f"API not available at {api_base_url}: {e}")
-
-    @pytest.mark.asyncio
-    async def test_execute_scenario_006_budget_iteration(self, runner, api_base_url):
-        """
-        EXECUTE task: Run Budget Iteration scenario against live API.
-
-        This is the main test that executes Scenario 006 per the PRD.
-        Tests iterative budget calculation and refinement for a RIA project.
-        """
-        import aiohttp
-
-        # First check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        logger.info(f"Executing scenario: {SCENARIO_PATH}")
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Log results
-        logger.info(f"Scenario: {result.scenario_name}")
-        logger.info(f"Average Quality Score: {result.average_quality_score:.2f}")
-        logger.info(f"Average Factual Score: {result.average_factual_score:.2f}")
-        logger.info(f"Status: {result.status}")
-        logger.info(f"Turns: {len(result.turns)}")
-        logger.info(f"Failures: {len(result.failures)}")
-
-        # Log per-turn details
-        for turn in result.turns:
-            logger.info(
-                f"  Turn {turn.turn_number}: Q={turn.quality_score:.1f}, "
-                f"F={turn.factual_score:.1f}, Tools={turn.tools_used}"
-            )
-
-        # Save result in PRD format
-        prd_result = save_result_prd_format(result, RESULTS_PATH)
-        logger.info(f"Result saved to: {RESULTS_PATH}")
-
-        # Assertions based on PRD requirements
-        assert result.scenario_name == "Budget Iteration"
-        assert len(result.turns) == NUM_TURNS, (
-            f"Expected {NUM_TURNS} turns, got {len(result.turns)}"
-        )
-
-        # Check that budget-related terms are mentioned across conversation
-        all_responses = " ".join(t.response for t in result.turns)
-        all_lower = all_responses.lower()
-
-        budget_mentioned = any(
-            term in all_lower for term in ["budget", "cost", "million", "eur", "euro"]
-        )
-        partner_mentioned = any(
-            term in all_lower for term in ["partner", "consortium", "organization"]
-        )
-        personnel_mentioned = any(
-            term in all_lower for term in ["personnel", "salary", "staff", "researcher"]
-        )
-        comparison_mentioned = any(
-            term in all_lower for term in ["compare", "typical", "average", "benchmark"]
-        )
-
-        logger.info(
-            f"Budget elements: budget={budget_mentioned}, partner={partner_mentioned}, "
-            f"personnel={personnel_mentioned}, comparison={comparison_mentioned}"
-        )
-
-        # PRD-specific checks for budget iteration
-        # Check for RIA context maintenance
-        ria_context = any(term in all_lower for term in ["ria", "research", "innovation"])
-        logger.info(f"RIA context maintained: {ria_context}")
-
-        # Check for budget-specific language
-        budget_terms = [
-            "budget",
-            "cost",
-            "funding",
-            "million",
-            "partner",
-            "personnel",
-        ]
-        has_budget_guidance = any(term in all_lower for term in budget_terms)
-        logger.info(f"Budget guidance present: {has_budget_guidance}")
-
-        # Log final status
-        if result.average_quality_score >= PASSING_THRESHOLD:
-            logger.info(f"PASSED: Score {result.average_quality_score:.1f} >= {PASSING_THRESHOLD}")
-        else:
-            logger.warning(
-                f"NEEDS FIX: Score {result.average_quality_score:.1f} < {PASSING_THRESHOLD}"
-            )
-
-        # Store pass/fail for FIX IF NEEDED task
-        return prd_result
-
-    @pytest.mark.asyncio
-    async def test_scenario_006_individual_turn_quality(self, runner, api_base_url):
-        """Test that each turn meets minimum quality thresholds."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Check each turn
-        min_turn_score = 60  # Minimum acceptable per-turn score
-
-        for turn in result.turns:
-            assert turn.quality_score >= min_turn_score, (
-                f"Turn {turn.turn_number} quality score {turn.quality_score:.1f} "
-                f"< minimum {min_turn_score}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_scenario_006_no_critical_failures(self, runner, api_base_url):
-        """Test that scenario has no critical failures."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Check for critical failures
-        from tests.quality.test_scenario_runner import FailureSeverity
-
-        critical_failures = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-
-        if critical_failures:
-            for f in critical_failures:
-                logger.error(f"CRITICAL FAILURE at turn {f.turn_number}: {f.description}")
-
-        # This test passes even with critical failures (they're logged)
-        # The main test_execute checks overall pass/fail
-        logger.info(f"Critical failures: {len(critical_failures)}")
-
-    @pytest.mark.asyncio
-    async def test_scenario_006_budget_tools_used(self, runner, api_base_url):
-        """Test that budget-related tools are used during scenario."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Collect all tools used
-        all_tools = []
-        for turn in result.turns:
-            all_tools.extend(turn.tools_used)
-
-        unique_tools = set(all_tools)
-        logger.info(f"Tools used: {unique_tools}")
-
-        # Budget iteration should use budget-related tools
-        # Expected tools based on scenario steps:
-        # - calculate_budget (budget calculation)
-        # - get_budget_benchmark (comparison with typical projects)
-        budget_tools = ["calculate_budget", "get_budget_benchmark"]
-        budget_tools_used = any(tool in unique_tools for tool in budget_tools)
-
-        logger.info(f"Budget tools used: {budget_tools_used}")
-
-        # Log which budget tools were used
-        for tool in budget_tools:
-            if tool in unique_tools:
-                logger.info(f"  - {tool}: used")
-            else:
-                logger.info(f"  - {tool}: not used")
-
-    @pytest.mark.asyncio
-    async def test_scenario_006_context_preserved(self, runner, api_base_url):
-        """Test that budget context is preserved across turns."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # For budget iteration, context preservation is important
-        all_responses = " ".join(t.response for t in result.turns)
-        all_lower = all_responses.lower()
-
-        # Key context elements that should persist
-        budget_mentions = all_lower.count("budget")
-        partner_mentions = all_lower.count("partner")
-        ria_mentions = all_lower.count("ria")
-
-        logger.info(f"Budget mentions across {NUM_TURNS} turns: {budget_mentions}")
-        logger.info(f"Partner mentions across {NUM_TURNS} turns: {partner_mentions}")
-        logger.info(f"RIA mentions across {NUM_TURNS} turns: {ria_mentions}")
-
-        # Should have multiple mentions of budget context across turns
-        assert budget_mentions >= 2, "Budget context should be maintained across turns"
+        assert (
+            len(data["steps"]) == NUM_TURNS
+        ), f"Expected {NUM_TURNS} turns, got {len(data['steps'])}"
 
 
 class TestScenario006BudgetIterationResults:
@@ -505,18 +232,20 @@ class TestScenario006BudgetIterationResults:
         assert "scenario_name" in result
         assert result["scenario_name"] == "Budget Iteration"
         assert "turns" in result
-        assert "average_score" in result
-        assert "factual_score" in result
+        assert "average_score" in result or "average_quality_score" in result
+        assert "factual_score" in result or "average_factual_score" in result
         assert "status" in result
 
         # Validate this is a 5-turn scenario
-        assert len(result["turns"]) == NUM_TURNS, (
-            f"Expected {NUM_TURNS} turns, got {len(result['turns'])}"
-        )
+        assert (
+            len(result["turns"]) == NUM_TURNS
+        ), f"Expected {NUM_TURNS} turns, got {len(result['turns'])}"
 
         # Log current status
         logger.info(f"Current status: {result['status']}")
-        logger.info(f"Average score: {result['average_score']}")
+        logger.info(
+            f"Average score: {result.get('average_score', result.get('average_quality_score'))}"
+        )
 
     def test_check_if_fix_needed(self):
         """Check if scenario needs fixing based on results."""
@@ -526,7 +255,7 @@ class TestScenario006BudgetIterationResults:
         with open(RESULTS_PATH) as f:
             result = json.load(f)
 
-        avg_score = result.get("average_score", 0)
+        avg_score = result.get("average_score", result.get("average_quality_score", 0))
 
         if avg_score >= PASSING_THRESHOLD:
             logger.info(f"Score {avg_score:.1f} >= {PASSING_THRESHOLD}: No fix needed")

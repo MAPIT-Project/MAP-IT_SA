@@ -497,7 +497,15 @@ class MultiProgrammeSearchTool:
         params = [programme]
 
         # Status filter
-        if status:
+        if status == "open":
+            conditions.extend(
+                [
+                    "lower(status) = 'open'",
+                    "deadline >= CURRENT_DATE",
+                    "(opening_date IS NULL OR opening_date <= CURRENT_DATE)",
+                ]
+            )
+        elif status:
             conditions.append("status = %s")
             params.append(status)
         elif not include_closed:

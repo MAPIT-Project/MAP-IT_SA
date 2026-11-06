@@ -12,6 +12,8 @@ from typing import Any
 
 import google.generativeai as genai
 
+from app.services.ai.budget import budgeted_inference, record_inference_response
+
 from .base import BaseAIProvider, ProviderConfig, ProviderResponse
 
 logger = logging.getLogger(__name__)
@@ -25,6 +27,7 @@ class GeminiProvider(BaseAIProvider):
         genai.configure(api_key=config.api_key)
         self.model = genai.GenerativeModel(config.model)
 
+    @budgeted_inference(step="proposal_generation")
     async def generate_text(
         self, prompt: str, temperature: float = 0.7, max_tokens: int = 4000
     ) -> ProviderResponse:
@@ -38,13 +41,14 @@ class GeminiProvider(BaseAIProvider):
                 generation_config={"temperature": temperature, "max_output_tokens": max_tokens},
             )
 
+            reported_usage = record_inference_response(response)
             self.mark_success()
 
             return ProviderResponse(
                 text=response.text,
                 provider="gemini",
                 model=self.config.model,
-                usage={"total_tokens": len(prompt.split()) + len(response.text.split())},
+                usage=reported_usage or {},
                 latency_ms=(time.time() - start_time) * 1000,
             )
 
@@ -53,6 +57,7 @@ class GeminiProvider(BaseAIProvider):
             logger.error(f"Gemini generation failed: {e}")
             raise
 
+    @budgeted_inference(step="proposal_generation")
     async def generate_structured(
         self, prompt: str, schema: dict[str, Any], temperature: float = 0.3
     ) -> dict[str, Any]:
@@ -68,6 +73,7 @@ class GeminiProvider(BaseAIProvider):
                 },
             )
 
+            record_inference_response(response)
             self.mark_success()
             return json.loads(response.text)
 
@@ -91,6 +97,7 @@ class GeminiProvider(BaseAIProvider):
             logger.error(f"Gemini structured generation failed: {e}")
             raise
 
+    @budgeted_inference(step="proposal_generation")
     async def generate_stream(
         self, prompt: str, temperature: float = 0.7
     ) -> AsyncGenerator[str, None]:
@@ -102,9 +109,11 @@ class GeminiProvider(BaseAIProvider):
             )
 
             async for chunk in response:
+                record_inference_response(chunk)
                 if chunk.text:
                     yield chunk.text
 
+            record_inference_response(response)
             self.mark_success()
 
         except Exception as e:

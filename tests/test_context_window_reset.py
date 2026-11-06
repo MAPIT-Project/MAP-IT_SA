@@ -23,6 +23,7 @@ from app.services.agents.tool_aware_agent import (
     ToolAwareAgent,
     _context_manager,
 )
+from tests.agent_test_support import isolate_agent_loop
 
 
 class TestContextWindowManagerBasics:
@@ -137,6 +138,7 @@ class TestContextResetInProcessQuery:
             # Create a minimal agent
             with patch.object(ToolAwareAgent, "__init__", return_value=None):
                 agent = ToolAwareAgent.__new__(ToolAwareAgent)
+                isolate_agent_loop(agent)
                 agent.max_iterations = 1
                 agent.tools = {}
                 agent.speculative_executor = None
@@ -172,6 +174,7 @@ class TestContextResetInProcessQuery:
 
             with patch.object(ToolAwareAgent, "__init__", return_value=None):
                 agent = ToolAwareAgent.__new__(ToolAwareAgent)
+                isolate_agent_loop(agent)
                 agent.max_iterations = 1
                 agent.tools = {}
                 agent.speculative_executor = None
@@ -251,9 +254,9 @@ class TestContextAccumulationPrevention:
 
         # Final verification: max observed should be much less than 10x a single query
         # (would be ~20000 if accumulating, should be ~2000)
-        assert max_observed_size < 5000, (
-            f"Max observed size {max_observed_size} suggests accumulation across queries"
-        )
+        assert (
+            max_observed_size < 5000
+        ), f"Max observed size {max_observed_size} suggests accumulation across queries"
 
     def test_context_bounded_across_many_iterations(self):
         """Test that context remains bounded even with many iterations."""
@@ -276,9 +279,9 @@ class TestContextAccumulationPrevention:
         avg_size = sum(sizes_after_each_query) / len(sizes_after_each_query)
         for i, size in enumerate(sizes_after_each_query):
             deviation = abs(size - avg_size) / avg_size
-            assert deviation < 0.15, (
-                f"Query {i}: Size {size} deviates {deviation * 100:.1f}% from average {avg_size}"
-            )
+            assert (
+                deviation < 0.15
+            ), f"Query {i}: Size {size} deviates {deviation * 100:.1f}% from average {avg_size}"
 
 
 class TestContextResetWithRealAgent:

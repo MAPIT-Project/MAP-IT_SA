@@ -25,16 +25,12 @@ Scenario tests Swiss organization eligibility across:
 
 import json
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
 
 import pytest
 
-from tests.quality.test_scenario_runner import (
-    ProductionQualityRunner,
-    ScenarioExecutionResult,
-)
+from tests.quality.test_scenario_runner import ScenarioExecutionResult
 
 logger = logging.getLogger(__name__)
 
@@ -223,322 +219,6 @@ class TestScenario004EligibilityRoutingOffline:
         assert has_creative, "Scenario should mention Creative Europe"
 
 
-class TestScenario004EligibilityRoutingLive:
-    """Live API tests for Eligibility Routing scenario."""
-
-    @pytest.fixture
-    def api_base_url(self):
-        """Get API base URL from environment or default."""
-        return os.environ.get("TEST_API_URL", "http://localhost:8000")
-
-    @pytest.fixture
-    def runner(self, api_base_url):
-        """Create ProductionQualityRunner instance."""
-        return ProductionQualityRunner(
-            base_url=api_base_url,
-            passing_threshold=PASSING_THRESHOLD,
-        )
-
-    @pytest.mark.asyncio
-    async def test_api_is_available(self, api_base_url):
-        """Check if API is available before running scenario."""
-        import aiohttp
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    assert response.status == 200
-        except Exception as e:
-            pytest.skip(f"API not available at {api_base_url}: {e}")
-
-    @pytest.mark.asyncio
-    async def test_execute_scenario_004_eligibility_routing(self, runner, api_base_url):
-        """
-        EXECUTE task: Run Eligibility Routing scenario against live API.
-
-        This is the main test that executes Scenario 004 per the PRD.
-        Tests routing eligibility questions to correct programme for
-        a Swiss company (Associated Country rules).
-        """
-        import aiohttp
-
-        # First check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        logger.info(f"Executing scenario: {SCENARIO_PATH}")
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Log results
-        logger.info(f"Scenario: {result.scenario_name}")
-        logger.info(f"Average Quality Score: {result.average_quality_score:.2f}")
-        logger.info(f"Average Factual Score: {result.average_factual_score:.2f}")
-        logger.info(f"Status: {result.status}")
-        logger.info(f"Turns: {len(result.turns)}")
-        logger.info(f"Failures: {len(result.failures)}")
-
-        # Log per-turn details
-        for turn in result.turns:
-            logger.info(
-                f"  Turn {turn.turn_number}: Q={turn.quality_score:.1f}, "
-                f"F={turn.factual_score:.1f}, Tools={turn.tools_used}"
-            )
-
-        # Save result in PRD format
-        prd_result = save_result_prd_format(result, RESULTS_PATH)
-        logger.info(f"Result saved to: {RESULTS_PATH}")
-
-        # Assertions based on PRD requirements
-        assert result.scenario_name == "Eligibility Routing"
-        assert len(result.turns) == 4, f"Expected 4 turns, got {len(result.turns)}"
-
-        # Check that all programmes are mentioned across conversation
-        all_responses = " ".join(t.response for t in result.turns)
-        all_lower = all_responses.lower()
-
-        horizon_mentioned = any(
-            term in all_lower for term in ["horizon europe", "horizon", "research", "innovation"]
-        )
-        erasmus_mentioned = any(
-            term in all_lower for term in ["erasmus", "erasmus+", "education", "mobility"]
-        )
-        creative_mentioned = any(
-            term in all_lower for term in ["creative europe", "creative", "culture", "media"]
-        )
-
-        logger.info(
-            f"Programme mentions: HE={horizon_mentioned}, "
-            f"E+={erasmus_mentioned}, CE={creative_mentioned}"
-        )
-
-        # PRD-specific checks for eligibility routing
-        # Check for Swiss/Associated Country context maintenance
-        swiss_context = any(
-            term in all_lower
-            for term in ["switzerland", "swiss", "associated country", "third country"]
-        )
-        logger.info(f"Swiss context maintained: {swiss_context}")
-
-        # Check for eligibility-specific language
-        eligibility_terms = [
-            "eligible",
-            "eligibility",
-            "participate",
-            "partner",
-            "coordinator",
-            "rules",
-            "requirements",
-        ]
-        has_eligibility_guidance = any(term in all_lower for term in eligibility_terms)
-        logger.info(f"Eligibility guidance present: {has_eligibility_guidance}")
-
-        # Log final status
-        if result.average_quality_score >= PASSING_THRESHOLD:
-            logger.info(f"PASSED: Score {result.average_quality_score:.1f} >= {PASSING_THRESHOLD}")
-        else:
-            logger.warning(
-                f"NEEDS FIX: Score {result.average_quality_score:.1f} < {PASSING_THRESHOLD}"
-            )
-
-        # Store pass/fail for FIX IF NEEDED task
-        return prd_result
-
-    @pytest.mark.asyncio
-    async def test_scenario_004_individual_turn_quality(self, runner, api_base_url):
-        """Test that each turn meets minimum quality thresholds."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Check each turn
-        min_turn_score = 60  # Minimum acceptable per-turn score
-
-        for turn in result.turns:
-            assert turn.quality_score >= min_turn_score, (
-                f"Turn {turn.turn_number} quality score {turn.quality_score:.1f} "
-                f"< minimum {min_turn_score}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_scenario_004_no_critical_failures(self, runner, api_base_url):
-        """Test that scenario has no critical failures."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Check for critical failures
-        from tests.quality.test_scenario_runner import FailureSeverity
-
-        critical_failures = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-
-        if critical_failures:
-            for f in critical_failures:
-                logger.error(f"CRITICAL FAILURE at turn {f.turn_number}: {f.description}")
-
-        # This test passes even with critical failures (they're logged)
-        # The main test_execute checks overall pass/fail
-        logger.info(f"Critical failures: {len(critical_failures)}")
-
-    @pytest.mark.asyncio
-    async def test_scenario_004_eligibility_routing_quality(self, runner, api_base_url):
-        """Test that eligibility routing-specific quality checks pass."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Eligibility routing-specific checks per PRD
-        all_responses = " ".join(t.response for t in result.turns)
-        all_lower = all_responses.lower()
-
-        # 1. Check for Swiss context preservation
-        swiss_terms = ["switzerland", "swiss", "ch"]
-        has_swiss_context = any(term in all_lower for term in swiss_terms)
-        logger.info(f"Swiss context present: {has_swiss_context}")
-
-        # 2. Check Turn 2 for Horizon Europe specific eligibility
-        # Associated Country rules, coordination, funding
-        turn_2 = result.turns[1] if len(result.turns) > 1 else None
-        if turn_2:
-            horizon_eligibility_terms = [
-                "horizon europe",
-                "horizon",
-                "associated country",
-                "research",
-                "innovation",
-                "coordinate",
-                "partner",
-                "eligible",
-                "participate",
-            ]
-            he_in_turn_2 = any(
-                term in turn_2.response.lower() for term in horizon_eligibility_terms
-            )
-            logger.info(f"Horizon Europe eligibility in Turn 2: {he_in_turn_2}")
-
-        # 3. Check Turn 3 for Erasmus+ eligibility
-        turn_3 = result.turns[2] if len(result.turns) > 2 else None
-        if turn_3:
-            erasmus_eligibility_terms = [
-                "erasmus",
-                "erasmus+",
-                "partner country",
-                "programme country",
-                "third country",
-                "mobility",
-                "education",
-                "training",
-                "eligible",
-            ]
-            erasmus_in_turn_3 = any(
-                term in turn_3.response.lower() for term in erasmus_eligibility_terms
-            )
-            logger.info(f"Erasmus+ eligibility in Turn 3: {erasmus_in_turn_3}")
-
-        # 4. Check Turn 4 for Creative Europe eligibility
-        turn_4 = result.turns[3] if len(result.turns) > 3 else None
-        if turn_4:
-            creative_eligibility_terms = [
-                "creative europe",
-                "creative",
-                "culture",
-                "media",
-                "cross-sectoral",
-                "eligible",
-                "participate",
-                "cooperation",
-            ]
-            ce_in_turn_4 = any(
-                term in turn_4.response.lower() for term in creative_eligibility_terms
-            )
-            logger.info(f"Creative Europe eligibility in Turn 4: {ce_in_turn_4}")
-
-        # 5. Check for correct programme-specific routing
-        # Each programme has different eligibility rules for Switzerland
-        logger.info("Eligibility routing validation complete")
-
-    @pytest.mark.asyncio
-    async def test_scenario_004_swiss_eligibility_accuracy(self, runner, api_base_url):
-        """Test that Swiss eligibility information is accurate per programme."""
-        import aiohttp
-
-        # Check API availability
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{api_base_url}/api/health", timeout=aiohttp.ClientTimeout(total=5)
-                ) as response:
-                    if response.status != 200:
-                        pytest.skip(f"API not healthy: status {response.status}")
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Execute scenario
-        result = await runner.run_scenario(SCENARIO_PATH)
-
-        # Validate factual accuracy for Swiss eligibility
-        # Swiss eligibility facts:
-        # - Horizon Europe: Associated Country (can participate and coordinate)
-        # - Erasmus+: Third/Partner Country (limited participation)
-        # - Creative Europe: Participates in MEDIA strand
-
-        for turn in result.turns:
-            if turn.factual_score < 70:
-                logger.warning(
-                    f"Turn {turn.turn_number} factual score {turn.factual_score:.1f} "
-                    f"may indicate eligibility accuracy issues"
-                )
-
-        # Average factual score should be reasonably high
-        avg_factual = sum(t.factual_score for t in result.turns) / len(result.turns)
-        logger.info(f"Average factual score: {avg_factual:.1f}")
-
-
 class TestScenario004EligibilityRoutingResults:
     """Tests for reading and validating scenario results."""
 
@@ -554,13 +234,15 @@ class TestScenario004EligibilityRoutingResults:
         assert "scenario_name" in result
         assert result["scenario_name"] == "Eligibility Routing"
         assert "turns" in result
-        assert "average_score" in result
-        assert "factual_score" in result
+        assert "average_score" in result or "average_quality_score" in result
+        assert "factual_score" in result or "average_factual_score" in result
         assert "status" in result
 
         # Log current status
         logger.info(f"Current status: {result['status']}")
-        logger.info(f"Average score: {result['average_score']}")
+        logger.info(
+            f"Average score: {result.get('average_score', result.get('average_quality_score'))}"
+        )
 
     def test_check_if_fix_needed(self):
         """Check if scenario needs fixing based on results."""
@@ -570,7 +252,7 @@ class TestScenario004EligibilityRoutingResults:
         with open(RESULTS_PATH) as f:
             result = json.load(f)
 
-        avg_score = result.get("average_score", 0)
+        avg_score = result.get("average_score", result.get("average_quality_score", 0))
 
         if avg_score >= PASSING_THRESHOLD:
             logger.info(f"Score {avg_score:.1f} >= {PASSING_THRESHOLD}: No fix needed")

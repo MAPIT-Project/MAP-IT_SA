@@ -629,6 +629,13 @@ class QualityBaselineRunner:
 # =============================================================================
 
 
+@pytest.fixture(autouse=True)
+def isolated_baseline_output(tmp_path, monkeypatch):
+    """Baseline measurements never overwrite committed evaluation history."""
+    monkeypatch.setattr(__name__ + ".QUALITY_RESULTS_DIR", tmp_path)
+    monkeypatch.setattr(__name__ + ".BASELINE_FILE", tmp_path / BASELINE_FILE.name)
+
+
 @pytest.fixture
 def api_base_url():
     """Get API base URL from environment or default."""
@@ -651,9 +658,9 @@ class TestQualityBaselineInfrastructure:
 
     def test_scenarios_directory_exists(self):
         """Verify the advanced scenarios directory exists."""
-        assert ADVANCED_SCENARIOS_DIR.exists(), (
-            f"Advanced scenarios directory not found: {ADVANCED_SCENARIOS_DIR}"
-        )
+        assert (
+            ADVANCED_SCENARIOS_DIR.exists()
+        ), f"Advanced scenarios directory not found: {ADVANCED_SCENARIOS_DIR}"
 
     def test_results_directory_exists(self):
         """Verify the results directory exists or can be created."""
@@ -750,59 +757,6 @@ class TestQualityBaselineInfrastructure:
         assert "short_responses_1_turns" in aspects
 
 
-class TestQualityBaselineMeasurement:
-    """Tests for quality baseline measurement (requires API)."""
-
-    @pytest.mark.asyncio
-    async def test_single_scenario_measurement(self, baseline_runner):
-        """Test measuring quality for a single scenario."""
-        # Find first available scenario
-        scenario_files = [
-            f for f in sorted(ADVANCED_SCENARIOS_DIR.glob("*.yaml")) if not f.name.startswith("_")
-        ]
-        if not scenario_files:
-            pytest.skip("No scenario files available")
-
-        # Use programme_discovery.yaml if available, otherwise first file
-        target_file = next(
-            (f for f in scenario_files if "programme_discovery" in f.name),
-            scenario_files[0],
-        )
-
-        result = await baseline_runner.measure_scenario_quality(target_file)
-
-        assert result.scenario_name is not None
-        assert result.num_turns > 0
-        # Note: Quality score may be 0 if API is not available
-        logger.info(
-            f"Measured {result.scenario_name}: "
-            f"score={result.total_quality_score:.1f}, "
-            f"turns={result.num_turns}"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.slow
-    async def test_full_baseline_measurement(self, baseline_runner):
-        """Test running full baseline measurement on all scenarios."""
-        baseline = await baseline_runner.run_baseline_measurement()
-
-        assert baseline.total_scenarios > 0
-        logger.info(
-            f"Baseline measurement complete:\n"
-            f"  Total scenarios: {baseline.total_scenarios}\n"
-            f"  Passed: {baseline.scenarios_passed}\n"
-            f"  Failed: {baseline.scenarios_failed}\n"
-            f"  Average quality: {baseline.overall_average_quality:.1f}\n"
-            f"  Duration: {baseline.measurement_duration_ms:.1f}ms"
-        )
-
-        # Save baseline
-        baseline_runner.save_baseline(baseline)
-
-        # Verify file was created
-        assert BASELINE_FILE.exists(), f"Baseline file not created: {BASELINE_FILE}"
-
-
 class TestQualitySummaryGeneration:
     """Tests for quality summary and documentation generation."""
 
@@ -890,40 +844,3 @@ class TestQualitySummaryGeneration:
 # =============================================================================
 # CLI ENTRY POINT
 # =============================================================================
-
-
-if __name__ == "__main__":
-    # Allow running baseline measurement from command line
-    import sys
-
-    if "--measure" in sys.argv:
-        # Run full baseline measurement
-
-        async def main():
-            runner = QualityBaselineRunner()
-            baseline = await runner.run_baseline_measurement()
-            runner.save_baseline(baseline)
-
-            print(f"\n{'=' * 60}")
-            print("Quality Baseline Measurement Complete")
-            print(f"{'=' * 60}")
-            print(f"Total scenarios: {baseline.total_scenarios}")
-            print(f"Passed: {baseline.scenarios_passed}")
-            print(f"Failed: {baseline.scenarios_failed}")
-            print(f"Average quality: {baseline.overall_average_quality:.1f}")
-            print(f"\nResults saved to: {BASELINE_FILE}")
-
-            if baseline.challenging_scenarios:
-                print(f"\nChallenging scenarios ({len(baseline.challenging_scenarios)}):")
-                for cs in baseline.challenging_scenarios:
-                    print(f"  - {cs['name']}: {cs['score']:.1f}")
-
-            if baseline.improvement_areas:
-                print("\nImprovement areas:")
-                for area in baseline.improvement_areas:
-                    print(f"  - {area}")
-
-        asyncio.run(main())
-    else:
-        # Run pytest
-        pytest.main([__file__, "-v", "--tb=short"])

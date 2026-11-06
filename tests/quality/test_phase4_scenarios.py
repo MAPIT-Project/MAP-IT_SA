@@ -30,7 +30,6 @@ import pytest
 
 # Import production quality runner and data structures
 from tests.test_production_quality_validation import (
-    ProductionQualityRunner,
     ScenarioExecutionResult,
     FailureCategory,
     FailureSeverity,
@@ -72,16 +71,6 @@ SCENARIO_STEP_COUNTS = {
 def base_url() -> str:
     """Get API base URL from environment or default."""
     return os.environ.get("TEST_API_URL", "http://localhost:8000")
-
-
-@pytest.fixture
-def runner(base_url: str) -> ProductionQualityRunner:
-    """Create a ProductionQualityRunner instance."""
-    return ProductionQualityRunner(
-        base_url=base_url,
-        passing_threshold=80,
-        factual_threshold=0.9,
-    )
 
 
 @pytest.fixture
@@ -188,265 +177,9 @@ def generate_phase4_report(
 # =============================================================================
 
 
-class TestPhase4Scenarios:
-    """Test class for Phase 4 Personalization scenarios."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_user_context_learning(self, runner: ProductionQualityRunner, results_dir: Path):
-        """
-        RUN: user_context_learning.yaml
-
-        Tests context accumulation and personalization across conversation turns.
-        A user from a small Portuguese university working on marine biology
-        progressively reveals information (org type, research area, experience level),
-        then asks for call recommendations and partner participation advice.
-
-        Key Test: System should build a profile that influences recommendations.
-        """
-        scenario_path = SCENARIOS_DIR / "user_context_learning.yaml"
-
-        if not scenario_path.exists():
-            pytest.skip(f"Scenario file not found: {scenario_path}")
-
-        result = await runner.run_scenario(scenario_path)
-        save_scenario_result(result, results_dir)
-
-        # Log results
-        logger.info(
-            f"user_context_learning: Runtime={result.execution_time_ms / 1000:.2f}s, "
-            f"Score={result.average_quality_score:.1f}/100, "
-            f"Failures={len(result.failures)}, Status={result.status}"
-        )
-
-        # Assert minimum quality threshold
-        assert result.average_quality_score >= 80, (
-            f"User Context Learning score {result.average_quality_score:.1f} < 80. "
-            f"Failures: {[f.description for f in result.failures]}"
-        )
-
-        # Assert no critical failures
-        critical = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-        assert len(critical) == 0, (
-            f"User Context Learning has {len(critical)} critical failures: "
-            f"{[f.description for f in critical]}"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_returning_user_context(self, runner: ProductionQualityRunner, results_dir: Path):
-        """
-        RUN: returning_user_context.yaml
-
-        Tests that the system recalls context from earlier in the conversation.
-        A hydrogen researcher in Germany establishes context, asks about success rates,
-        then references "I mentioned earlier I work on hydrogen" - system should recall.
-
-        Key Test: System should NOT ask for topic clarification when context was provided.
-        """
-        scenario_path = SCENARIOS_DIR / "returning_user_context.yaml"
-
-        if not scenario_path.exists():
-            pytest.skip(f"Scenario file not found: {scenario_path}")
-
-        result = await runner.run_scenario(scenario_path)
-        save_scenario_result(result, results_dir)
-
-        logger.info(
-            f"returning_user_context: Runtime={result.execution_time_ms / 1000:.2f}s, "
-            f"Score={result.average_quality_score:.1f}/100, "
-            f"Failures={len(result.failures)}, Status={result.status}"
-        )
-
-        assert result.average_quality_score >= 80, (
-            f"Returning User Context score {result.average_quality_score:.1f} < 80. "
-            f"Failures: {[f.description for f in result.failures]}"
-        )
-
-        critical = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-        assert len(critical) == 0, (
-            f"Returning User Context has {len(critical)} critical failures: "
-            f"{[f.description for f in critical]}"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_progressive_profile(self, runner: ProductionQualityRunner, results_dir: Path):
-        """
-        RUN: progressive_profile.yaml (12 turns - CRITICAL)
-
-        Tests deep profile accumulation across 12 turns.
-        A German healthcare SME working on medical devices progressively reveals:
-        org type → sector → subsector → location → employees → revenue →
-        AI diagnostics goal → partnerships → no EU experience → asks for best option.
-
-        Key Test: System should accumulate ALL profile details and use them for
-        highly personalized final recommendations.
-        """
-        scenario_path = SCENARIOS_DIR / "progressive_profile.yaml"
-
-        if not scenario_path.exists():
-            pytest.skip(f"Scenario file not found: {scenario_path}")
-
-        result = await runner.run_scenario(scenario_path)
-        save_scenario_result(result, results_dir)
-
-        logger.info(
-            f"progressive_profile: Runtime={result.execution_time_ms / 1000:.2f}s, "
-            f"Score={result.average_quality_score:.1f}/100, "
-            f"Failures={len(result.failures)}, Status={result.status}"
-        )
-
-        assert result.average_quality_score >= 80, (
-            f"Progressive Profile score {result.average_quality_score:.1f} < 80. "
-            f"Failures: {[f.description for f in result.failures]}"
-        )
-
-        critical = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-        assert len(critical) == 0, (
-            f"Progressive Profile has {len(critical)} critical failures: "
-            f"{[f.description for f in critical]}"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_preference_filtering(self, runner: ProductionQualityRunner, results_dir: Path):
-        """
-        RUN: preference_filtering.yaml
-
-        Tests preference-based filtering of funding calls.
-        User progressively adds filters: exclude lump sum → 70%+ funding rate →
-        Q2 2024 deadlines only → max 5 partners.
-
-        Key Test: System should accumulate preferences and apply them as filters,
-        resulting in progressively narrowed search results.
-        """
-        scenario_path = SCENARIOS_DIR / "preference_filtering.yaml"
-
-        if not scenario_path.exists():
-            pytest.skip(f"Scenario file not found: {scenario_path}")
-
-        result = await runner.run_scenario(scenario_path)
-        save_scenario_result(result, results_dir)
-
-        logger.info(
-            f"preference_filtering: Runtime={result.execution_time_ms / 1000:.2f}s, "
-            f"Score={result.average_quality_score:.1f}/100, "
-            f"Failures={len(result.failures)}, Status={result.status}"
-        )
-
-        assert result.average_quality_score >= 80, (
-            f"Preference Filtering score {result.average_quality_score:.1f} < 80. "
-            f"Failures: {[f.description for f in result.failures]}"
-        )
-
-        critical = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-        assert len(critical) == 0, (
-            f"Preference Filtering has {len(critical)} critical failures: "
-            f"{[f.description for f in critical]}"
-        )
-
-
 # =============================================================================
 # Full Phase 4 Execution Test
 # =============================================================================
-
-
-class TestPhase4FullExecution:
-    """Full Phase 4 execution test that runs all scenarios and generates report."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_run_all_phase4_scenarios(
-        self, runner: ProductionQualityRunner, results_dir: Path
-    ):
-        """
-        Run all Phase 4 scenarios and verify all pass with >= 80/100.
-
-        This is the main test that satisfies Task 007 requirements:
-        - RUN all 4 Phase 4 scenarios
-        - VERIFY all pass with >= 80/100
-        """
-        results: list[ScenarioExecutionResult] = []
-
-        for scenario_file in PHASE4_SCENARIOS:
-            scenario_path = SCENARIOS_DIR / scenario_file
-
-            if not scenario_path.exists():
-                logger.warning(f"Scenario not found, skipping: {scenario_path}")
-                continue
-
-            logger.info(f"Running scenario: {scenario_file}")
-            result = await runner.run_scenario(scenario_path)
-            results.append(result)
-
-            # Save individual result
-            save_scenario_result(result, results_dir)
-
-            # Log individual result
-            logger.info(
-                f"  → {result.scenario_name}: "
-                f"Score={result.average_quality_score:.1f}/100, "
-                f"Status={result.status}"
-            )
-
-        # Generate phase report
-        report = generate_phase4_report(results, results_dir)
-
-        # Print summary
-        print("\n" + "=" * 60)
-        print("PHASE 4 EXECUTION RESULTS")
-        print("=" * 60)
-        print(f"Total Scenarios: {report['summary']['total_scenarios']}")
-        print(f"Passed: {report['summary']['passed']}")
-        print(f"Failed: {report['summary']['failed']}")
-        print(f"Pass Rate: {report['summary']['pass_rate']:.1f}%")
-        print(f"Average Quality Score: {report['summary']['average_quality_score']}/100")
-        print(f"Average Factual Score: {report['summary']['average_factual_score']}/100")
-        print(f"Total Runtime: {report['summary']['total_runtime_seconds']:.2f}s")
-        print(f"Critical Failures: {report['summary']['critical_failures']}")
-        print("=" * 60)
-
-        for scenario_result in report["scenario_results"]:
-            status_icon = "✓" if scenario_result["status"] == "PASS" else "✗"
-            print(
-                f"  {status_icon} {scenario_result['name']}: "
-                f"{scenario_result['average_quality_score']}/100 "
-                f"({scenario_result['runtime_seconds']:.2f}s)"
-            )
-
-        print("=" * 60 + "\n")
-
-        # Verify all scenarios passed
-        assert report["summary"]["passed"] == report["summary"]["total_scenarios"], (
-            f"Not all Phase 4 scenarios passed: "
-            f"{report['summary']['passed']}/{report['summary']['total_scenarios']}"
-        )
-
-        # Verify average quality score
-        assert report["summary"]["average_quality_score"] >= 80, (
-            f"Phase 4 average quality score {report['summary']['average_quality_score']} < 80"
-        )
-
-        # Verify no critical failures
-        assert report["summary"]["critical_failures"] == 0, (
-            f"Phase 4 has {report['summary']['critical_failures']} critical failures"
-        )
 
 
 # =============================================================================
@@ -486,9 +219,9 @@ class TestPhase4Infrastructure:
                 with open(scenario_path) as f:
                     data = yaml.safe_load(f)
                 actual_steps = len(data["steps"])
-                assert actual_steps == expected_steps, (
-                    f"{scenario_file} should have {expected_steps} steps, found {actual_steps}"
-                )
+                assert (
+                    actual_steps == expected_steps
+                ), f"{scenario_file} should have {expected_steps} steps, found {actual_steps}"
 
     def test_results_directory_creation(self, results_dir: Path):
         """Verify results directory can be created."""

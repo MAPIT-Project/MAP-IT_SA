@@ -72,5 +72,8 @@ with (
     patch("google.generativeai.embed_content", side_effect=offline),
     patch("google.generativeai.embed_content_async", side_effect=offline),
     patch("google.generativeai.list_models", side_effect=offline),
+    # Native framework clients use HTTPX2; cover its transport as well as sockets.
+    patch("httpx2.Client.send", side_effect=offline),
+    patch("httpx2.AsyncClient.send", side_effect=offline),
 ):
     raise SystemExit(pytest.main(sys.argv[1:]))
