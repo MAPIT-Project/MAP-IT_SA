@@ -503,7 +503,8 @@ class ProposalQualityScorerTool:
         }
 
         # Simple quality estimate
-        quality_score = 2.0
+        # The baseline applies to an actual draft, not an empty editor buffer.
+        quality_score = 2.0 if text.strip() else 0.0
 
         if word_count >= 200:
             quality_score += 0.5

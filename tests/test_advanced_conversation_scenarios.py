@@ -719,12 +719,12 @@ def redis_url():
 
 
 @pytest.fixture
-def scenario_runner(api_base_url, database_url, redis_url):
+def scenario_runner(api_base_url, database_url, redis_url, request):
     """Create an advanced scenario runner."""
     return AdvancedScenarioRunner(
         base_url=api_base_url,
-        database_url=database_url,
-        redis_url=redis_url,
+        database_url=database_url if request.node.get_closest_marker("live") else None,
+        redis_url=redis_url if request.node.get_closest_marker("live") else None,
     )
 
 
@@ -733,58 +733,14 @@ def scenario_runner(api_base_url, database_url, redis_url):
 # =============================================================================
 
 
-class TestAdvancedScenarios:
-    """Tests for advanced conversation scenarios."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        "scenario",
-        ADVANCED_SCENARIOS,
-        ids=get_scenario_ids(ADVANCED_SCENARIOS),
-    )
-    async def test_advanced_scenario(
-        self,
-        scenario: AdvancedScenario,
-        scenario_runner: AdvancedScenarioRunner,
-    ):
-        """Test an advanced conversation scenario."""
-        if not ADVANCED_SCENARIOS:
-            pytest.skip("No advanced scenarios found")
-
-        result = await scenario_runner.run_scenario(scenario)
-
-        # Log detailed results
-        logger.info(
-            f"Scenario '{scenario.name}' completed:\n"
-            f"  Passed: {result.passed}\n"
-            f"  Turns: {len(result.turns)}\n"
-            f"  Validations: {len(result.validations)} "
-            f"({len([v for v in result.validations if v.passed])} passed)\n"
-            f"  Goal progress: {result.final_goal_progress:.2f}\n"
-            f"  Profile fields: {result.profile_fields_accumulated}\n"
-            f"  Programmes: {result.programmes_mentioned}\n"
-            f"  Duration: {result.duration_ms:.1f}ms"
-        )
-
-        # Assert scenario passed
-        assert result.passed, (
-            f"Scenario '{scenario.name}' failed:\n"
-            f"  Failed validations: {[v.name for v in result.failed_validations]}\n"
-            f"  Errors: {result.errors}"
-        )
-
-        # Assert no errors occurred
-        assert len(result.errors) == 0, f"Errors occurred: {result.errors}"
-
-
 class TestAdvancedScenarioInfrastructure:
     """Tests for the advanced scenario infrastructure itself."""
 
     def test_scenarios_directory_exists(self):
         """Verify the advanced scenarios directory exists."""
-        assert ADVANCED_SCENARIOS_DIR.exists(), (
-            f"Advanced scenarios directory not found: {ADVANCED_SCENARIOS_DIR}"
-        )
+        assert (
+            ADVANCED_SCENARIOS_DIR.exists()
+        ), f"Advanced scenarios directory not found: {ADVANCED_SCENARIOS_DIR}"
 
     def test_scenarios_loaded(self):
         """Verify that scenarios were loaded successfully."""
@@ -793,9 +749,9 @@ class TestAdvancedScenarioInfrastructure:
     def test_validation_scenario_exists(self):
         """Verify the test runner validation scenario exists."""
         validation_scenario = ADVANCED_SCENARIOS_DIR / "_test_runner_validation.yaml"
-        assert validation_scenario.exists(), (
-            f"Test runner validation scenario not found: {validation_scenario}"
-        )
+        assert (
+            validation_scenario.exists()
+        ), f"Test runner validation scenario not found: {validation_scenario}"
 
     @pytest.mark.asyncio
     async def test_goal_tracking_agent_integration(self, scenario_runner):

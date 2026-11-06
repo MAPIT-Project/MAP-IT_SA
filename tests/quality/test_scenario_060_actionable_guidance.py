@@ -418,9 +418,9 @@ Find your NCP: [NCP Network Directory](https://ec.europa.eu/info/funding-tenders
 [EU Login account](https://webgate.ec.europa.eu/cas/) - it only takes 5 minutes!"""
 
         result = evaluator.evaluate(query, excellent_response)
-        assert result["total_score"] >= 80, (
-            f"Excellent response scored {result['total_score']}, expected 80+"
-        )
+        assert (
+            result["total_score"] >= 80
+        ), f"Excellent response scored {result['total_score']}, expected 80+"
         assert result["passed"], "Excellent response should pass"
 
     def test_vague_response_scores_low(self, evaluator):
@@ -431,9 +431,9 @@ submit a proposal. The process involves registration and preparation.
 Good luck with your application!"""
 
         result = evaluator.evaluate(query, vague_response)
-        assert result["total_score"] < 60, (
-            f"Vague response scored {result['total_score']}, expected < 60"
-        )
+        assert (
+            result["total_score"] < 60
+        ), f"Vague response scored {result['total_score']}, expected < 60"
         assert not result["passed"], "Vague response should not pass"
 
     def test_partial_response_scores_medium(self, evaluator):
@@ -451,9 +451,9 @@ Visit the Funding & Tenders Portal at ec.europa.eu for more details."""
 
         result = evaluator.evaluate(query, partial_response)
         # Should score reasonably but not perfectly (missing links, NCP, detailed guidance)
-        assert 50 <= result["total_score"] < 85, (
-            f"Partial response scored {result['total_score']}, expected 50-85"
-        )
+        assert (
+            50 <= result["total_score"] < 85
+        ), f"Partial response scored {result['total_score']}, expected 50-85"
 
     def test_no_links_response_penalized(self, evaluator):
         """Test that a response without links scores lower on actionability."""
@@ -469,9 +469,9 @@ Step 6: Submit your proposal before the deadline"""
 
         result = evaluator.evaluate(query, no_links_response)
         # Should have lower actionability score due to missing links
-        assert result["dimensions"]["actionability"] <= 7, (
-            "Response without links should have limited actionability score"
-        )
+        assert (
+            result["dimensions"]["actionability"] <= 7
+        ), "Response without links should have limited actionability score"
 
     def test_dimension_weights_are_correct(self, evaluator):
         """Test that dimension weights sum to 100."""
@@ -633,199 +633,6 @@ Step 3: Find calls"""
     # --------------------------------------------------------------------------
     # Live API tests
     # --------------------------------------------------------------------------
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        not pytest.importorskip("httpx", reason="httpx required"),
-        reason="httpx not available",
-    )
-    async def test_live_api_primary_query(self, evaluator):
-        """Test the live API with primary application guidance query."""
-        query = "How do I apply for Horizon Europe?"
-
-        try:
-            response, conv_id, tools = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        assert len(response) > 100, "Response too short"
-
-        result = evaluator.evaluate(query, response)
-        save_result(result, query, response)
-
-        print(f"\n{'=' * 60}")
-        print(f"Query: {query}")
-        print(f"Response length: {len(response)}")
-        print(f"Tools used: {tools}")
-        print("\nScores:")
-        for dim, score in result["dimensions"].items():
-            max_score = evaluator.dimensions[dim]
-            print(f"  {dim}: {score}/{max_score}")
-        print(f"\nTotal: {result['total_score']}/100")
-        print(f"Status: {'PASS' if result['passed'] else 'FAIL'}")
-        print(f"{'=' * 60}")
-
-        if result["feedback"]:
-            print("\nFeedback:")
-            for dim, fb in result["feedback"].items():
-                if fb:
-                    print(f"  {dim}: {'; '.join(fb)}")
-
-        assert result["total_score"] >= PASS_THRESHOLD, (
-            f"Score {result['total_score']} below threshold {PASS_THRESHOLD}"
-        )
-
-    @pytest.mark.asyncio
-    async def test_live_api_has_steps(self, evaluator):
-        """Verify the response has step-by-step structure."""
-        query = "How do I apply for Horizon Europe?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        response_lower = response.lower()
-
-        # Should have step-by-step structure
-        step_indicators = [
-            "step 1",
-            "step 2",
-            "first",
-            "second",
-            "1.",
-            "2.",
-            "**1",
-            "## step",
-        ]
-        has_steps = any(ind in response_lower for ind in step_indicators)
-        assert has_steps, "Response should provide step-by-step guidance"
-
-    @pytest.mark.asyncio
-    async def test_live_api_mentions_registration(self, evaluator):
-        """Verify the response explains EU Login and PIC registration."""
-        query = "How do I apply for Horizon Europe?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        response_lower = response.lower()
-
-        # Should mention registration
-        has_eu_login = "eu login" in response_lower
-        has_pic = "pic" in response_lower
-
-        assert has_eu_login or has_pic, (
-            "Response should explain registration process (EU Login, PIC)"
-        )
-
-    @pytest.mark.asyncio
-    async def test_live_api_mentions_ncp(self, evaluator):
-        """Verify the response mentions National Contact Points."""
-        query = "How do I apply for Horizon Europe?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        response_lower = response.lower()
-
-        # Should mention NCP
-        has_ncp = "ncp" in response_lower or "national contact point" in response_lower
-        assert has_ncp, "Response should mention National Contact Points (NCPs)"
-
-    @pytest.mark.asyncio
-    async def test_live_api_has_links(self, evaluator):
-        """Verify the response includes relevant links."""
-        query = "How do I apply for Horizon Europe?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Should have links
-        has_links = bool(re.search(r"https?://|europa\.eu|\[.*\]\(http", response.lower()))
-        assert has_links, "Response should include links to official resources"
-
-    @pytest.mark.asyncio
-    async def test_live_api_mentions_consortium(self, evaluator):
-        """Verify the response mentions consortium/partnership requirements."""
-        query = "How do I apply for Horizon Europe?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        response_lower = response.lower()
-
-        # Should mention consortium/partners
-        partnership_patterns = ["consortium", "partner", "collaboration", "countries"]
-        has_partnership = any(pat in response_lower for pat in partnership_patterns)
-        assert has_partnership, "Response should mention consortium/partnership requirements"
-
-    @pytest.mark.asyncio
-    async def test_live_api_has_call_to_action(self, evaluator):
-        """Verify the response has a clear call-to-action."""
-        query = "How do I apply for Horizon Europe?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        response_lower = response.lower()
-
-        # Should have CTA
-        cta_patterns = [
-            "your next",
-            "next step",
-            "start by",
-            "you should",
-            "get started",
-            "begin with",
-            "first thing",
-        ]
-        has_cta = any(pat in response_lower for pat in cta_patterns)
-        assert has_cta, "Response should have a clear call-to-action"
-
-    @pytest.mark.asyncio
-    async def test_live_api_variant_what_steps(self, evaluator):
-        """Test variant: What are the steps to apply?"""
-        query = "What are the steps to apply for Horizon Europe funding?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        assert len(response) > 100, "Response too short"
-
-        result = evaluator.evaluate(query, response)
-
-        # Should still score reasonably well
-        assert result["total_score"] >= 60, f"Variant scored {result['total_score']}"
-
-    @pytest.mark.asyncio
-    async def test_live_api_variant_application_process(self, evaluator):
-        """Test variant: Explain the application process."""
-        query = "Can you explain the Horizon Europe application process?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        assert len(response) > 100, "Response too short"
-
-        result = evaluator.evaluate(query, response)
-
-        # Should still score reasonably well
-        assert result["total_score"] >= 60, f"Variant scored {result['total_score']}"
 
 
 # ==============================================================================

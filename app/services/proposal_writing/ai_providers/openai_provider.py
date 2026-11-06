@@ -10,6 +10,8 @@ import time
 from collections.abc import AsyncGenerator
 from typing import Any
 
+from app.services.ai.budget import budgeted_inference, record_inference_response
+
 from .base import BaseAIProvider, ProviderConfig, ProviderResponse
 
 logger = logging.getLogger(__name__)
@@ -31,6 +33,7 @@ class OpenAIProvider(BaseAIProvider):
             self._available = False
             self.client = None
 
+    @budgeted_inference(step="proposal_generation")
     async def generate_text(
         self, prompt: str, temperature: float = 0.7, max_tokens: int = 4000
     ) -> ProviderResponse:
@@ -49,6 +52,7 @@ class OpenAIProvider(BaseAIProvider):
                 max_tokens=max_tokens,
             )
 
+            record_inference_response(response)
             self.mark_success()
 
             return ProviderResponse(
@@ -68,6 +72,7 @@ class OpenAIProvider(BaseAIProvider):
             logger.error(f"OpenAI generation failed: {e}")
             raise
 
+    @budgeted_inference(step="proposal_generation")
     async def generate_structured(
         self, prompt: str, schema: dict[str, Any], temperature: float = 0.3
     ) -> dict[str, Any]:
@@ -94,6 +99,7 @@ class OpenAIProvider(BaseAIProvider):
                 response_format={"type": "json_object"},
             )
 
+            record_inference_response(response)
             self.mark_success()
             return json.loads(response.choices[0].message.content)
 
@@ -102,6 +108,7 @@ class OpenAIProvider(BaseAIProvider):
             logger.error(f"OpenAI structured generation failed: {e}")
             raise
 
+    @budgeted_inference(step="proposal_generation")
     async def generate_stream(
         self, prompt: str, temperature: float = 0.7
     ) -> AsyncGenerator[str, None]:
@@ -119,6 +126,7 @@ class OpenAIProvider(BaseAIProvider):
             )
 
             async for chunk in stream:
+                record_inference_response(chunk)
                 if chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content
 

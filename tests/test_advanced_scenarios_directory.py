@@ -6,8 +6,6 @@ This is part of Task 001 from the Advanced Conversation Flows PRD.
 
 from pathlib import Path
 
-import pytest
-
 # Get the project root and scenarios directory
 PROJECT_ROOT = Path(__file__).parent.parent
 SCENARIOS_DIR = PROJECT_ROOT / "tests" / "scenarios"
@@ -24,12 +22,12 @@ class TestAdvancedScenariosDirectory:
 
     def test_advanced_directory_exists(self) -> None:
         """Test that the advanced scenarios directory exists."""
-        assert ADVANCED_SCENARIOS_DIR.exists(), (
-            f"Advanced scenarios directory not found: {ADVANCED_SCENARIOS_DIR}"
-        )
-        assert ADVANCED_SCENARIOS_DIR.is_dir(), (
-            f"Advanced scenarios path is not a directory: {ADVANCED_SCENARIOS_DIR}"
-        )
+        assert (
+            ADVANCED_SCENARIOS_DIR.exists()
+        ), f"Advanced scenarios directory not found: {ADVANCED_SCENARIOS_DIR}"
+        assert (
+            ADVANCED_SCENARIOS_DIR.is_dir()
+        ), f"Advanced scenarios path is not a directory: {ADVANCED_SCENARIOS_DIR}"
 
     def test_gitkeep_exists(self) -> None:
         """Test that .gitkeep file exists to track empty directory."""
@@ -47,15 +45,12 @@ class TestAdvancedScenariosDirectory:
         assert "Scenario Format" in content, "README.md should document scenario format"
         assert "Validation Types" in content, "README.md should document validation types"
 
-    def test_directory_is_writable(self) -> None:
-        """Test that we can create files in the directory."""
-        test_file = ADVANCED_SCENARIOS_DIR / ".test_write"
-        try:
-            test_file.write_text("test")
-            assert test_file.exists()
-            test_file.unlink()  # Clean up
-        except PermissionError:
-            pytest.fail(f"Cannot write to directory: {ADVANCED_SCENARIOS_DIR}")
+    def test_scenario_can_be_copied_to_workspace(self, tmp_path) -> None:
+        """Scenario runs use a writable workspace, including with read-only sources."""
+        source = next(ADVANCED_SCENARIOS_DIR.glob("*.yaml"))
+        test_file = tmp_path / source.name
+        test_file.write_text(source.read_text())
+        assert test_file.read_text() == source.read_text()
 
     def test_other_scenario_directories_exist(self) -> None:
         """Test that other scenario directories from Stability PRD exist."""
@@ -94,9 +89,9 @@ class TestAdvancedScenariosReadme:
             "no_error",
         ]
         for validation_type in validation_types:
-            assert validation_type in content, (
-                f"README should document validation type: {validation_type}"
-            )
+            assert (
+                validation_type in content
+            ), f"README should document validation type: {validation_type}"
 
     def test_readme_documents_running_tests(self) -> None:
         """Test that README shows how to run tests."""
@@ -104,6 +99,6 @@ class TestAdvancedScenariosReadme:
         content = readme_path.read_text()
 
         assert "pytest" in content, "README should show pytest commands"
-        assert "test_advanced_conversation_scenarios" in content, (
-            "README should reference the test runner"
-        )
+        assert (
+            "test_advanced_conversation_scenarios" in content
+        ), "README should reference the test runner"

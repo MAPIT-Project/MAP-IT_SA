@@ -17,6 +17,7 @@ import psycopg2.pool
 
 from ...core.atomic_storage import StorageResult, get_atomic_storage
 from ...core.conversation_lock import get_conversation_lock
+from ..ai.errors import generation_error_message
 from ..ai.factory import create_text_model, generate_content
 from ..memory.memory_service import MemoryService
 
@@ -155,11 +156,20 @@ class ConversationManager:
                 conversation_id=conversation_id,
             )
 
+            failure = self._agent_failure(agent_result)
+            if failure:
+                return {
+                    "response": "",
+                    "error": failure["error"],
+                    "success": False,
+                    "metadata": failure["metadata"],
+                }
+
             # 4. Get the answer
             answer = self._extract_answer(agent_result, user_message)
 
             # 5. Fallback synthesis if needed
-            if not answer or len(answer) < 50 or self._is_poor_quality_answer(answer):
+            if self._needs_response_synthesis(agent_result, answer):
                 answer = await self._synthesize_agent_response(
                     query=user_message, agent_result=agent_result, context=conversation_context
                 )
@@ -224,6 +234,8 @@ class ConversationManager:
                     "architecture": "simplified_v3",
                     "ai_provider": agent_result.get("ai_provider"),
                     "model_used": agent_result.get("model_used", "unknown"),
+                    "agent_framework": agent_result.get("agent_framework", "legacy"),
+                    "agent_error": agent_result.get("agent_error"),
                 },
             }
 
@@ -234,6 +246,10 @@ class ConversationManager:
     def _extract_answer(self, agent_result: dict[str, Any], user_message: str) -> str:
         """Extract answer from agent result, applying V3 formatting if appropriate."""
         agent_answer = agent_result.get("answer", "")
+        # A validated framework answer already incorporates its tool evidence. Appending
+        # every raw hit can swamp the answer and reintroduce irrelevant PDF fragments.
+        if agent_result.get("agent_framework") == "pydantic" or self._agent_failure(agent_result):
+            return agent_answer
         tool_results = agent_result.get("tool_results", {})
 
         # Markers that indicate the agent already produced a detailed, formatted response
@@ -339,9 +355,14 @@ class ConversationManager:
                 elif event.get("type") == "agent_complete":
                     agent_result = event.get("result", {})
 
+            failure = self._agent_failure(agent_result)
+            if failure:
+                yield failure
+                return
+
             # 4. Extract and synthesize answer
             answer = self._extract_answer(agent_result, user_message) if agent_result else None
-            if not answer or len(answer) < 50 or self._is_poor_quality_answer(answer):
+            if self._needs_response_synthesis(agent_result, answer):
                 yield {
                     "type": "status",
                     "stage": "synthesizing",
@@ -444,6 +465,10 @@ class ConversationManager:
                     "ai_provider": agent_result.get("ai_provider") if agent_result else None,
                     "model_used": agent_result.get("model_used") if agent_result else None,
                     "streaming_mode": "completed_message_chunks",
+                    "agent_framework": agent_result.get("agent_framework", "legacy")
+                    if agent_result
+                    else None,
+                    "agent_error": agent_result.get("agent_error") if agent_result else None,
                     "confidence": agent_result.get("confidence", 0.8) if agent_result else 0.5,
                     "tools_used": agent_result.get("sources_used", []) if agent_result else [],
                     "processing_time_ms": processing_time,
@@ -496,10 +521,41 @@ class ConversationManager:
             return True
         return False
 
+    @staticmethod
+    def _agent_failure(agent_result: dict[str, Any] | None) -> dict[str, Any] | None:
+        if (
+            agent_result
+            and not agent_result.get("agent_error")
+            and agent_result.get("success") is not False
+        ):
+            return None
+        result = agent_result or {}
+        error = result.get("agent_error") or "The AI agent did not produce a complete answer."
+        return {
+            "type": "error",
+            "stage": "generation",
+            "error": error,
+            "metadata": {
+                "success": False,
+                "confidence": 0.0,
+                "agent_error": error,
+                "ai_provider": result.get("ai_provider"),
+                "model_used": result.get("model_used"),
+                "agent_framework": result.get("agent_framework", "legacy"),
+            },
+        }
+
+    def _needs_response_synthesis(self, agent_result, answer) -> bool:
+        # Short acknowledgements and plain Markdown are valid framework answers.
+        if agent_result and agent_result.get("agent_framework") == "pydantic":
+            return False
+        return not answer or len(answer) < 50 or self._is_poor_quality_answer(answer)
+
     async def _synthesize_agent_response(
         self, query: str, agent_result: dict[str, Any], context: str
     ) -> str:
         """Synthesize a final response using the selected chat response provider."""
+        model = None
         try:
             agent_result = agent_result or {}
             tool_info = [
@@ -511,14 +567,16 @@ class ConversationManager:
                 return agent_result.get("answer", "I was unable to find relevant information.")
 
             prompt = f"Based on these results, answer: {query}\n\nRESULTS:\n{chr(10).join(tool_info[:3])}"
-            model = create_text_model("chat_response", model="gemini-1.5-flash")
+            model = create_text_model("chat_response")
             response = await generate_content(model, prompt)
             agent_result["ai_provider"] = getattr(response, "provider", None) or model.provider
             agent_result["model_used"] = getattr(response, "model_name", None) or model.model_name
             return response.text
         except Exception as e:
-            logger.error(f"Synthesis failed: {e}")
-            return agent_result.get("answer", "Error in synthesis.")
+            logger.error("Synthesis failed (%s)", type(e).__name__)
+            raise RuntimeError(
+                generation_error_message(e, getattr(model, "provider", None))
+            ) from None
 
     def _add_to_memory_only(self, conversation_id: int, role: str, content: str) -> None:
         """Add message to short-term memory only."""

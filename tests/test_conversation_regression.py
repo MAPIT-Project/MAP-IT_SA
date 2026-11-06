@@ -24,6 +24,8 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
+from tests.agent_test_support import isolate_agent_loop
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.atomic_storage import (
@@ -841,15 +843,15 @@ class TestTask005ContextWindowReset:
 
             # Each query should have bounded context size
             expected_max_per_query = 3000
-            assert query_size < expected_max_per_query, (
-                f"Query {query_num}: Context size {query_size} exceeds max {expected_max_per_query}"
-            )
+            assert (
+                query_size < expected_max_per_query
+            ), f"Query {query_num}: Context size {query_size} exceeds max {expected_max_per_query}"
 
         # Max observed should be much less than 10x a single query
         # (would be ~20000 if accumulating, should be ~2000)
-        assert max_observed_size < 5000, (
-            f"Max observed size {max_observed_size} suggests accumulation across queries"
-        )
+        assert (
+            max_observed_size < 5000
+        ), f"Max observed size {max_observed_size} suggests accumulation across queries"
 
     def test_context_bounded_across_many_iterations(self):
         """Test context remains bounded even with many iterations."""
@@ -871,9 +873,9 @@ class TestTask005ContextWindowReset:
         avg_size = sum(sizes_after_each_query) / len(sizes_after_each_query)
         for i, size in enumerate(sizes_after_each_query):
             deviation = abs(size - avg_size) / avg_size
-            assert deviation < 0.15, (
-                f"Query {i}: Size {size} deviates {deviation * 100:.1f}% from average {avg_size}"
-            )
+            assert (
+                deviation < 0.15
+            ), f"Query {i}: Size {size} deviates {deviation * 100:.1f}% from average {avg_size}"
 
     @pytest.mark.asyncio
     async def test_process_query_resets_context_at_start(self):
@@ -886,6 +888,7 @@ class TestTask005ContextWindowReset:
 
             with patch.object(ToolAwareAgent, "__init__", return_value=None):
                 agent = ToolAwareAgent.__new__(ToolAwareAgent)
+                isolate_agent_loop(agent)
                 agent.max_iterations = 1
                 agent.tools = {}
                 agent.speculative_executor = None

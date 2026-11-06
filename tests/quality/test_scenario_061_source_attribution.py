@@ -27,7 +27,6 @@ Sources:
 import re
 from dataclasses import dataclass
 
-import httpx
 import pytest
 
 # Official ERC grant amounts (in EUR millions, except PoC in thousands)
@@ -204,13 +203,6 @@ class TestScenario061SourceAttribution:
     BASE_URL = "http://localhost:8000"
     QUERY = "What are the ERC grant amounts?"
     PASS_THRESHOLD = 80
-
-    @pytest.fixture
-    def conversation_id(self):
-        """Generate a unique conversation ID for each test."""
-        import random
-
-        return random.randint(610000, 619999)
 
     @pytest.fixture
     def evaluator(self):
@@ -430,270 +422,6 @@ class TestScenario061SourceAttribution:
 
     # ==================== Integration Tests ====================
 
-    @pytest.mark.asyncio
-    async def test_api_returns_200(self, conversation_id):
-        """Test that the API returns 200 status code."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            assert response.status_code == 200, f"API returned {response.status_code}"
-
-    @pytest.mark.asyncio
-    async def test_response_mentions_erc(self, conversation_id):
-        """Test that response mentions ERC."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "").lower()
-
-            assert "erc" in response_text or "european research council" in response_text, (
-                "Response should mention ERC"
-            )
-
-    @pytest.mark.asyncio
-    async def test_response_contains_specific_amounts(self, conversation_id):
-        """Test that response contains specific grant amounts."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Check for at least one specific amount
-            amount_patterns = [
-                r"1\.5\s*(?:million|m)",
-                r"€?2\s*(?:million|m)",
-                r"2\.5\s*(?:million|m)",
-                r"10\s*(?:million|m)",
-                r"150[,\s]*000",
-            ]
-
-            found_amount = any(re.search(p, response_text, re.IGNORECASE) for p in amount_patterns)
-            assert found_amount, "Response should contain specific grant amounts"
-
-    @pytest.mark.asyncio
-    async def test_response_includes_source_attribution(self, conversation_id):
-        """Test that response includes source attribution."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "").lower()
-
-            # Check for source attribution
-            source_found = any(
-                re.search(pattern, response_text, re.IGNORECASE)
-                for pattern in SOURCE_ATTRIBUTION_PATTERNS
-            )
-
-            assert source_found, "Response should include source attribution (erc.europa.eu)"
-
-    @pytest.mark.asyncio
-    async def test_response_mentions_multiple_grant_types(self, conversation_id):
-        """Test that response mentions multiple grant types."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "").lower()
-
-            # Count grant types mentioned
-            grant_types_found = sum(
-                1
-                for grant_type in GRANT_TYPE_KEYWORDS
-                if any(kw in response_text for kw in GRANT_TYPE_KEYWORDS[grant_type])
-            )
-
-            assert grant_types_found >= 3, (
-                f"Response should mention at least 3 grant types, found {grant_types_found}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_response_passes_quality_threshold(self, conversation_id, evaluator):
-        """Test that response passes the 80-point quality threshold."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            score = evaluator.evaluate(self.QUERY, response_text)
-
-            assert score.passed, (
-                f"Response should score 80+, got {score.total_score}. "
-                f"Breakdown: query_fulfillment={score.query_fulfillment}, "
-                f"specificity={score.specificity}, "
-                f"source_attribution={score.source_attribution}, "
-                f"actionability={score.actionability}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_starting_grant_amount_correct(self, conversation_id):
-        """Test that Starting Grant amount is correctly stated."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": "What is the ERC Starting Grant budget?", "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Starting Grant should be €1.5 million
-            assert "1.5" in response_text, "Starting Grant amount should be €1.5 million"
-
-    @pytest.mark.asyncio
-    async def test_consolidator_grant_amount_correct(self, conversation_id):
-        """Test that Consolidator Grant amount is correctly stated."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": "How much is an ERC Consolidator Grant?", "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Consolidator Grant should be €2 million
-            assert "2 million" in response_text.lower() or "€2" in response_text, (
-                "Consolidator Grant amount should be €2 million"
-            )
-
-    @pytest.mark.asyncio
-    async def test_response_includes_erc_url(self, conversation_id):
-        """Test that response includes the official ERC URL."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Must include erc.europa.eu URL
-            assert "erc.europa.eu" in response_text, (
-                "Response must include erc.europa.eu URL for source traceability"
-            )
-
-    @pytest.mark.asyncio
-    async def test_no_error_in_response(self, conversation_id):
-        """Test that response does not contain error messages."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "").lower()
-
-            error_indicators = ["error", "failed", "unable to", "could not", "exception"]
-            for indicator in error_indicators:
-                assert indicator not in response_text or "error handling" in response_text, (
-                    f"Response should not contain error indicator: {indicator}"
-                )
-
-
-class TestSourceAttributionEdgeCases:
-    """Test edge cases for source attribution."""
-
-    BASE_URL = "http://localhost:8000"
-
-    @pytest.fixture
-    def conversation_id(self):
-        """Generate a unique conversation ID for each test."""
-        import random
-
-        return random.randint(611000, 611999)
-
-    @pytest.mark.asyncio
-    async def test_alternative_query_forms(self, conversation_id):
-        """Test that alternative query forms are handled correctly."""
-        # Note: Using very specific queries that clearly ask about ERC grant amounts
-        # to avoid routing to statistics or other tools
-        alternative_queries = [
-            "How much funding does ERC provide?",
-            "What's the maximum ERC grant amount?",
-            "Tell me about ERC grant budgets",
-        ]
-
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            for query in alternative_queries:
-                await client.delete(
-                    f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context"
-                )
-
-                response = await client.post(
-                    f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                    json={"message": query, "user_id": 1},
-                )
-
-                result = response.json()
-                response_text = result.get("response", "").lower()
-
-                # Should mention ERC and include amounts
-                assert "erc" in response_text or "european research council" in response_text, (
-                    f"Response to '{query}' should mention ERC"
-                )
-
-    @pytest.mark.asyncio
-    async def test_specific_grant_type_query(self, conversation_id):
-        """Test queries about specific grant types."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": "What is the budget for ERC Advanced Grant?", "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Should mention €2.5 million for Advanced Grant
-            assert "2.5" in response_text, "Advanced Grant should be €2.5 million"
-            assert "erc.europa.eu" in response_text.lower(), "Should include source URL"
-
 
 class TestSourceAttributionQuality:
     """Test quality scoring for source attribution."""
@@ -725,9 +453,9 @@ class TestSourceAttributionQuality:
         """
 
         score = evaluator.evaluate("What are the ERC grant amounts?", perfect_response)
-        assert score.total_score >= 90, (
-            f"Perfect response should score 90+, got {score.total_score}"
-        )
+        assert (
+            score.total_score >= 90
+        ), f"Perfect response should score 90+, got {score.total_score}"
 
     def test_minimal_score_response(self):
         """Test that a minimal response gets low score."""
@@ -754,6 +482,6 @@ class TestSourceAttributionQuality:
         """
 
         score = evaluator.evaluate("What are the ERC grant amounts?", no_source_response)
-        assert score.source_attribution < 15, (
-            "Missing source should get low source_attribution score"
-        )
+        assert (
+            score.source_attribution < 15
+        ), "Missing source should get low source_attribution score"

@@ -395,9 +395,9 @@ country participation if explicitly stated in the work programme/call text.
 - Review the Horizon Europe Programme Guide Section 4.2"""
 
         result = evaluator.evaluate(query, excellent_response)
-        assert result["total_score"] >= 80, (
-            f"Excellent response scored {result['total_score']}, expected 80+"
-        )
+        assert (
+            result["total_score"] >= 80
+        ), f"Excellent response scored {result['total_score']}, expected 80+"
         assert result["passed"], "Excellent response should pass"
 
     def test_minimal_response_scores_low(self, evaluator):
@@ -407,9 +407,9 @@ country participation if explicitly stated in the work programme/call text.
         They would need to join a consortium with European partners."""
 
         result = evaluator.evaluate(query, minimal_response)
-        assert result["total_score"] < 60, (
-            f"Minimal response scored {result['total_score']}, expected <60"
-        )
+        assert (
+            result["total_score"] < 60
+        ), f"Minimal response scored {result['total_score']}, expected <60"
         assert not result["passed"], "Minimal response should not pass"
 
     def test_incorrect_response_scores_low(self, evaluator):
@@ -421,9 +421,9 @@ projects and receive grants just like EU organizations."""
 
         result = evaluator.evaluate(query, incorrect_response)
         # Should fail accuracy checks
-        assert result["dimensions"]["factual_accuracy"] < 15, (
-            "Incorrect response should have low accuracy"
-        )
+        assert (
+            result["dimensions"]["factual_accuracy"] < 15
+        ), "Incorrect response should have low accuracy"
 
     def test_nuanced_response_with_limitations(self, evaluator):
         """Test that a nuanced response explaining limitations scores well."""
@@ -443,9 +443,9 @@ Alternative pathways for Indian researchers include MSCA fellowships and ERC gra
 Next steps: Check the specific call text and contact your NCP for guidance."""
 
         result = evaluator.evaluate(query, nuanced_response)
-        assert result["total_score"] >= 70, (
-            f"Nuanced response scored {result['total_score']}, expected 70+"
-        )
+        assert (
+            result["total_score"] >= 70
+        ), f"Nuanced response scored {result['total_score']}, expected 70+"
 
     def test_dimension_weights(self, evaluator):
         """Test that dimension weights are correct."""
@@ -495,98 +495,6 @@ Check the specific call text and Programme Guide Section 4.2."""
     # --------------------------------------------------------------------------
     # Live API tests
     # --------------------------------------------------------------------------
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        not pytest.importorskip("httpx", reason="httpx required"),
-        reason="httpx not available",
-    )
-    async def test_live_api_india_query(self, evaluator):
-        """Test the live API with India eligibility query."""
-        query = "Can a company from India participate in EU funding?"
-
-        try:
-            response, conv_id, tools = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        assert len(response) > 100, "Response too short"
-
-        result = evaluator.evaluate(query, response)
-        save_result(result, query, response)
-
-        print(f"\n{'=' * 60}")
-        print(f"Query: {query}")
-        print(f"Response length: {len(response)}")
-        print(f"Tools used: {tools}")
-        print("\nScores:")
-        for dim, score in result["dimensions"].items():
-            max_score = evaluator.dimensions[dim]
-            print(f"  {dim}: {score}/{max_score}")
-        print(f"\nTotal: {result['total_score']}/100")
-        print(f"Status: {'PASS' if result['passed'] else 'FAIL'}")
-        print(f"{'=' * 60}")
-
-        if result["feedback"]:
-            print("\nFeedback:")
-            for dim, fb in result["feedback"].items():
-                if fb:
-                    print(f"  {dim}: {'; '.join(fb)}")
-
-        assert result["total_score"] >= PASS_THRESHOLD, (
-            f"Score {result['total_score']} below threshold {PASS_THRESHOLD}"
-        )
-
-    @pytest.mark.asyncio
-    async def test_live_api_brazil_query(self, evaluator):
-        """Test with Brazil as another third country."""
-        query = "Can Brazilian universities participate in Horizon Europe?"
-
-        try:
-            response, conv_id, tools = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        result = evaluator.evaluate(query, response)
-
-        print(f"\nBrazil query score: {result['total_score']}/100")
-
-        # Brazil should also trigger third country guidance
-        assert "third country" in response.lower() or "self-fund" in response.lower(), (
-            "Response should mention third country status or self-funding"
-        )
-
-    @pytest.mark.asyncio
-    async def test_live_api_differentiates_associated_vs_third(self, evaluator):
-        """Test that the system differentiates between associated and third."""
-        third_country_query = "Can Indian companies get EU funding?"
-        associated_query = "Can UK organizations participate in Horizon Europe?"
-
-        try:
-            third_response, _, _ = await send_query(third_country_query)
-            assoc_response, _, _ = await send_query(associated_query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        # Third country response should mention self-funding
-        self_fund_in_third = (
-            "self-fund" in third_response.lower()
-            or "self fund" in third_response.lower()
-            or "not funded" in third_response.lower()
-            or "own costs" in third_response.lower()
-        )
-        assert self_fund_in_third, "Third country response should mention self-funding requirement"
-
-        # Associated country response should NOT say self-funded (UK has funding)
-        # Note: UK status is complex, so we check for different treatment
-        third_has_self_fund = (
-            "self-fund" in third_response.lower() or "self fund" in third_response.lower()
-        )
-        assoc_mentions_funding = "funding" in assoc_response.lower()
-
-        assert third_has_self_fund or assoc_mentions_funding, (
-            "System should differentiate third vs associated country treatment"
-        )
 
 
 # ==============================================================================

@@ -24,9 +24,6 @@ Sources:
 
 import re
 
-import httpx
-import pytest
-
 # Official ERC success rate ranges (with 2% tolerance)
 # These ranges encompass official 2024-2025 data
 OFFICIAL_ERC_RANGES = {
@@ -54,13 +51,6 @@ class TestScenario046ERCSuccessRateAccuracy:
     QUERY = "What's the ERC success rate?"
     PASS_THRESHOLD = 85
 
-    @pytest.fixture
-    def conversation_id(self):
-        """Generate a unique conversation ID for each test."""
-        import random
-
-        return random.randint(460000, 469999)
-
     # ==================== Unit Tests ====================
 
     def test_official_ranges_are_valid(self):
@@ -84,14 +74,14 @@ class TestScenario046ERCSuccessRateAccuracy:
 
                 # Check that system range overlaps with official range (with 2% tolerance)
                 # System minimum should not be more than 2% above official minimum
-                assert sys_min <= official_max + 2, (
-                    f"{grant_type}: system min {sys_min}% too high vs official max {official_max}%"
-                )
+                assert (
+                    sys_min <= official_max + 2
+                ), f"{grant_type}: system min {sys_min}% too high vs official max {official_max}%"
 
                 # System maximum should not be more than 2% below official maximum
-                assert sys_max >= official_min - 2, (
-                    f"{grant_type}: system max {sys_max}% too low vs official min {official_min}%"
-                )
+                assert (
+                    sys_max >= official_min - 2
+                ), f"{grant_type}: system max {sys_max}% too low vs official min {official_min}%"
 
     def test_extract_percentage_from_text(self):
         """Test percentage extraction from response text."""
@@ -151,331 +141,6 @@ class TestScenario046ERCSuccessRateAccuracy:
 
     # ==================== Integration Tests ====================
 
-    @pytest.mark.asyncio
-    async def test_api_returns_200(self, conversation_id):
-        """Test that the API returns 200 status code."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            assert response.status_code == 200, f"API returned {response.status_code}"
-
-    @pytest.mark.asyncio
-    async def test_response_mentions_erc(self, conversation_id):
-        """Test that response mentions ERC."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "").lower()
-
-            assert "erc" in response_text or "european research council" in response_text, (
-                "Response should mention ERC"
-            )
-
-    @pytest.mark.asyncio
-    async def test_response_contains_percentages(self, conversation_id):
-        """Test that response contains success rate percentages."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Extract percentages
-            percentages = re.findall(r"(\d+(?:\.\d+)?)\s*%", response_text)
-            assert len(percentages) > 0, "Response should contain percentage values"
-
-    @pytest.mark.asyncio
-    async def test_starting_grant_rate_accurate(self, conversation_id):
-        """Test that Starting Grant success rate is within 2% of official figures."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": "What is the ERC Starting Grant success rate?", "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Extract percentages
-            percentages = re.findall(r"(\d+(?:\.\d+)?)\s*%", response_text)
-            percentages = [float(p) for p in percentages]
-
-            # At least one percentage should be in the Starting Grant range
-            official_min, official_max = OFFICIAL_ERC_RANGES["starting_grant"]
-            in_range = any(official_min <= p <= official_max for p in percentages)
-            assert in_range, (
-                f"Starting Grant rate should be {official_min}-{official_max}%, got: {percentages}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_consolidator_grant_rate_accurate(self, conversation_id):
-        """Test that Consolidator Grant success rate is within 2% of official figures."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={
-                    "message": "What is the ERC Consolidator Grant success rate?",
-                    "user_id": 1,
-                },
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Extract percentages
-            percentages = re.findall(r"(\d+(?:\.\d+)?)\s*%", response_text)
-            percentages = [float(p) for p in percentages]
-
-            # At least one percentage should be in the Consolidator Grant range
-            official_min, official_max = OFFICIAL_ERC_RANGES["consolidator_grant"]
-            in_range = any(official_min <= p <= official_max for p in percentages)
-            assert in_range, (
-                f"Consolidator Grant rate should be {official_min}-{official_max}%, "
-                f"got: {percentages}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_advanced_grant_rate_accurate(self, conversation_id):
-        """Test that Advanced Grant success rate is within 2% of official figures."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": "What is the ERC Advanced Grant success rate?", "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Extract percentages
-            percentages = re.findall(r"(\d+(?:\.\d+)?)\s*%", response_text)
-            percentages = [float(p) for p in percentages]
-
-            # At least one percentage should be in the Advanced Grant range
-            official_min, official_max = OFFICIAL_ERC_RANGES["advanced_grant"]
-            in_range = any(official_min <= p <= official_max for p in percentages)
-            assert in_range, (
-                f"Advanced Grant rate should be {official_min}-{official_max}%, got: {percentages}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_response_mentions_grant_types(self, conversation_id):
-        """Test that response breaks down success rates by grant type."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "").lower()
-
-            # Should mention at least 2 grant types
-            grant_types = ["starting", "consolidator", "advanced", "synergy"]
-            mentioned_types = sum(1 for gt in grant_types if gt in response_text)
-            assert mentioned_types >= 2, (
-                f"Should mention at least 2 grant types, found: {mentioned_types}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_no_significantly_wrong_rates(self, conversation_id):
-        """Test that response does not contain significantly wrong rates."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Extract percentages
-            percentages = re.findall(r"(\d+(?:\.\d+)?)\s*%", response_text)
-            percentages = [float(p) for p in percentages]
-
-            # Filter to reasonable ERC success rate range (exclude PoC which is 35-40%)
-            main_grant_percentages = [p for p in percentages if p < 30]
-
-            # No main grant rates should be above 20% (significantly wrong)
-            wrong_rates = [p for p in main_grant_percentages if p > 20]
-            assert len(wrong_rates) == 0, (
-                f"Should not have significantly wrong rates (>20%): {wrong_rates}"
-            )
-
-            # No main grant rates should be below 5% (significantly wrong)
-            wrong_rates_low = [p for p in main_grant_percentages if p < 5]
-            assert len(wrong_rates_low) == 0, (
-                f"Should not have significantly wrong rates (<5%): {wrong_rates_low}"
-            )
-
-    @pytest.mark.asyncio
-    async def test_uses_programme_statistics_tool(self, conversation_id):
-        """Test that get_programme_statistics tool is used."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-            metadata = result.get("metadata", {})
-            tools_used = metadata.get("tools_used", [])
-
-            # Should use get_programme_statistics tool
-            stats_tool_used = any("programme_statistics" in str(t).lower() for t in tools_used)
-            assert stats_tool_used, f"Should use get_programme_statistics tool, got: {tools_used}"
-
-    @pytest.mark.asyncio
-    async def test_data_source_indicated(self, conversation_id):
-        """Test that response indicates data source (official_ec_data)."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-            metadata = result.get("metadata", {})
-            reasoning_steps = metadata.get("reasoning_steps", [])
-
-            # Check tool observations for source indication
-            source_indicated = False
-            for step in reasoning_steps:
-                observation = str(step.get("observation", "")).lower()
-                if "official" in observation or "source" in observation or "ec" in observation:
-                    source_indicated = True
-                    break
-
-            # Also check response text
-            response_text = result.get("response", "").lower()
-            if any(
-                term in response_text
-                for term in ["official", "erc data", "ec data", "european research council"]
-            ):
-                source_indicated = True
-
-            assert source_indicated, "Response should indicate data source"
-
-    @pytest.mark.asyncio
-    async def test_no_error_in_response(self, conversation_id):
-        """Test that response does not contain error messages."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-
-            # Should not have error in result
-            assert "error" not in result, f"Response should not have error: {result.get('error')}"
-
-            response_text = result.get("response", "")
-            error_phrases = ["error occurred", "i apologize", "something went wrong", "unable to"]
-            has_error = any(phrase in response_text.lower() for phrase in error_phrases)
-            assert not has_error, "Response should not contain error messages"
-
-    @pytest.mark.asyncio
-    async def test_quality_score_threshold(self, conversation_id):
-        """Test that quality score meets threshold (85)."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            result = response.json()
-            metadata = result.get("metadata", {})
-            quality_analysis = metadata.get("quality_analysis", {})
-
-            # If quality score available, check threshold
-            if "score" in quality_analysis:
-                score = quality_analysis.get("score", 0)
-                assert score >= self.PASS_THRESHOLD, (
-                    f"Quality score {score} should be >= {self.PASS_THRESHOLD}"
-                )
-
-    @pytest.mark.asyncio
-    async def test_full_scenario_integration(self, conversation_id):
-        """Full integration test for Scenario 046."""
-        async with httpx.AsyncClient(timeout=180.0) as client:
-            await client.delete(f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/context")
-
-            response = await client.post(
-                f"{self.BASE_URL}/api/v3/conversation/{conversation_id}/message",
-                json={"message": self.QUERY, "user_id": 1},
-            )
-
-            assert response.status_code == 200
-            result = response.json()
-            response_text = result.get("response", "")
-
-            # Scoring criteria
-            score = 0
-
-            # 1. Mentions ERC (20 points)
-            if "erc" in response_text.lower():
-                score += 20
-
-            # 2. Contains percentages (20 points)
-            percentages = re.findall(r"(\d+(?:\.\d+)?)\s*%", response_text)
-            if len(percentages) > 0:
-                score += 20
-
-            # 3. Percentages are in valid range (20 points)
-            percentages = [float(p) for p in percentages]
-            valid_range_count = sum(1 for p in percentages if 5 <= p <= 45)  # Include PoC range
-            if valid_range_count > 0:
-                score += 20
-
-            # 4. Mentions grant types (15 points)
-            grant_types = ["starting", "consolidator", "advanced", "synergy", "proof"]
-            mentioned = sum(1 for gt in grant_types if gt in response_text.lower())
-            if mentioned >= 2:
-                score += 15
-
-            # 5. No significantly wrong rates (10 points)
-            main_grant_rates = [p for p in percentages if p < 30]
-            if all(5 <= p <= 20 for p in main_grant_rates if main_grant_rates):
-                score += 10
-
-            assert score >= self.PASS_THRESHOLD, (
-                f"Integration score {score} should be >= {self.PASS_THRESHOLD}"
-            )
-
 
 class TestERCSuccessRateDataValidation:
     """Test data validation for ERC success rates against official EC statistics."""
@@ -531,6 +196,6 @@ class TestERCSuccessRateDataValidation:
             for rate in rates:
                 # Check with 2% tolerance
                 in_range_with_tolerance = (sys_min - 2) <= rate <= (sys_max + 2)
-                assert in_range_with_tolerance, (
-                    f"{grant_type}: {rate}% not within {sys_min}-{sys_max}% (with 2% tolerance)"
-                )
+                assert (
+                    in_range_with_tolerance
+                ), f"{grant_type}: {rate}% not within {sys_min}-{sys_max}% (with 2% tolerance)"

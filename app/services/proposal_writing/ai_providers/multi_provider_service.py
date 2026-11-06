@@ -10,6 +10,7 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 from app.core.config import settings
+from app.services.ai.budget import InferenceBudgetError
 from app.services.ai.factory import resolve_provider
 
 from .base import BaseAIProvider, ProviderConfig, ProviderResponse
@@ -149,6 +150,8 @@ class MultiProviderAIService:
                     )
                     return response
 
+                except InferenceBudgetError:
+                    raise
                 except Exception as e:
                     last_error = e
                     logger.warning(
@@ -188,6 +191,8 @@ class MultiProviderAIService:
                     logger.info(f"Generated structured output using {provider.name}")
                     return result
 
+                except InferenceBudgetError:
+                    raise
                 except Exception as e:
                     last_error = e
                     logger.warning(
@@ -221,6 +226,8 @@ class MultiProviderAIService:
                     yield chunk
                 return
 
+            except InferenceBudgetError:
+                raise
             except Exception as e:
                 logger.warning(f"{provider.name} stream failed: {e}")
                 continue

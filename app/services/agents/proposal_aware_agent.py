@@ -14,11 +14,13 @@ The agent receives proposal context with every query, allowing it to
 provide contextual assistance based on the current document state.
 """
 
+import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from datetime import datetime
 from typing import Any
 
+from ...core.config import settings
 from ..ai.factory import generate_content
 from .prompts import REASONING_PROMPT
 from .tool_aware_agent import AgentPlan, ReasoningStep, Tool, ToolAwareAgent, ToolCall, ToolCategory
@@ -503,6 +505,7 @@ When the user asks to "evaluate" or "score" a section:
             Dict with answer, reasoning steps, sources, and any sections affected
         """
         start_time = datetime.now()
+        self._current_query = query
         self._reset_generation_metadata()
 
         # Try to append call metadata context
@@ -554,6 +557,17 @@ When the user asks to "evaluate" or "score" a section:
                 )
             except Exception as e:
                 logger.warning(f"Speculative execution failed: {e}")
+
+        if settings.agent_framework == "pydantic":
+            from .framework.runtime import run_agent_loop
+
+            iteration, all_tool_results = await run_agent_loop(
+                self, query, context, plan, proposal_context=proposal_context
+            )
+            self._finalize_plan(plan)
+            return self._framework_proposal_result(
+                plan, all_tool_results, proposal_intent, iteration, start_time
+            )
 
         # ReAct loop
         iteration = 0
@@ -681,6 +695,7 @@ When the user asks to "evaluate" or "score" a section:
             Dict events as processing happens
         """
         start_time = datetime.now()
+        self._current_query = query
         self._reset_generation_metadata()
 
         # Store session context
@@ -704,6 +719,13 @@ When the user asks to "evaluate" or "score" a section:
             "message": "Processing proposal request...",
             "proposal_intent": proposal_intent,
         }
+
+        if settings.agent_framework == "pydantic":
+            async for event in self._framework_proposal_stream(
+                query, context, proposal_context, plan, proposal_intent, start_time
+            ):
+                yield event
+            return
 
         # ReAct loop with streaming
         iteration = 0
@@ -859,6 +881,105 @@ When the user asks to "evaluate" or "score" a section:
             },
         }
 
+    def _framework_proposal_guidance(self, query, proposal_context):
+        """Keep official section guidance in framework runs without the legacy JSON prompt."""
+        try:
+            from ..templates.he_templates import (
+                get_all_sections_overview,
+                get_full_section_guidance,
+            )
+
+            proposal_type = self._extract_proposal_type(proposal_context)
+            structure = get_all_sections_overview(proposal_type)
+            active_section = self._detect_active_section(query, proposal_context)
+            guidance = (
+                get_full_section_guidance(proposal_type, active_section) if active_section else ""
+            )
+            return f"Document structure:\n{structure}\n\nActive section guidance:\n{guidance}"
+        except Exception as exc:
+            logger.warning("Proposal template guidance unavailable (%s)", type(exc).__name__)
+            return "Official section guidance is unavailable; do not invent template requirements."
+
+    def _framework_proposal_result(
+        self, plan, tool_results, proposal_intent, iteration, start_time
+    ):
+        sections = []
+        for step in plan.reasoning_steps:
+            for call in step.tool_calls:
+                if call.success:
+                    section = call.parameters.get("section_id")
+                    if not section and isinstance(call.result, dict):
+                        section = call.result.get("section_id")
+                    if section and section not in sections:
+                        sections.append(section)
+        answer = plan.final_answer or self._build_proposal_response(
+            plan, tool_results, sections, proposal_intent
+        )
+        return {
+            "answer": answer,
+            "success": plan.final_answer is not None,
+            "reasoning_steps": [
+                {
+                    "step": step.step_number,
+                    "thought": step.thought,
+                    "action": step.action,
+                    "tools_called": [call.tool_name for call in step.tool_calls],
+                    "observation": (step.observation or "")[:500],
+                }
+                for step in plan.reasoning_steps
+            ],
+            "sources_used": list(tool_results),
+            "tool_results": tool_results,
+            "sections_affected": sections,
+            "complexity": plan.complexity,
+            "iterations": iteration,
+            "confidence": plan.confidence,
+            "total_time_ms": (datetime.now() - start_time).total_seconds() * 1000,
+            "proposal_intent": proposal_intent,
+            "agent_framework": plan.framework,
+            "agent_error": plan.error,
+            **self._generation_metadata(),
+        }
+
+    async def _framework_proposal_stream(
+        self, query, context, proposal_context, plan, proposal_intent, start_time
+    ):
+        from .framework.runtime import run_agent_loop
+
+        queue = asyncio.Queue()
+
+        async def emit(event):
+            await queue.put(event)
+
+        task = asyncio.create_task(
+            run_agent_loop(
+                self, query, context, plan, event_callback=emit, proposal_context=proposal_context
+            )
+        )
+        try:
+            while not task.done():
+                try:
+                    yield await asyncio.wait_for(queue.get(), timeout=0.1)
+                except TimeoutError:
+                    continue
+            iteration, results = task.result()
+            while not queue.empty():
+                yield queue.get_nowait()
+            self._finalize_plan(plan)
+            yield {
+                "type": "agent_complete",
+                "result": self._framework_proposal_result(
+                    plan, results, proposal_intent, iteration, start_time
+                ),
+            }
+        finally:
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+
     async def _reason_next_step_with_proposal(
         self,
         query: str,
@@ -965,6 +1086,7 @@ When the user asks to "evaluate" or "score" a section:
             "get_suggestions",
             "focus_section",
             "get_document_overview",
+            "mark_section_status",
         ]
 
     async def _execute_proposal_tool(self, tool_name: str, parameters: dict[str, Any]) -> Any:

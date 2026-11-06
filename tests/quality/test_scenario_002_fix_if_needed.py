@@ -336,7 +336,9 @@ class TestScenario002FixIfNeeded:
         with open(RESULTS_PATH) as f:
             result = json.load(f)
 
-        assert "average_score" in result, "Result file missing 'average_score' field"
+        assert (
+            "average_score" in result or "average_quality_score" in result
+        ), "Result file missing a quality score from the PRD or runner format"
         assert "failures" in result, "Result file missing 'failures' field"
         assert "turns" in result, "Result file missing 'turns' field"
         assert "status" in result, "Result file missing 'status' field"
@@ -353,7 +355,7 @@ class TestScenario002FixIfNeeded:
         with open(RESULTS_PATH) as f:
             result = json.load(f)
 
-        avg_score = result.get("average_score", 0)
+        avg_score = result.get("average_score", result.get("average_quality_score", 0))
         current_status = result.get("status", "UNKNOWN")
         fix_history = result.get("fix_history", [])
         fix_count = len(fix_history)
@@ -530,7 +532,9 @@ class TestScenario002FixIfNeededIntegration:
 
         This test documents the current state and what action is needed.
         """
-        avg_score = current_result.get("average_score", 0)
+        avg_score = current_result.get(
+            "average_score", current_result.get("average_quality_score", 0)
+        )
         fix_history = current_result.get("fix_history", [])
         current_status = current_result.get("status", "UNKNOWN")
 

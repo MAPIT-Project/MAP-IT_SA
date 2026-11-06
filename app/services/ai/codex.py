@@ -14,6 +14,7 @@ import signal
 import tempfile
 from pathlib import Path
 
+from app.services.ai.budget import budgeted_inference
 from app.services.ai.structured import codex_output_schema, omit_optional_nulls, validate_json
 from app.services.ai.types import CODEX_REASONING_EFFORTS, TextResponse
 
@@ -25,15 +26,38 @@ class CodexError(RuntimeError):
 class CodexTextModel:
     provider = "codex"
     _required_flags = (
-        "--json", "--ephemeral", "--output-last-message", "--output-schema",
-        "--sandbox", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check",
+        "--json",
+        "--ephemeral",
+        "--output-last-message",
+        "--output-schema",
+        "--sandbox",
+        "--ignore-user-config",
+        "--ignore-rules",
+        "--skip-git-repo-check",
     )
     _disabled_features = (
-        "shell_tool", "unified_exec", "shell_snapshot", "apps", "plugins",
-        "remote_plugin", "browser_use", "browser_use_external", "computer_use",
-        "in_app_browser", "in_app_local_automation", "code_mode_host",
-        "multi_agent", "multi_agent_v2", "image_generation", "view_image", "hooks",
-        "skill_search", "skill_mcp_dependency_install", "memories", "goals", "sleep_tool",
+        "shell_tool",
+        "unified_exec",
+        "shell_snapshot",
+        "apps",
+        "plugins",
+        "remote_plugin",
+        "browser_use",
+        "browser_use_external",
+        "computer_use",
+        "in_app_browser",
+        "in_app_local_automation",
+        "code_mode_host",
+        "multi_agent",
+        "multi_agent_v2",
+        "image_generation",
+        "view_image",
+        "hooks",
+        "skill_search",
+        "skill_mcp_dependency_install",
+        "memories",
+        "goals",
+        "sleep_tool",
     )
     _max_output_bytes = 4 * 1024 * 1024
 
@@ -45,7 +69,10 @@ class CodexTextModel:
         self.cli_path = settings.codex_cli_path
         self.model_name = settings.codex_model or None
         self.reasoning_effort = getattr(settings, "codex_reasoning_effort", None)
-        if self.reasoning_effort is not None and self.reasoning_effort not in CODEX_REASONING_EFFORTS:
+        if (
+            self.reasoning_effort is not None
+            and self.reasoning_effort not in CODEX_REASONING_EFFORTS
+        ):
             raise CodexError("Unsupported CODEX_REASONING_EFFORT")
         self.timeout = settings.codex_timeout_seconds
 
@@ -72,7 +99,9 @@ class CodexTextModel:
                     *args,
                     cwd=cwd,
                     env=self._environment() if env is None else env,
-                    stdin=asyncio.subprocess.PIPE if prompt is not None else asyncio.subprocess.DEVNULL,
+                    stdin=asyncio.subprocess.PIPE
+                    if prompt is not None
+                    else asyncio.subprocess.DEVNULL,
                     stdout=stdout,
                     stderr=stderr,
                     start_new_session=True,
@@ -97,13 +126,17 @@ class CodexTextModel:
                     stderr.read(65536),
                 )
             except FileNotFoundError:
-                raise CodexError("Codex CLI not found. Install it and check CODEX_CLI_PATH") from None
+                raise CodexError(
+                    "Codex CLI not found. Install it and check CODEX_CLI_PATH"
+                ) from None
             except TimeoutError:
                 raise CodexError(
                     "Codex CLI timed out. Check host connectivity or increase CODEX_TIMEOUT_SECONDS"
                 ) from None
             except OSError:
-                raise CodexError("Could not start Codex CLI. Check executable permissions") from None
+                raise CodexError(
+                    "Could not start Codex CLI. Check executable permissions"
+                ) from None
             finally:
                 if process is not None:
                     cleanup = asyncio.create_task(self._stop(process))
@@ -123,7 +156,9 @@ class CodexTextModel:
                 [executable, "exec", "--help"], cwd, timeout=min(self.timeout, 10)
             )
             if code or any(flag.encode() not in help_text for flag in self._required_flags):
-                raise CodexError("Codex CLI lacks required isolation flags. Update the official CLI")
+                raise CodexError(
+                    "Codex CLI lacks required isolation flags. Update the official CLI"
+                )
             code, out, err = await self._capture(
                 [executable, "login", "status"], cwd, timeout=min(self.timeout, 10)
             )
@@ -177,8 +212,10 @@ class CodexTextModel:
         environment = self._environment()
         environment.update(HOME=str(home), CODEX_HOME=str(home))
         code, raw, _ = await self._capture(
-            [executable, "debug", "models", "--bundled"], cwd,
-            env=environment, timeout=min(self.timeout, 10),
+            [executable, "debug", "models", "--bundled"],
+            cwd,
+            env=environment,
+            timeout=min(self.timeout, 10),
         )
         try:
             catalog = json.loads(raw)
@@ -187,8 +224,12 @@ class CodexTextModel:
                 raise ValueError
             seen = set()
             required = {
-                "slug", "shell_type", "apply_patch_tool_type", "experimental_supported_tools",
-                "node_repl_disabled", "supports_search_tool",
+                "slug",
+                "shell_type",
+                "apply_patch_tool_type",
+                "experimental_supported_tools",
+                "node_repl_disabled",
+                "supports_search_tool",
             }
             for model in models:
                 if not isinstance(model, dict) or not required <= model.keys():
@@ -198,9 +239,13 @@ class CodexTextModel:
                     raise ValueError
                 seen.add(slug)
                 model.update(
-                    shell_type="disabled", apply_patch_tool_type=None,
-                    multi_agent_version=None, experimental_supported_tools=[],
-                    tool_mode="direct", node_repl_disabled=True, supports_search_tool=False,
+                    shell_type="disabled",
+                    apply_patch_tool_type=None,
+                    multi_agent_version=None,
+                    experimental_supported_tools=[],
+                    tool_mode="direct",
+                    node_repl_disabled=True,
+                    supports_search_tool=False,
                 )
             if self.model_name is not None and self.model_name not in seen:
                 raise CodexError(
@@ -225,9 +270,16 @@ class CodexTextModel:
         if self.model_name is not None:
             overrides["model"] = self.model_name
         code, raw, _ = await self._capture(
-            [executable, "debug", "prompt-input", *self._config_arguments(overrides),
-             "MAPIT inference capability check. Do not invoke tools."],
-            cwd, env=environment, timeout=min(self.timeout, 10),
+            [
+                executable,
+                "debug",
+                "prompt-input",
+                *self._config_arguments(overrides),
+                "MAPIT inference capability check. Do not invoke tools.",
+            ],
+            cwd,
+            env=environment,
+            timeout=min(self.timeout, 10),
         )
         try:
             messages = json.loads(raw)
@@ -265,9 +317,19 @@ class CodexTextModel:
 
     def _command(self, executable, output, schema_path, catalog_path, instructions_path):
         args = [
-            executable, "exec", "--ignore-user-config", "--ignore-rules", "--ephemeral",
-            "--skip-git-repo-check", "--sandbox", "read-only", "--json", "--color", "never",
-            "--output-last-message", str(output),
+            executable,
+            "exec",
+            "--ignore-user-config",
+            "--ignore-rules",
+            "--ephemeral",
+            "--skip-git-repo-check",
+            "--sandbox",
+            "read-only",
+            "--json",
+            "--color",
+            "never",
+            "--output-last-message",
+            str(output),
             *self._config_arguments(self._overrides(catalog_path, instructions_path)),
         ]
         if self.model_name:
@@ -276,12 +338,52 @@ class CodexTextModel:
             args.extend(["--output-schema", str(schema_path)])
         return [*args, "-"]
 
+    @staticmethod
+    def _failure_category(events, diagnostics):
+        """Classify bounded CLI errors without exposing stderr, prompts or token material."""
+        messages = [diagnostics.decode("utf-8", errors="replace")]
+        for line in events.splitlines():
+            try:
+                event = json.loads(line)
+            except (ValueError, UnicodeDecodeError):
+                continue
+            if event.get("type") in {"error", "turn.failed"}:
+                messages.append(str(event.get("message") or event.get("error") or ""))
+        text = " ".join(messages).casefold()
+        for category, markers in (
+            (
+                "usage_limit",
+                ("usage limit", "insufficient_quota", "rate_limit_exceeded", "quota exceeded"),
+            ),
+            ("authentication", ("unauthorized", "invalid_auth", "refresh_token", "token expired")),
+            ("context_limit", ("context_length_exceeded", "context length", "prompt too long")),
+            ("structured_output", ("invalid_json_schema", "response_format", "output schema")),
+            ("sandbox", ("sandbox", "landlock", "bwrap", "operation not permitted")),
+            (
+                "connectivity",
+                (
+                    "connection",
+                    "network",
+                    "stream disconnected",
+                    "error sending request",
+                    "failed to send request",
+                ),
+            ),
+            ("model_access", ("model not found", "unsupported model", "model does not exist")),
+        ):
+            if any(marker in text for marker in markers):
+                return category
+        return "unclassified"
+
+    @budgeted_inference
     async def generate_content_async(self, prompt, generation_config=None, stream=False, **kwargs):
         if not isinstance(prompt, str):
             raise TypeError("Codex text generation requires a string prompt")
         config = generation_config or {}
         if not isinstance(config, dict):
-            config = {key: getattr(config, key, None) for key in ("response_schema", "response_mime_type")}
+            config = {
+                key: getattr(config, key, None) for key in ("response_schema", "response_mime_type")
+            }
         schema = config.get("response_schema")
         json_mode = schema is not None or config.get("response_mime_type") == "application/json"
         executable = await self.check_available()
@@ -295,16 +397,19 @@ class CodexTextModel:
                     schema_path = Path(cwd) / "schema.json"
                     schema_path.write_text(json.dumps(wire_schema), encoding="utf-8")
                 else:
-                    prompt = "Return JSON matching this schema:\n" + json.dumps(schema) + "\n\n" + prompt
+                    prompt = (
+                        "Return JSON matching this schema:\n" + json.dumps(schema) + "\n\n" + prompt
+                    )
             if json_mode and schema is None:
                 prompt = "Return valid JSON only.\n\n" + prompt
-            code, events, _ = await self._capture(
+            code, events, diagnostics = await self._capture(
                 self._command(executable, output, schema_path, catalog_path, instructions_path),
-                cwd, prompt=prompt
+                cwd,
+                prompt=prompt,
             )
             if code:
                 raise CodexError(
-                    f"Codex CLI exited with status {code}. Check codex login status, "
+                    f"Codex CLI exited with status {code} ({self._failure_category(events, diagnostics)}). Check codex login status, "
                     "host connectivity, model access and sandbox support; no fallback was attempted"
                 )
             if not output.is_file() or output.stat().st_size > self._max_output_bytes:
@@ -326,8 +431,15 @@ class CodexTextModel:
                     model_name = event.get("model") or model_name
                 elif kind in {"item.started", "item.completed"}:
                     item_type = event.get("item", {}).get("type")
-                    if item_type in {"command_execution", "mcp_tool_call", "web_search", "file_change"}:
-                        raise CodexError("Codex attempted a tool operation in an inference-only job")
+                    if item_type in {
+                        "command_execution",
+                        "mcp_tool_call",
+                        "web_search",
+                        "file_change",
+                    }:
+                        raise CodexError(
+                            "Codex attempted a tool operation in an inference-only job"
+                        )
             if json_mode:
                 value = validate_json(answer)
                 if schema is not None:
@@ -348,6 +460,8 @@ class CodexTextModel:
         try:
             asyncio.get_running_loop()
         except RuntimeError:
-            response = asyncio.run(self.generate_content_async(prompt, generation_config, False, **kwargs))
+            response = asyncio.run(
+                self.generate_content_async(prompt, generation_config, False, **kwargs)
+            )
             return iter([response]) if stream else response
         raise RuntimeError("Use await generate_content_async() inside an async call path")

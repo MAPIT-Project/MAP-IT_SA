@@ -38,6 +38,7 @@ class Tool:
     parameters: dict[str, Any]
     examples: list[str] = field(default_factory=list)
     executor: Callable[..., Awaitable[Any]] | None = None
+    input_model: Any = None
 
     def to_prompt_format(self) -> str:
         """Format tool for LLM prompt."""
@@ -81,6 +82,8 @@ class AgentPlan:
     final_answer: str | None = None
     confidence: float = 0.0
     sources_used: list[str] = field(default_factory=list)
+    framework: str = "legacy"
+    error: str | None = None
 
 
 class ToolRegistryMixin:
@@ -101,13 +104,20 @@ class ToolRegistryMixin:
 - "Average funding for X" / "typical budget"
 - "How many projects were funded?"
 
-Returns: Success rates, average funding, participation statistics from real data.
-
-**DO NOT use search_documents for statistics - use this tool instead!**""",
+Returns: Cited selection-announcement statistics for EIC Accelerator and ERC Advanced
+Grant (2023-2025), including annual application denominators and approximate means
+from announced totals. EIC support includes equity; ERC is grant funding. These are
+dated snapshots, not final disbursements. Other schemes return local project samples
+with unavailable success rates. Use search_documents for additional dated evidence.
+Pass explicit year_from/year_to for a historical period. Never substitute funding
+ceilings for average awards or a broad ERC/EIC pillar for a specific grant scheme.""",
                 category=ToolCategory.STATISTICS,
                 parameters={
                     "programme": "Programme name (e.g., 'EIC', 'ERC', 'MSCA', 'Cluster 5')",
                     "metric": "Optional: specific metric like 'success_rate', 'avg_funding', 'participation'",
+                    "year": "Optional: specific call year for published statistics",
+                    "year_from": "Optional: first call year, inclusive",
+                    "year_to": "Optional: last call year, inclusive",
                 },
                 examples=[
                     "get_programme_statistics(programme='EIC Accelerator')",
@@ -141,13 +151,16 @@ Returns: Eligibility status, top organizations in that country, and participatio
         self.register_tool(
             Tool(
                 name="get_budget_benchmark",
-                description="Get real budget statistics from funded Horizon Europe projects. Returns min/max/average/median EU contributions, budget per partner, consortium sizes, and data-driven recommendations.",
+                description="Get local funded-project budget statistics, not application success rates. Filters use project START year, not call/award year. CORDIS EU contributions exclude unrecorded equity. For published annual selection rates and announced support use get_programme_statistics with the specific scheme.",
                 category=ToolCategory.STATISTICS,
                 parameters={
                     "cluster": "Optional: Cluster code (e.g., 'CL4', 'CL5', 'EIC')",
                     "action_type": "Optional: Action type (e.g., 'RIA', 'IA', 'CSA', 'ERC-STG')",
                     "topic_keywords": "Optional: SHORT, SPECIFIC technical keywords to filter projects (e.g., 'AI', 'hydrogen'). NEVER pass the full user query or long sentences. Max 2-3 words.",
-                    "year": "Optional: Filter by funding year",
+                    "programme": "Optional: EIC Accelerator, ERC Advanced Grant, ERC Starting Grant, ERC, EIC or MSCA. Specific schemes also match call topics when fundingScheme is broad.",
+                    "year": "Optional: project start year, not award year",
+                    "year_from": "Optional: first project start year, inclusive",
+                    "year_to": "Optional: last project start year, inclusive",
                 },
                 examples=[
                     "get_budget_benchmark(cluster='CL4', action_type='RIA')",
@@ -319,12 +332,15 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
         self.register_tool(
             Tool(
                 name="compare_programmes",
-                description="Compare statistics between two programmes or clusters",
+                description="Compare specific funding schemes using the same sources as get_programme_statistics. Pass the requested year range. Published selection rates use call year; local project samples use start year. EIC support includes equity; ERC support is grant funding.",
                 category=ToolCategory.COMPARISON,
                 parameters={
                     "programme_a": "First programme to compare",
                     "programme_b": "Second programme to compare",
-                    "metrics": "List of metrics to compare",
+                    "metrics": "Optional: success_rate, avg_funding, participation; source context is always included",
+                    "year": "Optional: specific year",
+                    "year_from": "Optional: first year, inclusive",
+                    "year_to": "Optional: last year, inclusive",
                 },
                 examples=[
                     "compare_programmes(programme_a='EIC', programme_b='ERC', metrics=['success_rate', 'avg_funding'])"

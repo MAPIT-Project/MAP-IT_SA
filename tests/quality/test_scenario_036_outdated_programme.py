@@ -350,9 +350,9 @@ Horizon Europe is the current programme with a budget of **€95.5 billion**. It
 4. Contact your National Contact Point for guidance"""
 
         result = evaluator.evaluate(query, excellent_response)
-        assert result["total_score"] >= 80, (
-            f"Excellent response scored {result['total_score']}, expected 80+"
-        )
+        assert (
+            result["total_score"] >= 80
+        ), f"Excellent response scored {result['total_score']}, expected 80+"
         assert result["passed"], "Excellent response should pass"
 
     def test_incorrect_response_fails_accuracy(self, evaluator):
@@ -363,9 +363,9 @@ are many open calls available. H2020 is open for applications and you should \
 check the portal for current opportunities."""
 
         result = evaluator.evaluate(query, incorrect_response)
-        assert result["dimensions"]["factual_accuracy"] < 15, (
-            "Incorrect response should fail accuracy"
-        )
+        assert (
+            result["dimensions"]["factual_accuracy"] < 15
+        ), "Incorrect response should fail accuracy"
         assert not result["passed"], "Incorrect response should not pass"
 
     def test_vague_response_scores_lower(self, evaluator):
@@ -376,9 +376,9 @@ other EU funding programmes that are currently available."""
 
         result = evaluator.evaluate(query, vague_response)
         # Should get some points for saying ended but miss specificity
-        assert result["dimensions"]["specificity"] < 20, (
-            "Vague response should have lower specificity"
-        )
+        assert (
+            result["dimensions"]["specificity"] < 20
+        ), "Vague response should have lower specificity"
 
     def test_good_response_with_redirect(self, evaluator):
         """Test that a good response with clear redirect scores well."""
@@ -421,9 +421,9 @@ You should apply to Horizon Europe for current funding opportunities."""
 
         result = evaluator.evaluate(query, good_response)
         # FP7 response should pass basic checks even if H2020 not explicitly mentioned
-        assert result["dimensions"]["factual_accuracy"] >= 15, (
-            "FP7 closure response should be accurate"
-        )
+        assert (
+            result["dimensions"]["factual_accuracy"] >= 15
+        ), "FP7 closure response should be accurate"
 
     def test_combined_h2020_fp7_query(self, evaluator):
         """Test response to query about both old programmes."""
@@ -443,150 +443,6 @@ Next steps: Visit the EU Funding Portal for open Horizon Europe calls."""
     # --------------------------------------------------------------------------
     # Live API tests
     # --------------------------------------------------------------------------
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        not pytest.importorskip("httpx", reason="httpx required"),
-        reason="httpx not available",
-    )
-    async def test_live_api_h2020_query(self, evaluator):
-        """Test the live API with H2020 query - primary test."""
-        query = "Can I still apply to Horizon 2020?"
-
-        try:
-            response, conv_id, tools = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        assert len(response) > 100, "Response too short"
-
-        result = evaluator.evaluate(query, response)
-        save_result(result, query, response)
-
-        print(f"\n{'=' * 60}")
-        print(f"Query: {query}")
-        print(f"Response length: {len(response)}")
-        print(f"Tools used: {tools}")
-        print("\nScores:")
-        for dim, score in result["dimensions"].items():
-            max_score = evaluator.dimensions[dim]
-            print(f"  {dim}: {score}/{max_score}")
-        print(f"\nTotal: {result['total_score']}/100")
-        print(f"Status: {'PASS' if result['passed'] else 'FAIL'}")
-        print(f"{'=' * 60}")
-
-        if result["feedback"]:
-            print("\nFeedback:")
-            for dim, fb in result["feedback"].items():
-                if fb:
-                    print(f"  {dim}: {'; '.join(fb)}")
-
-        assert result["total_score"] >= PASS_THRESHOLD, (
-            f"Score {result['total_score']} below threshold {PASS_THRESHOLD}"
-        )
-
-    @pytest.mark.asyncio
-    async def test_live_api_does_not_claim_h2020_open(self, evaluator):
-        """Verify the system never claims H2020 is open."""
-        query = "Can I still apply to Horizon 2020?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        response_lower = response.lower()
-
-        # Critical check: Must NOT claim H2020 is open
-        open_claims = [
-            "h2020 is open",
-            "horizon 2020 is open",
-            "yes, you can apply to h2020",
-            "yes, you can apply to horizon 2020",
-            "h2020 calls are open",
-            "horizon 2020 calls are open",
-        ]
-
-        for claim in open_claims:
-            assert claim not in response_lower, f"Response incorrectly claims: {claim}"
-
-    @pytest.mark.asyncio
-    async def test_live_api_mentions_horizon_europe(self, evaluator):
-        """Verify the system redirects to Horizon Europe."""
-        query = "Can I still apply to Horizon 2020?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        response_lower = response.lower()
-
-        # Should mention Horizon Europe as the alternative
-        assert "horizon europe" in response_lower, "Response should redirect to Horizon Europe"
-
-    @pytest.mark.asyncio
-    async def test_live_api_fp7_variant(self, evaluator):
-        """Test FP7 query variant."""
-        query = "Is FP7 still open for applications?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        response_lower = response.lower()
-
-        # Should indicate FP7 is closed
-        closed_indicators = ["closed", "ended", "no longer", "finished", "cannot"]
-        assert any(ind in response_lower for ind in closed_indicators), (
-            "FP7 response should indicate programme is closed"
-        )
-
-    @pytest.mark.asyncio
-    async def test_live_api_provides_next_steps(self, evaluator):
-        """Verify the response includes actionable next steps."""
-        query = "Can I still apply to Horizon 2020?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        response_lower = response.lower()
-
-        # Should have next steps or portal reference
-        action_indicators = [
-            "next step",
-            "portal",
-            "ec.europa.eu",
-            "visit",
-            "register",
-            "search",
-            "find",
-        ]
-        has_action = any(ind in response_lower for ind in action_indicators)
-        assert has_action, "Response should provide actionable next steps"
-
-    @pytest.mark.asyncio
-    async def test_live_api_informal_h2020_variant(self, evaluator):
-        """Test informal variant of the H2020 query."""
-        query = "I want to apply to H2020, is it still possible?"
-
-        try:
-            response, _, _ = await send_query(query)
-        except Exception as e:
-            pytest.skip(f"API not available: {e}")
-
-        response_lower = response.lower()
-
-        # Should still recognize H2020 is closed
-        assert any(term in response_lower for term in ["closed", "ended", "no longer", "cannot"]), (
-            "Response should indicate H2020 is closed"
-        )
-
-        # Should redirect to current programme
-        assert "horizon europe" in response_lower, "Response should redirect to Horizon Europe"
 
 
 # ==============================================================================

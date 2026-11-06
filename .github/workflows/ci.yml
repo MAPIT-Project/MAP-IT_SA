@@ -42,17 +42,12 @@ jobs:
         continue-on-error: true
         run: black --check app tests
 
-      # The full suite includes integration and live scenario tests which may need
-      # PostgreSQL/Supabase (including pgvector), Redis, Neo4j, an API server, and
-      # provider credentials. Keep results visible without blocking lint/format
-      # until those services and test tiers are separated for CI.
-      - name: Run tests (non-blocking integration baseline)
-        continue-on-error: true
-        env:
-          PYTEST_ADDOPTS: --junitxml=test-results/pytest.xml
+      # Live API/database/provider checks require an explicit --run-live invocation
+      # against a separate test instance. CI runs the guarded offline suite.
+      - name: Run offline tests
         run: |
           mkdir -p test-results
-          make test
+          make test PYTEST_ARGS="--junitxml=test-results/pytest.xml"
 
       - name: Upload test results
         if: always()

@@ -71,4 +71,5 @@ testpaths = ["tests"]
 markers = [
     "slow: marks tests as slow",
     "integration: marks integration tests",
+    "live: requires an explicitly provisioned API/database/provider environment (--run-live)",
 ]

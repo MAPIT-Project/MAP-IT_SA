@@ -406,11 +406,13 @@ class ProposalToolExecutor:
         if not service:
             return {
                 "section_id": section_id,
-                "compliant": True,
-                "checks_passed": 5,
+                "compliant": None,
+                "success": False,
+                "error": "Compliance service unavailable; requirements were not checked",
+                "checks_passed": 0,
                 "checks_failed": 0,
                 "warnings": 0,
-                "details": ["Compliance check service unavailable - assuming compliant"],
+                "details": [],
             }
 
         try:
@@ -419,7 +421,7 @@ class ProposalToolExecutor:
             )
             return {
                 "section_id": section_id,
-                "compliant": result.get("compliant", True),
+                "compliant": result.get("compliant"),
                 "checks_passed": result.get("passed", 0),
                 "checks_failed": result.get("failed", 0),
                 "warnings": result.get("warnings", 0),
@@ -427,7 +429,7 @@ class ProposalToolExecutor:
             }
         except Exception as e:
             logger.error(f"Compliance check failed: {e}")
-            return {"section_id": section_id, "compliant": True, "error": str(e)}
+            return {"section_id": section_id, "compliant": None, "success": False, "error": str(e)}
 
     async def _get_suggestions(
         self, parameters: dict[str, Any], proposal_context: str | None

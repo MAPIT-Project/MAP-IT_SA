@@ -814,14 +814,6 @@ def scenarios_dir():
     return Path(__file__).parent / "scenarios" / "advanced"
 
 
-@pytest.fixture
-def results_dir():
-    """Get the path to results directory."""
-    results_path = Path(__file__).parent / "quality" / "results" / "scenarios"
-    results_path.mkdir(parents=True, exist_ok=True)
-    return results_path
-
-
 # =============================================================================
 # Unit Tests for Infrastructure
 # =============================================================================
@@ -1077,65 +1069,6 @@ class TestReportGeneration:
         assert report["summary"]["medium_failures"] == 1
 
 
-class TestIntegration:
-    """Integration tests that require the API."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("TEST_API_URL") is None,
-        reason="TEST_API_URL not set - skipping live API tests",
-    )
-    async def test_run_single_scenario(self, runner, scenarios_dir, results_dir):
-        """Test running a single scenario end-to-end."""
-        # Use a simple scenario for testing
-        scenario_path = scenarios_dir / "programme_discovery.yaml"
-
-        if not scenario_path.exists():
-            pytest.skip(f"Scenario file not found: {scenario_path}")
-
-        result = await runner.run_scenario(scenario_path)
-
-        assert result.scenario_name == "Programme Discovery"
-        assert len(result.turns) > 0
-
-        # Save result
-        output_path = await runner.save_result(result, results_dir)
-        assert output_path.exists()
-
-        # Verify JSON is valid
-        with open(output_path) as f:
-            saved_data = json.load(f)
-        assert saved_data["scenario_name"] == "Programme Discovery"
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("TEST_API_URL") is None,
-        reason="TEST_API_URL not set - skipping live API tests",
-    )
-    async def test_evaluate_turn_with_programme_facts(self, runner):
-        """Test turn evaluation with programme fact checking."""
-        # Create a mock turn with Horizon Europe information
-        turn = ConversationTurn(
-            user_message="Tell me about Horizon Europe",
-            response_text=(
-                "Horizon Europe is the EU's key funding programme for research and innovation "
-                "with a budget of €95.5 billion for 2021-2027. It has three pillars: "
-                "Excellent Science, Global Challenges and European Industrial Competitiveness, "
-                "and Innovative Europe."
-            ),
-        )
-
-        result = await runner.evaluate_turn(
-            query=turn.user_message,
-            response=turn.response_text,
-            turn=turn,
-            turn_number=0,
-        )
-
-        assert result.quality_score > 0
-        assert result.factual_score > 0
-
-
 class TestResultsSaving:
     """Tests for saving results to disk."""
 
@@ -1211,71 +1144,3 @@ class TestResultsSaving:
 # =============================================================================
 # CLI Entry Point
 # =============================================================================
-
-
-if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Run production quality validation")
-    parser.add_argument(
-        "--scenario",
-        type=str,
-        help="Path to a specific scenario YAML file",
-    )
-    parser.add_argument(
-        "--all",
-        action="store_true",
-        help="Run all scenarios in tests/scenarios/advanced/",
-    )
-    parser.add_argument(
-        "--base-url",
-        type=str,
-        default="http://localhost:8000",
-        help="Base URL of the MAPIT API",
-    )
-    parser.add_argument(
-        "--output",
-        type=str,
-        default="tests/quality/results/scenarios",
-        help="Output directory for results",
-    )
-
-    args = parser.parse_args()
-
-    async def main():
-        runner = ProductionQualityRunner(base_url=args.base_url)
-        results = []
-
-        if args.scenario:
-            result = await runner.run_scenario(args.scenario)
-            results.append(result)
-            await runner.save_result(result, args.output)
-        elif args.all:
-            scenarios_dir = Path("tests/scenarios/advanced")
-            for scenario_file in sorted(scenarios_dir.glob("*.yaml")):
-                if scenario_file.name.startswith("_"):
-                    continue  # Skip validation files
-                print(f"Running: {scenario_file.name}")
-                result = await runner.run_scenario(scenario_file)
-                results.append(result)
-                await runner.save_result(result, args.output)
-
-        # Generate and save report
-        report = runner.generate_report(results)
-        report_path = Path(args.output) / "production_quality_report.json"
-        with open(report_path, "w") as f:
-            json.dump(report, f, indent=2)
-
-        # Print summary
-        print("\n" + "=" * 60)
-        print("PRODUCTION QUALITY VALIDATION REPORT")
-        print("=" * 60)
-        print(f"Total Scenarios: {report['summary']['total_scenarios']}")
-        print(f"Passed: {report['summary']['passed']}")
-        print(f"Failed: {report['summary']['failed']}")
-        print(f"Pass Rate: {report['summary']['pass_rate']:.1f}%")
-        print(f"Average Quality Score: {report['summary']['average_quality_score']}")
-        print(f"Critical Failures: {report['summary']['critical_failures']}")
-        print("=" * 60)
-
-    asyncio.run(main())

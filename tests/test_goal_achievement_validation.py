@@ -261,141 +261,9 @@ def api_base_url():
     return os.environ.get("TEST_API_URL", DEFAULT_API_URL)
 
 
-@pytest.fixture
-def goal_validator(api_base_url):
-    """Create a goal achievement validator."""
-    return GoalAchievementValidator(base_url=api_base_url)
-
-
 # =============================================================================
 # TEST CLASSES
 # =============================================================================
-
-
-class TestGoalAchievementValidation:
-    """
-    Tests for goal achievement validation in PHASE 2 scenarios.
-
-    These tests verify that:
-    1. Goal tracking is properly enabled for each scenario
-    2. Progress is tracked correctly at each step
-    3. Completion is detected at the appropriate threshold
-    4. Progress generally increases across turns
-    """
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize("scenario_file", PHASE_2_SCENARIOS)
-    async def test_phase2_scenario_goal_tracking(
-        self,
-        scenario_file: str,
-        goal_validator: GoalAchievementValidator,
-    ):
-        """
-        Test goal tracking for a PHASE 2 scenario.
-
-        Validates:
-        - Goal is extracted from first message
-        - Progress is tracked at each step
-        - Final completion status is appropriate
-        """
-        result = await goal_validator.validate_scenario(scenario_file)
-
-        # Log detailed results
-        logger.info(
-            f"\nScenario: {result.scenario_name}\n"
-            f"  Goal detected: {result.goal_detected}\n"
-            f"  Goal category: {result.goal_category}\n"
-            f"  Turns executed: {result.turns_executed}\n"
-            f"  Progress history: {[f'{p:.2f}' for p in result.progress_history]}\n"
-            f"  Final progress: {result.final_progress:.2f}\n"
-            f"  Completion status: {result.completion_status}\n"
-            f"  Progress trend: {result.progress_trend}\n"
-            f"  Tools used: {len(result.tools_used)}\n"
-            f"  Errors: {len(result.errors)}"
-        )
-
-        # Print validation details
-        for detail in result.validation_details:
-            status = "✓" if detail["passed"] else "✗"
-            logger.info(
-                f"  {status} Step {detail['step']}: {detail['validation']} "
-                f"({detail['actual_progress']:.2f} >= {detail['min_progress']})"
-            )
-
-        # Assert scenario passed
-        assert result.passed, (
-            f"Scenario '{result.scenario_name}' failed goal tracking:\n"
-            f"  Errors: {result.errors}\n"
-            f"  Progress: {result.progress_history}\n"
-            f"  Final: {result.final_progress:.2f}"
-        )
-
-        # Verify goal was detected
-        assert result.goal_detected, f"Goal not detected for scenario '{result.scenario_name}'"
-
-        # Verify turns were executed
-        assert result.turns_executed > 0, f"No turns executed for scenario '{result.scenario_name}'"
-
-    @pytest.mark.asyncio
-    async def test_goal_progress_increases(
-        self,
-        goal_validator: GoalAchievementValidator,
-    ):
-        """
-        Verify that goal progress generally increases across turns.
-
-        For proposal development workflows, progress should increase
-        as the user gets closer to their goal.
-        """
-        for scenario_file in PHASE_2_SCENARIOS:
-            result = await goal_validator.validate_scenario(scenario_file)
-
-            if len(result.progress_history) < 2:
-                continue  # Skip if not enough data
-
-            # Check that progress increases or stays stable
-            # Allow for some variance but overall trend should be positive
-            first_quarter = result.progress_history[: len(result.progress_history) // 4]
-            last_quarter = result.progress_history[-len(result.progress_history) // 4 :]
-
-            if first_quarter and last_quarter:
-                first_avg = sum(first_quarter) / len(first_quarter)
-                last_avg = sum(last_quarter) / len(last_quarter)
-
-                # Last quarter should be higher or equal to first quarter
-                # Allow small variance (0.05) for LLM inconsistency
-                assert last_avg >= first_avg - 0.05, (
-                    f"Progress declined in {result.scenario_name}: "
-                    f"first quarter avg={first_avg:.2f}, last quarter avg={last_avg:.2f}"
-                )
-
-    @pytest.mark.asyncio
-    async def test_completion_detection(
-        self,
-        goal_validator: GoalAchievementValidator,
-    ):
-        """
-        Verify that completion is correctly detected for each scenario.
-
-        PHASE 2 scenarios should reach at least "partially_achieved" status
-        by the end of the conversation.
-        """
-        for scenario_file in PHASE_2_SCENARIOS:
-            result = await goal_validator.validate_scenario(scenario_file)
-
-            # Completion should be detected
-            valid_statuses = ["achieved", "partially_achieved", "in_progress"]
-            assert result.completion_status in valid_statuses, (
-                f"Unexpected completion status for {result.scenario_name}: "
-                f"{result.completion_status}"
-            )
-
-            # For PHASE 2 scenarios, we expect at least partial achievement
-            # since they have proper goal_progress validations
-            if result.turns_executed >= 3:
-                assert result.final_progress >= 0.3, (
-                    f"Progress too low for {result.scenario_name}: {result.final_progress:.2f}"
-                )
 
 
 class TestGoalTrackingInfrastructure:
@@ -431,9 +299,9 @@ class TestGoalTrackingInfrastructure:
                     has_goal_achieved = True
                     break
 
-            assert has_goal_achieved, (
-                f"No goal_achieved validation in final_validations for {scenario_file}"
-            )
+            assert (
+                has_goal_achieved
+            ), f"No goal_achieved validation in final_validations for {scenario_file}"
 
     @pytest.mark.asyncio
     async def test_goal_tracker_initialization(self):

@@ -305,20 +305,7 @@ class EvaluationResult:
         return asdict(self)
 
 
-def check_api_available() -> bool:
-    """Check if the API is available."""
-    try:
-        response = httpx.get(f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0)
-        return response.status_code == 200
-    except Exception:
-        return False
-
-
 # Skip decorator for live tests
-live_api = pytest.mark.skipif(
-    not check_api_available(),
-    reason="Live API not available. Start Docker containers with: docker compose up",
-)
 
 
 def get_mapit_response(query: str, conversation_id: int | None = None) -> dict[str, Any]:
@@ -773,138 +760,6 @@ def save_result(result: EvaluationResult, filepath: Path) -> None:
         json.dump(result.to_dict(), f, indent=2)
 
 
-@live_api
-class TestPrompt013JapanEligibility:
-    """
-    Test suite for Prompt 013: Japan Researcher Eligibility.
-
-    Evaluates the MAPIT AI response quality using LLM-as-judge methodology.
-    """
-
-    def test_evaluate_japan_eligibility(self):
-        """
-        Main evaluation test for Prompt 013.
-
-        1. Sends query to MAPIT API
-        2. Evaluates response using four-dimension scoring
-        3. Saves detailed results to JSON
-        4. Reports evaluation status
-        """
-        # Get response from MAPIT
-        api_result = get_mapit_response(PROMPT_013_QUERY)
-
-        response = api_result["response"]
-        metadata = api_result["metadata"]
-
-        # Ensure we got a response
-        assert len(response) >= 100, f"Response too short ({len(response)} chars)"
-
-        # Perform evaluation
-        evaluation = evaluate_response(response, metadata)
-
-        # Save results
-        results_file = RESULTS_DIR / "prompt_013_japan_eligibility.json"
-        save_result(evaluation, results_file)
-
-        # Log evaluation summary
-        print(f"\n{'=' * 60}")
-        print("PROMPT 013: Japan Researcher Eligibility Evaluation")
-        print(f"{'=' * 60}")
-        print(f"Overall Score: {evaluation.overall_score}/100")
-        print(f"Result: {evaluation.result}")
-        print(f"{'=' * 60}")
-
-        if evaluation.component_scores:
-            comp = evaluation.component_scores[0]
-            print(f"Query Fulfillment: {comp['fulfillment']}/40")
-            print(f"Specificity: {comp['specificity']}/25")
-            print(f"Factual Accuracy: {comp['accuracy']}/25")
-            print(f"Actionability: {comp['actionability']}/10")
-
-            if comp.get("missing_items"):
-                print(f"\nMissing Items: {comp['missing_items']}")
-            if comp.get("found_items"):
-                print(f"Found Items: {comp['found_items']}")
-
-        if evaluation.factual_errors:
-            print("\nFactual Errors Found:")
-            for error in evaluation.factual_errors:
-                print(f"  - {error['claim']}: {error['correct_value']}")
-
-        if evaluation.fix_suggestions:
-            print("\nFix Suggestions:")
-            for suggestion in evaluation.fix_suggestions:
-                print(f"  - {suggestion}")
-
-        if evaluation.strengths:
-            print("\nStrengths:")
-            for strength in evaluation.strengths:
-                print(f"  + {strength}")
-
-        print(f"\nResults saved to: {results_file}")
-        print(f"{'=' * 60}\n")
-
-        # For EVALUATE task: Record results and report status
-        if evaluation.overall_score < PASS_THRESHOLD:
-            score = evaluation.overall_score
-            print(f"\n*** FIX NEEDED: Score {score} < {PASS_THRESHOLD} threshold ***")
-            print("Run the FIX IF NEEDED task to improve response quality.")
-
-        # EVALUATE phase: We only need to successfully record the evaluation
-        assert results_file.exists(), f"Results file not created: {results_file}"
-
-    def test_response_not_empty(self):
-        """Verify the response is not empty."""
-        api_result = get_mapit_response(PROMPT_013_QUERY)
-        response = api_result["response"]
-
-        assert len(response) > 0, "Response is empty"
-        assert len(response) >= 100, f"Response too short: {len(response)} chars"
-
-    def test_response_mentions_japan_status(self):
-        """Verify the response mentions Japan's eligibility (informational)."""
-        # Read from saved results to avoid redundant API calls
-        results_file = RESULTS_DIR / "prompt_013_japan_eligibility.json"
-        if not results_file.exists():
-            pytest.skip("Run test_evaluate_japan_eligibility first to generate results")
-
-        with open(results_file) as f:
-            result = json.load(f)
-
-        response_lower = result["response"].lower()
-
-        japan_keywords_found = sum(1 for kw in JAPAN_ELIGIBILITY_KEYWORDS if kw in response_lower)
-
-        # Informational check
-        print(f"Japan eligibility keywords found: {japan_keywords_found}")
-        if japan_keywords_found < 3:
-            print("Note: Response needs more detail on Japan's third country status")
-
-        # Soft assertion - just verify results exist
-        assert "response" in result, "Response field missing from results"
-
-    def test_response_mentions_pathways(self):
-        """Verify the response mentions participation pathways (informational)."""
-        results_file = RESULTS_DIR / "prompt_013_japan_eligibility.json"
-        if not results_file.exists():
-            pytest.skip("Run test_evaluate_japan_eligibility first to generate results")
-
-        with open(results_file) as f:
-            result = json.load(f)
-
-        response_lower = result["response"].lower()
-
-        pathway_found = sum(1 for kw in PARTICIPATION_PATHWAY_KEYWORDS if kw in response_lower)
-
-        # Informational check
-        print(f"Pathway keywords found: {pathway_found}")
-        if pathway_found < 3:
-            print("Note: Response should include MSCA/ERC pathways for researchers")
-
-        # Soft assertion
-        assert "overall_score" in result, "overall_score missing from results"
-
-
 class TestPrompt013OfflineEvaluation:
     """
     Offline evaluation tests using sample responses.
@@ -927,9 +782,9 @@ class TestPrompt013OfflineEvaluation:
         print(f"  Score: {evaluation.overall_score}/100")
         print(f"  Result: {evaluation.result}")
 
-        assert evaluation.overall_score >= PASS_THRESHOLD, (
-            f"Excellent response scored {evaluation.overall_score}, expected >= {PASS_THRESHOLD}"
-        )
+        assert (
+            evaluation.overall_score >= PASS_THRESHOLD
+        ), f"Excellent response scored {evaluation.overall_score}, expected >= {PASS_THRESHOLD}"
         assert evaluation.result == "PASS"
 
     def test_partial_response_needs_review(self):
@@ -943,9 +798,9 @@ class TestPrompt013OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         # Partial should score below PASS threshold
-        assert evaluation.overall_score < PASS_THRESHOLD, (
-            f"Partial response scored {evaluation.overall_score}, expected < {PASS_THRESHOLD}"
-        )
+        assert (
+            evaluation.overall_score < PASS_THRESHOLD
+        ), f"Partial response scored {evaluation.overall_score}, expected < {PASS_THRESHOLD}"
 
     def test_poor_response_fails(self):
         """Test that a poor response scores < 70 (FAIL)."""
@@ -957,9 +812,9 @@ class TestPrompt013OfflineEvaluation:
         print(f"  Score: {evaluation.overall_score}/100")
         print(f"  Result: {evaluation.result}")
 
-        assert evaluation.overall_score < NEEDS_REVIEW_THRESHOLD, (
-            f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
-        )
+        assert (
+            evaluation.overall_score < NEEDS_REVIEW_THRESHOLD
+        ), f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
         assert evaluation.result == "FAIL"
 
     def test_evaluation_identifies_missing_items(self):
@@ -975,9 +830,9 @@ class TestPrompt013OfflineEvaluation:
 
             # Poor response should be missing items
             print(f"Missing items: {missing}")
-            assert len(missing) >= 1 or evaluation.overall_score < 70, (
-                "Should identify missing items or score low"
-            )
+            assert (
+                len(missing) >= 1 or evaluation.overall_score < 70
+            ), "Should identify missing items or score low"
 
     def test_evaluation_rewards_specificity(self):
         """Test that specific details improve the score."""
@@ -990,9 +845,9 @@ class TestPrompt013OfflineEvaluation:
         excellent_specificity = excellent_eval.component_scores[0]["specificity"]
         poor_specificity = poor_eval.component_scores[0]["specificity"]
 
-        assert excellent_specificity > poor_specificity, (
-            f"Excellent specificity ({excellent_specificity}) should be > poor ({poor_specificity})"
-        )
+        assert (
+            excellent_specificity > poor_specificity
+        ), f"Excellent specificity ({excellent_specificity}) should be > poor ({poor_specificity})"
 
     def test_save_evaluation_result_json(self):
         """Test that evaluation results are saved correctly as JSON."""

@@ -171,20 +171,7 @@ class EvaluationResult:
         return asdict(self)
 
 
-def check_api_available() -> bool:
-    """Check if the API is available."""
-    try:
-        response = httpx.get(f"{API_BASE_URL}/api/v3/conversation/health", timeout=5.0)
-        return response.status_code == 200
-    except Exception:
-        return False
-
-
 # Skip decorator for live tests
-live_api = pytest.mark.skipif(
-    not check_api_available(),
-    reason="Live API not available. Start Docker containers with: docker compose up",
-)
 
 
 def get_mapit_response(query: str, conversation_id: int | None = None) -> dict[str, Any]:
@@ -579,140 +566,6 @@ def save_result(result: EvaluationResult, filepath: Path) -> None:
         json.dump(result.to_dict(), f, indent=2)
 
 
-@live_api
-class TestPrompt001HorizonStructure:
-    """
-    Test suite for Prompt 001: Horizon Europe Structure.
-
-    Evaluates the MAPIT AI response quality using LLM-as-judge methodology.
-    """
-
-    def test_evaluate_horizon_structure(self):
-        """
-        Main evaluation test for Prompt 001.
-
-        1. Sends query to MAPIT API
-        2. Evaluates response using four-dimension scoring
-        3. Saves detailed results to JSON
-        4. Asserts quality threshold is met
-        """
-        # Get response from MAPIT
-        api_result = get_mapit_response(PROMPT_001_QUERY)
-
-        response = api_result["response"]
-        metadata = api_result["metadata"]
-
-        # Ensure we got a response
-        assert len(response) >= 100, f"Response too short ({len(response)} chars)"
-
-        # Perform evaluation
-        evaluation = evaluate_response(response, metadata)
-
-        # Save results
-        results_file = RESULTS_DIR / "prompt_001_horizon_structure.json"
-        save_result(evaluation, results_file)
-
-        # Log evaluation summary
-        print(f"\n{'=' * 60}")
-        print("PROMPT 001: Horizon Europe Structure Evaluation")
-        print(f"{'=' * 60}")
-        print(f"Overall Score: {evaluation.overall_score}/100")
-        print(f"Result: {evaluation.result}")
-        print(f"{'=' * 60}")
-
-        if evaluation.component_scores:
-            comp = evaluation.component_scores[0]
-            print(f"Query Fulfillment: {comp['fulfillment']}/40")
-            print(f"Specificity: {comp['specificity']}/25")
-            print(f"Factual Accuracy: {comp['accuracy']}/25")
-            print(f"Actionability: {comp['actionability']}/10")
-
-        if evaluation.factual_errors:
-            print("\nFactual Errors Found:")
-            for error in evaluation.factual_errors:
-                print(f"  - {error['claim']}: {error['correct_value']}")
-
-        if evaluation.fix_suggestions:
-            print("\nFix Suggestions:")
-            for suggestion in evaluation.fix_suggestions:
-                print(f"  - {suggestion}")
-
-        if evaluation.strengths:
-            print("\nStrengths:")
-            for strength in evaluation.strengths:
-                print(f"  + {strength}")
-
-        print(f"\nResults saved to: {results_file}")
-        print(f"{'=' * 60}\n")
-
-        # For EVALUATE task: Record results and report status
-        # The FIX IF NEEDED task will handle remediation if score < 85
-        if evaluation.overall_score < PASS_THRESHOLD:
-            score = evaluation.overall_score
-            print(f"\n*** FIX NEEDED: Score {score} < {PASS_THRESHOLD} threshold ***")
-            print("Run the FIX IF NEEDED task to improve response quality.")
-
-        # Assert minimum quality - response should at least be in NEEDS_REVIEW range
-        assert evaluation.overall_score >= NEEDS_REVIEW_THRESHOLD, (
-            f"Quality score {evaluation.overall_score} is critically low "
-            f"(below {NEEDS_REVIEW_THRESHOLD}). "
-            f"Result: {evaluation.result}. "
-            f"Suggestions: {evaluation.fix_suggestions}"
-        )
-
-    def test_response_not_empty(self):
-        """Verify the response is not empty."""
-        api_result = get_mapit_response(PROMPT_001_QUERY)
-        response = api_result["response"]
-
-        assert len(response) > 0, "Response is empty"
-        assert len(response) >= 100, f"Response too short: {len(response)} chars"
-
-    def test_response_mentions_pillars(self):
-        """Verify the response mentions the three pillars."""
-        api_result = get_mapit_response(PROMPT_001_QUERY)
-        response_lower = api_result["response"].lower()
-
-        # Must mention at least 2 of the 3 pillars
-        pillar_mentions = 0
-        if any(x in response_lower for x in ["pillar i", "pillar 1", "excellent science"]):
-            pillar_mentions += 1
-        if any(x in response_lower for x in ["pillar ii", "pillar 2", "global challenges"]):
-            pillar_mentions += 1
-        if any(x in response_lower for x in ["pillar iii", "pillar 3", "innovative europe"]):
-            pillar_mentions += 1
-
-        assert pillar_mentions >= 2, (
-            f"Response only mentions {pillar_mentions}/3 pillars. "
-            "Expected at least 2 pillars to be mentioned."
-        )
-
-    def test_response_mentions_clusters(self):
-        """Verify the response mentions the clusters."""
-        api_result = get_mapit_response(PROMPT_001_QUERY)
-        response_lower = api_result["response"].lower()
-
-        # Must mention at least 4 of the 6 clusters
-        cluster_mentions = 0
-        cluster_keywords = [
-            ["health", "cluster 1"],
-            ["culture", "creativity", "cluster 2", "inclusive society"],
-            ["security", "cluster 3"],
-            ["digital", "cluster 4", "industry", "space"],
-            ["climate", "energy", "cluster 5", "mobility"],
-            ["food", "bioeconomy", "cluster 6"],
-        ]
-
-        for cluster_variants in cluster_keywords:
-            if any(variant in response_lower for variant in cluster_variants):
-                cluster_mentions += 1
-
-        assert cluster_mentions >= 4, (
-            f"Response only mentions {cluster_mentions}/6 clusters. "
-            "Expected at least 4 clusters to be mentioned."
-        )
-
-
 class TestPrompt001OfflineEvaluation:
     """
     Offline evaluation tests using sample responses.
@@ -735,9 +588,9 @@ class TestPrompt001OfflineEvaluation:
         print(f"  Score: {evaluation.overall_score}/100")
         print(f"  Result: {evaluation.result}")
 
-        assert evaluation.overall_score >= PASS_THRESHOLD, (
-            f"Excellent response scored {evaluation.overall_score}, expected >= {PASS_THRESHOLD}"
-        )
+        assert (
+            evaluation.overall_score >= PASS_THRESHOLD
+        ), f"Excellent response scored {evaluation.overall_score}, expected >= {PASS_THRESHOLD}"
         assert evaluation.result == "PASS"
 
     def test_partial_response_needs_review(self):
@@ -751,9 +604,9 @@ class TestPrompt001OfflineEvaluation:
         print(f"  Result: {evaluation.result}")
 
         # Partial should score between 70-84 or potentially lower
-        assert evaluation.overall_score < PASS_THRESHOLD, (
-            f"Partial response scored {evaluation.overall_score}, expected < {PASS_THRESHOLD}"
-        )
+        assert (
+            evaluation.overall_score < PASS_THRESHOLD
+        ), f"Partial response scored {evaluation.overall_score}, expected < {PASS_THRESHOLD}"
 
     def test_poor_response_fails(self):
         """Test that a poor response scores < 70 (FAIL)."""
@@ -765,9 +618,9 @@ class TestPrompt001OfflineEvaluation:
         print(f"  Score: {evaluation.overall_score}/100")
         print(f"  Result: {evaluation.result}")
 
-        assert evaluation.overall_score < NEEDS_REVIEW_THRESHOLD, (
-            f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
-        )
+        assert (
+            evaluation.overall_score < NEEDS_REVIEW_THRESHOLD
+        ), f"Poor response scored {evaluation.overall_score}, expected < {NEEDS_REVIEW_THRESHOLD}"
         assert evaluation.result == "FAIL"
 
     def test_evaluation_identifies_missing_clusters(self):
@@ -790,9 +643,9 @@ class TestPrompt001OfflineEvaluation:
         excellent_specificity = excellent_eval.component_scores[0]["specificity"]
         poor_specificity = poor_eval.component_scores[0]["specificity"]
 
-        assert excellent_specificity > poor_specificity, (
-            f"Excellent specificity ({excellent_specificity}) should be > poor ({poor_specificity})"
-        )
+        assert (
+            excellent_specificity > poor_specificity
+        ), f"Excellent specificity ({excellent_specificity}) should be > poor ({poor_specificity})"
 
     def test_save_evaluation_result_json(self):
         """Test that evaluation results are saved correctly as JSON."""

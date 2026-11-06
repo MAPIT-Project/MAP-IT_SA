@@ -30,7 +30,6 @@ import pytest
 
 # Import production quality runner and data structures
 from tests.test_production_quality_validation import (
-    ProductionQualityRunner,
     ScenarioExecutionResult,
     FailureCategory,
     FailureSeverity,
@@ -72,16 +71,6 @@ SCENARIO_STEP_COUNTS = {
 def base_url() -> str:
     """Get API base URL from environment or default."""
     return os.environ.get("TEST_API_URL", "http://localhost:8000")
-
-
-@pytest.fixture
-def runner(base_url: str) -> ProductionQualityRunner:
-    """Create a ProductionQualityRunner instance."""
-    return ProductionQualityRunner(
-        base_url=base_url,
-        passing_threshold=80,
-        factual_threshold=0.9,
-    )
 
 
 @pytest.fixture
@@ -188,265 +177,9 @@ def generate_phase5_report(
 # =============================================================================
 
 
-class TestPhase5Scenarios:
-    """Test class for Phase 5 Strategic Planning scenarios."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_funding_strategy(self, runner: ProductionQualityRunner, results_dir: Path):
-        """
-        RUN: funding_strategy.yaml
-
-        Tests multi-year strategic planning for EU funding.
-        A university cybersecurity department seeks help planning a 3-year
-        funding strategy combining Horizon Europe and Erasmus+ options.
-
-        Key Test: System should provide multi-programme strategic advice
-        with logical application sequencing and realistic timelines.
-        """
-        scenario_path = SCENARIOS_DIR / "funding_strategy.yaml"
-
-        if not scenario_path.exists():
-            pytest.skip(f"Scenario file not found: {scenario_path}")
-
-        result = await runner.run_scenario(scenario_path)
-        save_scenario_result(result, results_dir)
-
-        # Log results
-        logger.info(
-            f"funding_strategy: Runtime={result.execution_time_ms / 1000:.2f}s, "
-            f"Score={result.average_quality_score:.1f}/100, "
-            f"Failures={len(result.failures)}, Status={result.status}"
-        )
-
-        # Assert minimum quality threshold
-        assert result.average_quality_score >= 80, (
-            f"Funding Strategy score {result.average_quality_score:.1f} < 80. "
-            f"Failures: {[f.description for f in result.failures]}"
-        )
-
-        # Assert no critical failures
-        critical = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-        assert len(critical) == 0, (
-            f"Funding Strategy has {len(critical)} critical failures: "
-            f"{[f.description for f in critical]}"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_portfolio_planning(self, runner: ProductionQualityRunner, results_dir: Path):
-        """
-        RUN: portfolio_planning.yaml
-
-        Tests portfolio approach for managing multiple EU funding applications.
-        A researcher wants to submit 5 proposals in AI, robotics, and HMI,
-        seeking advice on call matching, prioritization, and overlap avoidance.
-
-        Key Test: System should recommend portfolio approach with diversification,
-        success rate considerations, and overlap avoidance strategies.
-        """
-        scenario_path = SCENARIOS_DIR / "portfolio_planning.yaml"
-
-        if not scenario_path.exists():
-            pytest.skip(f"Scenario file not found: {scenario_path}")
-
-        result = await runner.run_scenario(scenario_path)
-        save_scenario_result(result, results_dir)
-
-        logger.info(
-            f"portfolio_planning: Runtime={result.execution_time_ms / 1000:.2f}s, "
-            f"Score={result.average_quality_score:.1f}/100, "
-            f"Failures={len(result.failures)}, Status={result.status}"
-        )
-
-        assert result.average_quality_score >= 80, (
-            f"Portfolio Planning score {result.average_quality_score:.1f} < 80. "
-            f"Failures: {[f.description for f in result.failures]}"
-        )
-
-        critical = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-        assert len(critical) == 0, (
-            f"Portfolio Planning has {len(critical)} critical failures: "
-            f"{[f.description for f in critical]}"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_capacity_building(self, runner: ProductionQualityRunner, results_dir: Path):
-        """
-        RUN: capacity_building.yaml
-
-        Tests beginner-friendly onboarding for organizations new to EU funding.
-        A newcomer organization asks about getting started, suitable programmes,
-        partner vs coordinator roles, project sizes, and building track record.
-
-        Key Test: System should provide beginner-appropriate advice with
-        a clear progression path from newcomer to experienced participant.
-        """
-        scenario_path = SCENARIOS_DIR / "capacity_building.yaml"
-
-        if not scenario_path.exists():
-            pytest.skip(f"Scenario file not found: {scenario_path}")
-
-        result = await runner.run_scenario(scenario_path)
-        save_scenario_result(result, results_dir)
-
-        logger.info(
-            f"capacity_building: Runtime={result.execution_time_ms / 1000:.2f}s, "
-            f"Score={result.average_quality_score:.1f}/100, "
-            f"Failures={len(result.failures)}, Status={result.status}"
-        )
-
-        assert result.average_quality_score >= 80, (
-            f"Capacity Building score {result.average_quality_score:.1f} < 80. "
-            f"Failures: {[f.description for f in result.failures]}"
-        )
-
-        critical = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-        assert len(critical) == 0, (
-            f"Capacity Building has {len(critical)} critical failures: "
-            f"{[f.description for f in critical]}"
-        )
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_risk_assessment(self, runner: ProductionQualityRunner, results_dir: Path):
-        """
-        RUN: risk_assessment.yaml
-
-        Tests EIC Accelerator risk analysis and mitigation strategies.
-        A user asks about risks of applying to EIC Accelerator, impact of
-        prior funding and company size, the interview stage, and improvement strategies.
-
-        Key Test: System should accurately identify EIC risks, explain
-        factors affecting success, and provide actionable mitigation strategies.
-        """
-        scenario_path = SCENARIOS_DIR / "risk_assessment.yaml"
-
-        if not scenario_path.exists():
-            pytest.skip(f"Scenario file not found: {scenario_path}")
-
-        result = await runner.run_scenario(scenario_path)
-        save_scenario_result(result, results_dir)
-
-        logger.info(
-            f"risk_assessment: Runtime={result.execution_time_ms / 1000:.2f}s, "
-            f"Score={result.average_quality_score:.1f}/100, "
-            f"Failures={len(result.failures)}, Status={result.status}"
-        )
-
-        assert result.average_quality_score >= 80, (
-            f"Risk Assessment score {result.average_quality_score:.1f} < 80. "
-            f"Failures: {[f.description for f in result.failures]}"
-        )
-
-        critical = [f for f in result.failures if f.severity == FailureSeverity.CRITICAL]
-        assert len(critical) == 0, (
-            f"Risk Assessment has {len(critical)} critical failures: "
-            f"{[f.description for f in critical]}"
-        )
-
-
 # =============================================================================
 # Full Phase 5 Execution Test
 # =============================================================================
-
-
-class TestPhase5FullExecution:
-    """Full Phase 5 execution test that runs all scenarios and generates report."""
-
-    @pytest.mark.asyncio
-    @pytest.mark.skipif(
-        os.environ.get("SKIP_LIVE_API_TESTS") == "1",
-        reason="SKIP_LIVE_API_TESTS is set",
-    )
-    async def test_run_all_phase5_scenarios(
-        self, runner: ProductionQualityRunner, results_dir: Path
-    ):
-        """
-        Run all Phase 5 scenarios and verify all pass with >= 80/100.
-
-        This is the main test that satisfies Task 008 requirements:
-        - RUN all 4 Phase 5 scenarios
-        - VERIFY all pass with >= 80/100
-        """
-        results: list[ScenarioExecutionResult] = []
-
-        for scenario_file in PHASE5_SCENARIOS:
-            scenario_path = SCENARIOS_DIR / scenario_file
-
-            if not scenario_path.exists():
-                logger.warning(f"Scenario not found, skipping: {scenario_path}")
-                continue
-
-            logger.info(f"Running scenario: {scenario_file}")
-            result = await runner.run_scenario(scenario_path)
-            results.append(result)
-
-            # Save individual result
-            save_scenario_result(result, results_dir)
-
-            # Log individual result
-            logger.info(
-                f"  → {result.scenario_name}: "
-                f"Score={result.average_quality_score:.1f}/100, "
-                f"Status={result.status}"
-            )
-
-        # Generate phase report
-        report = generate_phase5_report(results, results_dir)
-
-        # Print summary
-        print("\n" + "=" * 60)
-        print("PHASE 5 EXECUTION RESULTS")
-        print("=" * 60)
-        print(f"Total Scenarios: {report['summary']['total_scenarios']}")
-        print(f"Passed: {report['summary']['passed']}")
-        print(f"Failed: {report['summary']['failed']}")
-        print(f"Pass Rate: {report['summary']['pass_rate']:.1f}%")
-        print(f"Average Quality Score: {report['summary']['average_quality_score']}/100")
-        print(f"Average Factual Score: {report['summary']['average_factual_score']}/100")
-        print(f"Total Runtime: {report['summary']['total_runtime_seconds']:.2f}s")
-        print(f"Critical Failures: {report['summary']['critical_failures']}")
-        print("=" * 60)
-
-        for scenario_result in report["scenario_results"]:
-            status_icon = "✓" if scenario_result["status"] == "PASS" else "✗"
-            print(
-                f"  {status_icon} {scenario_result['name']}: "
-                f"{scenario_result['average_quality_score']}/100 "
-                f"({scenario_result['runtime_seconds']:.2f}s)"
-            )
-
-        print("=" * 60 + "\n")
-
-        # Verify all scenarios passed
-        assert report["summary"]["passed"] == report["summary"]["total_scenarios"], (
-            f"Not all Phase 5 scenarios passed: "
-            f"{report['summary']['passed']}/{report['summary']['total_scenarios']}"
-        )
-
-        # Verify average quality score
-        assert report["summary"]["average_quality_score"] >= 80, (
-            f"Phase 5 average quality score {report['summary']['average_quality_score']} < 80"
-        )
-
-        # Verify no critical failures
-        assert report["summary"]["critical_failures"] == 0, (
-            f"Phase 5 has {report['summary']['critical_failures']} critical failures"
-        )
 
 
 # =============================================================================
@@ -486,9 +219,9 @@ class TestPhase5Infrastructure:
                 with open(scenario_path) as f:
                     data = yaml.safe_load(f)
                 actual_steps = len(data["steps"])
-                assert actual_steps == expected_steps, (
-                    f"{scenario_file} should have {expected_steps} steps, found {actual_steps}"
-                )
+                assert (
+                    actual_steps == expected_steps
+                ), f"{scenario_file} should have {expected_steps} steps, found {actual_steps}"
 
     def test_results_directory_creation(self, results_dir: Path):
         """Verify results directory can be created."""

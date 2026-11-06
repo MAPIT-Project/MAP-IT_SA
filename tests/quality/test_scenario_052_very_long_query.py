@@ -37,32 +37,34 @@ class TestLongQueryConstants:
     """Test that long query constants are properly configured."""
 
     def test_long_query_threshold_exists(self):
-        """Test that LONG_QUERY_THRESHOLD is defined."""
-        from app.services.agents.tool_aware_agent import LONG_QUERY_THRESHOLD
+        """Test that settings.long_query_threshold is defined."""
+        from app.core.config import settings
 
-        assert LONG_QUERY_THRESHOLD is not None
-        assert isinstance(LONG_QUERY_THRESHOLD, int)
+        assert settings.long_query_threshold is not None
+        assert isinstance(settings.long_query_threshold, int)
 
     def test_long_query_threshold_reasonable_value(self):
         """Test that long query threshold is set to 500 per PRD."""
-        from app.services.agents.tool_aware_agent import LONG_QUERY_THRESHOLD
+        from app.core.config import settings
 
-        assert LONG_QUERY_THRESHOLD == 500, f"Threshold should be 500, got {LONG_QUERY_THRESHOLD}"
+        assert (
+            settings.long_query_threshold == 500
+        ), f"Threshold should be 500, got {settings.long_query_threshold}"
 
     def test_max_processed_query_length_exists(self):
-        """Test that MAX_PROCESSED_QUERY_LENGTH is defined."""
-        from app.services.agents.tool_aware_agent import MAX_PROCESSED_QUERY_LENGTH
+        """Test that settings.max_processed_query_length is defined."""
+        from app.core.config import settings
 
-        assert MAX_PROCESSED_QUERY_LENGTH is not None
-        assert isinstance(MAX_PROCESSED_QUERY_LENGTH, int)
+        assert settings.max_processed_query_length is not None
+        assert isinstance(settings.max_processed_query_length, int)
 
     def test_max_processed_query_length_reasonable(self):
         """Test that max processed length is reasonable (200-500 chars)."""
-        from app.services.agents.tool_aware_agent import MAX_PROCESSED_QUERY_LENGTH
+        from app.core.config import settings
 
-        assert 200 <= MAX_PROCESSED_QUERY_LENGTH <= 500, (
-            f"MAX_PROCESSED_QUERY_LENGTH {MAX_PROCESSED_QUERY_LENGTH} should be 200-500"
-        )
+        assert (
+            200 <= settings.max_processed_query_length <= 500
+        ), f"settings.max_processed_query_length {settings.max_processed_query_length} should be 200-500"
 
 
 class TestLongQueryResultDataclass:
@@ -70,13 +72,13 @@ class TestLongQueryResultDataclass:
 
     def test_long_query_result_exists(self):
         """Test that LongQueryResult dataclass exists."""
-        from app.services.agents.tool_aware_agent import LongQueryResult
+        from app.services.agents.query_preprocessing import LongQueryResult
 
         assert LongQueryResult is not None
 
     def test_long_query_result_fields(self):
         """Test LongQueryResult has all required fields."""
-        from app.services.agents.tool_aware_agent import LongQueryResult
+        from app.services.agents.query_preprocessing import LongQueryResult
 
         result = LongQueryResult(
             original_query="test query",
@@ -98,7 +100,7 @@ class TestLongQueryResultDataclass:
 
     def test_long_query_result_defaults(self):
         """Test LongQueryResult default values."""
-        from app.services.agents.tool_aware_agent import LongQueryResult
+        from app.services.agents.query_preprocessing import LongQueryResult
 
         result = LongQueryResult(
             original_query="test",
@@ -117,7 +119,7 @@ class TestPreprocessLongQueryFunction:
 
     def test_short_query_not_processed(self):
         """Test that queries under 500 chars are not processed."""
-        from app.services.agents.tool_aware_agent import preprocess_long_query
+        from app.services.agents.query_preprocessing import preprocess_long_query
 
         short_query = "Find funding calls for AI research"
         result = preprocess_long_query(short_query)
@@ -129,7 +131,7 @@ class TestPreprocessLongQueryFunction:
 
     def test_boundary_query_not_processed(self):
         """Test that queries at exactly 500 chars are not processed."""
-        from app.services.agents.tool_aware_agent import preprocess_long_query
+        from app.services.agents.query_preprocessing import preprocess_long_query
 
         # Create exactly 500 char query
         boundary_query = "x" * 500
@@ -140,7 +142,7 @@ class TestPreprocessLongQueryFunction:
 
     def test_long_query_is_processed(self):
         """Test that queries over 500 chars are processed."""
-        from app.services.agents.tool_aware_agent import preprocess_long_query
+        from app.services.agents.query_preprocessing import preprocess_long_query
 
         long_query = "x" * 501
         result = preprocess_long_query(long_query)
@@ -150,7 +152,7 @@ class TestPreprocessLongQueryFunction:
 
     def test_long_query_extracts_key_details(self):
         """Test that long query extracts key details."""
-        from app.services.agents.tool_aware_agent import preprocess_long_query
+        from app.services.agents.query_preprocessing import preprocess_long_query
 
         long_query = (
             "I am a researcher at the Technical University of Munich in Germany working on "
@@ -175,7 +177,7 @@ class TestPreprocessLongQueryFunction:
 
     def test_long_query_preserves_programme_names(self):
         """Test that programme names are preserved in processed query."""
-        from app.services.agents.tool_aware_agent import preprocess_long_query
+        from app.services.agents.query_preprocessing import preprocess_long_query
 
         long_query = (
             "Our organization, the Institute for Advanced Research in Paris, France, is "
@@ -202,7 +204,7 @@ class TestExtractKeyDetailsFunction:
 
     def test_extract_organization_names(self):
         """Test extraction of organization names."""
-        from app.services.agents.tool_aware_agent import _extract_key_details
+        from app.services.agents.query_preprocessing import _extract_key_details
 
         query = "The Technical University of Munich and Fraunhofer Institute are collaborating"
         details = _extract_key_details(query)
@@ -214,7 +216,7 @@ class TestExtractKeyDetailsFunction:
 
     def test_extract_budget_amounts(self):
         """Test extraction of budget amounts."""
-        from app.services.agents.tool_aware_agent import _extract_key_details
+        from app.services.agents.query_preprocessing import _extract_key_details
 
         query = "We need a budget of 5 million euros for 48 months project"
         details = _extract_key_details(query)
@@ -226,7 +228,7 @@ class TestExtractKeyDetailsFunction:
 
     def test_extract_country_names(self):
         """Test extraction of country names."""
-        from app.services.agents.tool_aware_agent import _extract_key_details
+        from app.services.agents.query_preprocessing import _extract_key_details
 
         query = "Partners from Germany, France, and Italy will collaborate on the project"
         details = _extract_key_details(query)
@@ -237,7 +239,7 @@ class TestExtractKeyDetailsFunction:
 
     def test_extract_call_ids(self):
         """Test extraction of call IDs."""
-        from app.services.agents.tool_aware_agent import _extract_key_details
+        from app.services.agents.query_preprocessing import _extract_key_details
 
         query = "We want to apply for call HORIZON-CL5-2025-D1-01 deadline March"
         details = _extract_key_details(query)
@@ -248,7 +250,7 @@ class TestExtractKeyDetailsFunction:
 
     def test_extract_programme_names(self):
         """Test extraction of programme names."""
-        from app.services.agents.tool_aware_agent import _extract_key_details
+        from app.services.agents.query_preprocessing import _extract_key_details
 
         query = "Should we apply to Horizon Europe or Erasmus+ for our education project?"
         details = _extract_key_details(query)
@@ -259,7 +261,7 @@ class TestExtractKeyDetailsFunction:
 
     def test_deduplicates_details(self):
         """Test that extracted details are deduplicated."""
-        from app.services.agents.tool_aware_agent import _extract_key_details
+        from app.services.agents.query_preprocessing import _extract_key_details
 
         query = (
             "Germany is great. Germany has many universities. "
@@ -272,13 +274,13 @@ class TestExtractKeyDetailsFunction:
         # "University of Munich" as org are different entries
         details_lower = [d.lower() for d in details]
         exact_germany_count = details_lower.count("germany")
-        assert exact_germany_count <= 1, (
-            f"Should deduplicate exact matches, got {exact_germany_count} 'Germany'"
-        )
+        assert (
+            exact_germany_count <= 1
+        ), f"Should deduplicate exact matches, got {exact_germany_count} 'Germany'"
 
     def test_limits_details_to_ten(self):
         """Test that extracted details are limited to 10."""
-        from app.services.agents.tool_aware_agent import _extract_key_details
+        from app.services.agents.query_preprocessing import _extract_key_details
 
         query = (
             "Partners from Germany, France, Italy, Spain, Netherlands, Belgium, "
@@ -297,7 +299,7 @@ class TestExtractIntentRuleBasedFunction:
 
     def test_eligibility_question_type(self):
         """Test detection of eligibility question type."""
-        from app.services.agents.tool_aware_agent import _extract_intent_rule_based
+        from app.services.agents.query_preprocessing import _extract_intent_rule_based
 
         query = (
             "I am a researcher at the University of Munich and I would like to know "
@@ -312,7 +314,7 @@ class TestExtractIntentRuleBasedFunction:
 
     def test_budget_question_type(self):
         """Test detection of budget question type."""
-        from app.services.agents.tool_aware_agent import _extract_intent_rule_based
+        from app.services.agents.query_preprocessing import _extract_intent_rule_based
 
         query = (
             "How much budget should I plan for a Horizon Europe RIA project in the "
@@ -326,7 +328,7 @@ class TestExtractIntentRuleBasedFunction:
 
     def test_search_question_type(self):
         """Test detection of search question type."""
-        from app.services.agents.tool_aware_agent import _extract_intent_rule_based
+        from app.services.agents.query_preprocessing import _extract_intent_rule_based
 
         query = (
             "Please find me funding opportunities for renewable energy research "
@@ -346,7 +348,7 @@ class TestExtractIntentRuleBasedFunction:
 
     def test_preserves_key_details(self):
         """Test that key details are included in processed query."""
-        from app.services.agents.tool_aware_agent import _extract_intent_rule_based
+        from app.services.agents.query_preprocessing import _extract_intent_rule_based
 
         query = "Long query about funding for research in Germany and France." * 10
         key_details = ["Germany", "France", "5 million euros"]
@@ -358,19 +360,17 @@ class TestExtractIntentRuleBasedFunction:
 
     def test_respects_max_length(self):
         """Test that processed query respects max length."""
-        from app.services.agents.tool_aware_agent import (
-            MAX_PROCESSED_QUERY_LENGTH,
-            _extract_intent_rule_based,
-        )
+        from app.core.config import settings
+        from app.services.agents.query_preprocessing import _extract_intent_rule_based
 
         query = "This is an extremely long query about funding opportunities." * 50
         key_details = ["detail1", "detail2", "detail3", "detail4", "detail5"]
 
         processed = _extract_intent_rule_based(query, key_details)
 
-        assert len(processed) <= MAX_PROCESSED_QUERY_LENGTH, (
-            f"Processed query too long: {len(processed)} > {MAX_PROCESSED_QUERY_LENGTH}"
-        )
+        assert (
+            len(processed) <= settings.max_processed_query_length
+        ), f"Processed query too long: {len(processed)} > {settings.max_processed_query_length}"
 
 
 # =============================================================================
@@ -394,7 +394,7 @@ class TestLongQueryAgentIntegration:
 
     def test_preprocessing_with_mock_llm(self, mock_llm):
         """Test that preprocessing works with mock LLM."""
-        from app.services.agents.tool_aware_agent import preprocess_long_query
+        from app.services.agents.query_preprocessing import preprocess_long_query
 
         # Create a long query
         long_query = (
@@ -421,7 +421,7 @@ class TestLongQueryAgentIntegration:
 
     def test_llm_extraction_fallback(self):
         """Test fallback to rule-based when LLM fails."""
-        from app.services.agents.tool_aware_agent import preprocess_long_query
+        from app.services.agents.query_preprocessing import preprocess_long_query
 
         # Create mock LLM that raises exception
         mock_llm = MagicMock()
@@ -650,9 +650,9 @@ Success rates for similar projects are typically 10-15%.
 
         result = evaluator.evaluate(original_query, good_response)
 
-        assert result["total_score"] >= 70, (
-            f"Good response should score well, got {result['total_score']}"
-        )
+        assert (
+            result["total_score"] >= 70
+        ), f"Good response should score well, got {result['total_score']}"
 
     def test_evaluator_scores_poor_response(self):
         """Test that evaluator gives low score to poor response."""
@@ -664,9 +664,9 @@ Success rates for similar projects are typically 10-15%.
 
         result = evaluator.evaluate(original_query, poor_response)
 
-        assert result["total_score"] < 50, (
-            f"Poor response should score low, got {result['total_score']}"
-        )
+        assert (
+            result["total_score"] < 50
+        ), f"Poor response should score low, got {result['total_score']}"
 
 
 # =============================================================================
@@ -742,13 +742,13 @@ class TestSampleLongQueries:
     def test_all_sample_queries_over_threshold(self):
         """Verify all sample queries are over 500 characters."""
         for sample in SAMPLE_LONG_QUERIES:
-            assert len(sample["query"]) > 500, (
-                f"Sample {sample['name']} is only {len(sample['query'])} chars"
-            )
+            assert (
+                len(sample["query"]) > 500
+            ), f"Sample {sample['name']} is only {len(sample['query'])} chars"
 
     def test_sample_queries_are_processed(self):
         """Test that all sample queries trigger processing."""
-        from app.services.agents.tool_aware_agent import preprocess_long_query
+        from app.services.agents.query_preprocessing import preprocess_long_query
 
         for sample in SAMPLE_LONG_QUERIES:
             result = preprocess_long_query(sample["query"])
@@ -756,7 +756,7 @@ class TestSampleLongQueries:
 
     def test_sample_queries_extract_expected_details(self):
         """Test that expected key details are extracted."""
-        from app.services.agents.tool_aware_agent import preprocess_long_query
+        from app.services.agents.query_preprocessing import preprocess_long_query
 
         for sample in SAMPLE_LONG_QUERIES:
             result = preprocess_long_query(sample["query"])
@@ -775,86 +775,6 @@ class TestSampleLongQueries:
 # =============================================================================
 # Live API Tests (require running server)
 # =============================================================================
-
-
-@pytest.mark.integration
-class TestLiveAPILongQuery:
-    """Test long query handling against live API."""
-
-    @pytest.fixture
-    def api_client(self):
-        """Create API client for testing."""
-        try:
-            import httpx
-
-            return httpx.Client(base_url=API_BASE_URL, timeout=60.0)
-        except ImportError:
-            pytest.skip("httpx not installed")
-
-    def test_api_handles_long_query(self, api_client):
-        """Test that API handles long query without error."""
-        try:
-            # Create conversation
-            response = api_client.post(f"{CONVERSATION_ENDPOINT}/new")
-            if response.status_code != 200:
-                pytest.skip("API not available")
-
-            conv_data = response.json()
-            conv_id = conv_data.get("conversation_id")
-
-            # Send long query
-            long_query = SAMPLE_LONG_QUERIES[0]["query"]
-
-            msg_response = api_client.post(
-                f"{CONVERSATION_ENDPOINT}/{conv_id}/message",
-                json={"message": long_query},
-            )
-
-            assert msg_response.status_code == 200, (
-                f"API should handle long query, got {msg_response.status_code}"
-            )
-
-            result = msg_response.json()
-            assert "answer" in result or "response" in result
-
-        except Exception as e:
-            pytest.skip(f"API test failed: {e}")
-
-    def test_api_response_addresses_main_question(self, api_client):
-        """Test that API response addresses the main question."""
-        try:
-            # Create conversation
-            response = api_client.post(f"{CONVERSATION_ENDPOINT}/new")
-            if response.status_code != 200:
-                pytest.skip("API not available")
-
-            conv_data = response.json()
-            conv_id = conv_data.get("conversation_id")
-
-            # Send query about hydrogen funding
-            long_query = SAMPLE_LONG_QUERIES[0]["query"]
-
-            msg_response = api_client.post(
-                f"{CONVERSATION_ENDPOINT}/{conv_id}/message",
-                json={"message": long_query},
-            )
-
-            if msg_response.status_code != 200:
-                pytest.skip("API error")
-
-            result = msg_response.json()
-            answer = result.get("answer", result.get("response", ""))
-
-            # Evaluate response quality
-            evaluator = ScenarioEvaluator()
-            evaluation = evaluator.evaluate(long_query, answer)
-
-            assert evaluation["total_score"] >= PASS_THRESHOLD, (
-                f"Response should score >= {PASS_THRESHOLD}, got {evaluation['total_score']}"
-            )
-
-        except Exception as e:
-            pytest.skip(f"API test failed: {e}")
 
 
 # =============================================================================

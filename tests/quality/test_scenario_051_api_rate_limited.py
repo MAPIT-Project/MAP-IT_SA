@@ -19,6 +19,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from app.core.config import settings
+
 # ============================================================================
 # Unit Tests - Test rate limit configuration and constants
 # ============================================================================
@@ -29,37 +31,42 @@ class TestRateLimitConfiguration:
 
     def test_rate_limit_constants_exist(self):
         """Test that rate limit constants are defined."""
-        from app.services.call_enrichment_service import (
-            BASE_DELAY,
-            CACHE_TTL,
-            EXPONENTIAL_BASE,
-            MAX_DELAY,
-            MAX_RETRIES,
-        )
 
-        assert MAX_RETRIES > 0, "MAX_RETRIES should be positive"
-        assert BASE_DELAY > 0, "BASE_DELAY should be positive"
-        assert MAX_DELAY > 0, "MAX_DELAY should be positive"
-        assert EXPONENTIAL_BASE > 1, "EXPONENTIAL_BASE should be > 1"
-        assert CACHE_TTL > 0, "CACHE_TTL should be positive"
+        assert (
+            settings.call_enrichment_max_retries > 0
+        ), "settings.call_enrichment_max_retries should be positive"
+        assert (
+            settings.call_enrichment_base_delay > 0
+        ), "settings.call_enrichment_base_delay should be positive"
+        assert (
+            settings.call_enrichment_max_delay > 0
+        ), "settings.call_enrichment_max_delay should be positive"
+        assert (
+            settings.call_enrichment_exponential_base > 1
+        ), "settings.call_enrichment_exponential_base should be > 1"
+        assert (
+            settings.call_enrichment_cache_ttl > 0
+        ), "settings.call_enrichment_cache_ttl should be positive"
 
     def test_rate_limit_constants_reasonable_values(self):
         """Test that rate limit values are reasonable."""
-        from app.services.call_enrichment_service import (
-            BASE_DELAY,
-            CACHE_TTL,
-            MAX_DELAY,
-            MAX_RETRIES,
-        )
 
         # Should have 2-5 retries
-        assert 2 <= MAX_RETRIES <= 5, f"MAX_RETRIES {MAX_RETRIES} should be 2-5"
+        assert (
+            2 <= settings.call_enrichment_max_retries <= 5
+        ), f"settings.call_enrichment_max_retries {settings.call_enrichment_max_retries} should be 2-5"
         # Base delay should be 0.5-5s
-        assert 0.5 <= BASE_DELAY <= 5, f"BASE_DELAY {BASE_DELAY}s should be 0.5-5s"
+        assert (
+            0.5 <= settings.call_enrichment_base_delay <= 5
+        ), f"settings.call_enrichment_base_delay {settings.call_enrichment_base_delay}s should be 0.5-5s"
         # Max delay should be 10-60s
-        assert 10 <= MAX_DELAY <= 60, f"MAX_DELAY {MAX_DELAY}s should be 10-60s"
+        assert (
+            10 <= settings.call_enrichment_max_delay <= 60
+        ), f"settings.call_enrichment_max_delay {settings.call_enrichment_max_delay}s should be 10-60s"
         # Cache TTL should be 5 minutes to 2 hours
-        assert 300 <= CACHE_TTL <= 7200, f"CACHE_TTL {CACHE_TTL}s should be 300-7200s"
+        assert (
+            300 <= settings.call_enrichment_cache_ttl <= 7200
+        ), f"settings.call_enrichment_cache_ttl {settings.call_enrichment_cache_ttl}s should be 300-7200s"
 
 
 class TestRateLimitExceptions:
@@ -99,9 +106,9 @@ class TestServiceAvailability:
         """Test that get_call_details is in DEGRADABLE_TOOLS."""
         from app.core.service_availability import DEGRADABLE_TOOLS
 
-        assert "get_call_details" in DEGRADABLE_TOOLS, (
-            "get_call_details should be in DEGRADABLE_TOOLS"
-        )
+        assert (
+            "get_call_details" in DEGRADABLE_TOOLS
+        ), "get_call_details should be in DEGRADABLE_TOOLS"
 
     def test_eu_portal_api_service_type_exists(self):
         """Test that EU_PORTAL_API service type exists."""
@@ -114,9 +121,9 @@ class TestServiceAvailability:
         from app.core.service_availability import DEGRADABLE_TOOLS, ServiceType
 
         degradable_services = DEGRADABLE_TOOLS.get("get_call_details", [])
-        assert ServiceType.EU_PORTAL_API in degradable_services, (
-            "get_call_details should degrade when EU_PORTAL_API unavailable"
-        )
+        assert (
+            ServiceType.EU_PORTAL_API in degradable_services
+        ), "get_call_details should degrade when EU_PORTAL_API unavailable"
 
 
 # ============================================================================
@@ -429,11 +436,10 @@ class TestRetryWithBackoff:
             with patch.object(service, "_get_local_call", return_value=None):
                 service._fetch_from_api_with_retry("TEST-CALL")
 
-        # Should have retried MAX_RETRIES times + initial attempt
-        from app.services.call_enrichment_service import MAX_RETRIES
+        # Should have retried settings.call_enrichment_max_retries times + initial attempt
 
-        assert call_count == MAX_RETRIES + 1
-        assert mock_sleep.call_count >= MAX_RETRIES
+        assert call_count == settings.call_enrichment_max_retries + 1
+        assert mock_sleep.call_count >= settings.call_enrichment_max_retries
 
     @patch("time.sleep")
     def test_respects_retry_after_header(self, mock_sleep):
@@ -617,11 +623,7 @@ class TestFullScenario051:
         - Retry Logic (20 pts): Implements exponential backoff
         - API Detection (15 pts): Correctly detects 429 status
         """
-        from app.services.call_enrichment_service import (
-            MAX_RETRIES,
-            CallEnrichmentService,
-            RateLimitError,
-        )
+        from app.services.call_enrichment_service import CallEnrichmentService, RateLimitError
 
         score = 0
 
@@ -641,7 +643,7 @@ class TestFullScenario051:
             pass
 
         # Retry Logic (20 pts) - Check retry constants
-        if MAX_RETRIES >= 2:
+        if settings.call_enrichment_max_retries >= 2:
             score += 20
 
         # Cache Usage (20 pts) - Check cache methods work

@@ -1449,6 +1449,7 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
         action_types: list[str] | None,
         include_projects: bool,
         limit: int,
+        strict_match: bool = True,
     ) -> dict[str, Any]:
         """SQL-only analysis (fallback when graph not available)."""
         conn = self._get_connection()
@@ -1464,19 +1465,32 @@ Return ONLY a JSON array of strings. Example: ["term1", "term2", "term3"]"""
 
         # Get calls from funding_calls table
         calls = self._get_calls_history_sql(
-            topic_pattern, cluster, keywords, year_from, year_to, action_types, limit
+            topic_pattern,
+            cluster,
+            keywords,
+            year_from,
+            year_to,
+            action_types,
+            limit,
+            strict_match=strict_match,
         )
 
         # Get timeline aggregates (full data, no limit)
         timeline = self._get_timeline_aggregates_sql(
-            topic_pattern, cluster, keywords, year_from, year_to
+            topic_pattern, cluster, keywords, year_from, year_to, strict_match=strict_match
         )
 
         # Get funded projects (limited, for samples and detailed analysis)
         projects = []
         if include_projects:
             projects = self._get_funded_projects_sql(
-                topic_pattern, cluster, keywords, year_from, year_to, limit
+                topic_pattern,
+                cluster,
+                keywords,
+                year_from,
+                year_to,
+                limit,
+                strict_match=strict_match,
             )
 
         cursor.close()

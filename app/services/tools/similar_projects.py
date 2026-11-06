@@ -226,16 +226,23 @@ class SimilarProjectsTool:
         def _generate():
             return embedding_service.generate_embedding(description, use_cache=False)
 
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = None
         try:
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(_generate)
-                return future.result(timeout=settings.embedding_timeout)
+            future = executor.submit(_generate)
+            return future.result(timeout=settings.embedding_timeout)
         except FuturesTimeoutError:
+            if future is not None:
+                future.cancel()
             logger.warning(f"Embedding generation timed out after {settings.embedding_timeout}s")
             return None
         except Exception as e:
             logger.error(f"Embedding generation error: {e}")
             return None
+        finally:
+            # Running threads cannot be killed. Do not wait for a timed-out
+            # provider here; its own request timeout must eventually release it.
+            executor.shutdown(wait=False, cancel_futures=True)
 
     def _normalize_cluster(self, cluster: str) -> str:
         """Normalize cluster code for SQL queries."""
@@ -541,17 +548,22 @@ class SimilarProjectsTool:
                 similarity_threshold=similarity_threshold,
             )
 
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = None
         try:
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(_execute_search)
-                result = future.result(timeout=settings.vector_search_timeout)
-                return result, False
+            future = executor.submit(_execute_search)
+            result = future.result(timeout=settings.vector_search_timeout)
+            return result, False
         except FuturesTimeoutError:
+            if future is not None:
+                future.cancel()
             logger.warning(f"Vector search timed out after {settings.vector_search_timeout}s")
             return [], True
         except Exception as e:
             logger.error(f"Vector search with timeout error: {e}")
             return [], False
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
 
     def _get_vector_results(
         self,
