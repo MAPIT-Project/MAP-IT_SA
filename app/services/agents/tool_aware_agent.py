@@ -399,8 +399,11 @@ class ToolAwareAgent(
 
     @staticmethod
     def _generation_timeout(model: Any, default: float) -> float:
-        if getattr(model, "provider", None) == "codex":
+        provider = getattr(model, "provider", None)
+        if provider == "codex":
             return settings.codex_timeout_seconds
+        if provider == "antigravity":
+            return settings.antigravity_timeout_seconds
         return default
 
     def _init_llm(self):

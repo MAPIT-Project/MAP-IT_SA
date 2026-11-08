@@ -40,7 +40,7 @@ class MultiProviderAIService:
     ):
         self.step = step
         primary_provider = resolve_provider(step, primary_provider)
-        self.enable_fallback = enable_fallback and primary_provider != "codex"
+        self.enable_fallback = enable_fallback and primary_provider not in ("codex", "antigravity")
         self.providers: list[BaseAIProvider] = []
 
         # Initialize providers based on available API keys
@@ -49,10 +49,10 @@ class MultiProviderAIService:
     def _initialize_providers(self, primary_provider: str):
         """Initialize available providers."""
 
-        # Codex is an explicit local choice. Initialization and inference failures must
-        # never send its prompts to an API provider.
-        if primary_provider == "codex":
-            self.providers.append(TextModelProvider("codex", step=self.step))
+        # Codex and Antigravity are explicit local choices. Initialization and inference failures must
+        # never send their prompts to an API provider.
+        if primary_provider in ("codex", "antigravity"):
+            self.providers.append(TextModelProvider(primary_provider, step=self.step))
             return
 
         if primary_provider == "openrouter":

@@ -56,11 +56,11 @@ Meaning of the columns:
 
 ## AI providers and embeddings
 
-At minimum the key of the chosen provider is operationally required. The configuration validator does not enforce this centrally; errors may therefore only occur when an AI function is called.
+At minimum the key or local CLI of the chosen provider is operationally required. The configuration validator does not enforce this centrally; errors may therefore only occur when an AI function is called.
 
 | Name | Component | Required | Secret | Default / example | Environment | Description |
 |---|---|---:|---:|---|---|---|
-| `DEFAULT_AI_PROVIDER` | Backend | No | No | code/example/Compose: `gemini` | Usually the same | Primary text provider (`gemini`, `openai` or partially `openrouter`, depending on the service). |
+| `DEFAULT_AI_PROVIDER` | Backend | No | No | code/example/Compose: `gemini` | Usually the same | Primary text provider (`gemini`, `openai`, `openrouter`, `codex`, or `antigravity`). |
 | `GEMINI_API_KEY` | Backend | Conditional | **Yes** | none; placeholder in example | **L/S/P** | Gemini generation key; also serves as fallback for embeddings. |
 | `GEMINI_MODEL` | Backend | No | No | usually `gemini-3-flash-preview`; `comprehensive_reviewer.py` independently falls back to `gemini-2.0-flash-exp` | Per release/environment | Fast Gemini model. Pin explicitly in S/P to prevent component deviations. |
 | `GEMINI_PRO_MODEL` | Backend | No | No | `gemini-3.1-pro-preview` | Per release/environment | Heavier Gemini model for smart routing. |
@@ -70,10 +70,34 @@ At minimum the key of the chosen provider is operationally required. The configu
 | `OPENROUTER_MODEL` | Backend | No | No | `x-ai/grok-4-fast:free` | Per release/environment | OpenRouter model name from Settings/Compose. |
 | `OPENROUTER_BASE_URL` | Backend | No | No | code: `https://openrouter.ai/api/v1` | Usually the same | Base URL for OpenRouter. Missing from `.env.example`. |
 | `SMART_MODEL_ROUTING` | Backend | No | No | `true` | Usually the same | Routes complex tasks to the pro model. |
+| `ANTIGRAVITY_ENABLED` | Backend | Conditional | No | `false` | Local | Master toggle for the local Antigravity CLI text provider. |
+| `ANTIGRAVITY_CLI_PATH` | Backend | No | No | `agy` | Local | Host executable name or path for Antigravity CLI. |
+| `ANTIGRAVITY_MODEL` | Backend | No | No | `gemini-3.8-flash-high` | Local | Model identifier passed to `agy --model`. |
+| `ANTIGRAVITY_REASONING_EFFORT` | Backend | No | No | `high` | Local | Reasoning effort passed to `agy --effort` (`low`, `medium`, `high`, `xhigh`, `max`). |
+| `ANTIGRAVITY_TIMEOUT_SECONDS` | Backend | No | No | `300.0` | Local | Wall-clock execution timeout per `agy` invocation. |
+| `CODEX_ENABLED` | Backend | Conditional | No | `false` | Local | Master toggle for the local Codex CLI text provider. |
+| `CODEX_CLI_PATH` | Backend | No | No | `codex` | Local | Host executable name or path for Codex CLI. |
+| `CODEX_MODEL` | Backend | No | No | `gpt-6.1-sol` | Local | Model identifier passed to `codex exec`. |
+| `CODEX_REASONING_EFFORT` | Backend | No | No | `high` | Local | Reasoning effort override for Codex. |
+| `CODEX_TIMEOUT_SECONDS` | Backend | No | No | `120.0` | Local | Execution timeout per `codex` invocation. |
+| `AI_STEP_PROVIDERS` | Backend | No | No | none | Local/dev | JSON mapping of specific pipeline steps to providers (e.g. `{"chat_reasoning":"antigravity"}`). |
 | `GOOGLE_EMBEDDING_API_KEY` | Backend | Conditional | **Yes** | none; fallback is `GEMINI_API_KEY` in the embedding service | **L/S/P** | Google key for vector embeddings. Needed when vector search/embedding jobs are on and no usable Gemini key is available. |
 | `GOOGLE_API_KEY` | Backend code; also unused frontend example | Conditional | **Yes** | none | **L/S/P** | Alternative fallback key in the query planner. The frontend declares it, but does not read it. |
 | `EMBEDDING_MODEL` | Backend | No | No | Settings/Compose: `models/gemini-embedding-001`; backend example: `gemini-embedding-001` | Per release | Embedding model. Preferably use one form explicitly, because the sources differ from each other. |
 | `EMBEDDING_DIMENSION` | Backend | No | No | `3072` | Same as DB schema | Vector dimension; must match pgvector columns and the chosen model. |
+
+## Agent framework configuration (Pydantic AI)
+
+MAPIT uses Pydantic AI for V3 chat and V4 proposal sessions by default, providing native tool calling across providers.
+
+| Name | Component | Required | Secret | Default | Environment | Description |
+|---|---|---:|---:|---|---|---|
+| `AGENT_FRAMEWORK` | Backend | No | No | `pydantic` | All | Agent engine: `pydantic` (default) or `legacy` (explicit rollback to previous ReAct loop). |
+| `AGENT_MODEL_TIMEOUT_SECONDS` | Backend | No | No | `30.0` | Capacity-dependent | Timeout around an individual agent model round trip. |
+| `AGENT_RUN_TIMEOUT_SECONDS` | Backend | No | No | `300.0` | Capacity-dependent | Total wall-clock timeout for a complete multi-step agent run. |
+| `AGENT_TOOL_TIMEOUT_SECONDS` | Backend | No | No | `60.0` | Capacity-dependent | Timeout for a single Python tool execution. |
+| `AGENT_MAX_TOOL_CALLS` | Backend | No | No | `20` | Quality-dependent | Maximum total tool calls allowed across an agent execution. |
+| `AGENT_TOOL_RESULT_MAX_CHARS` | Backend | No | No | `20000` | Capacity-dependent | Maximum characters returned to the model per tool observation. |
 
 ## Backend retrieval, context and performance tuning
 

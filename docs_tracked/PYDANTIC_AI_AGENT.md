@@ -29,7 +29,15 @@ implementing the same framework protocol and running the same Python tools.
 DEFAULT_AI_PROVIDER=gemini
 # Supply GEMINI_API_KEY privately in the actual runtime environment.
 
-# Or personal local Codex development:
+# Or local Antigravity CLI development (Gemini 3.8 Flash high reasoning):
+# DEFAULT_AI_PROVIDER=antigravity
+# ANTIGRAVITY_ENABLED=true
+# ANTIGRAVITY_CLI_PATH=agy
+# ANTIGRAVITY_MODEL=gemini-3.8-flash-high
+# ANTIGRAVITY_REASONING_EFFORT=high
+# ANTIGRAVITY_TIMEOUT_SECONDS=300
+
+# Or local Codex CLI development:
 # DEFAULT_AI_PROVIDER=codex
 # CODEX_ENABLED=true
 # CODEX_MODEL=gpt-6.1-sol
@@ -77,13 +85,14 @@ proposal session IDs, selected models, and generation metadata on shared agents.
 run. Gemini flash/pro selection still applies only to Gemini. API clients receive
 explicit configured keys/endpoints and are closed at the end of the run.
 
-`CodexAgentModel` translates framework message history, tool definitions and
-validation feedback to a structured inference request through `CodexTextModel`.
-It translates the validated response to the same function-call messages used by
-API providers. Python tools execute in MAPIT, never inside the CLI job. The CLI's
-read-only isolation, disabled shell/connectors, minimum environment and process
-cancellation cleanup are retained. No framework OAuth/Codex backend or direct
-token handling is introduced. The rest of the agent is not specific to Codex.
+`CodexAgentModel` and `AntigravityAgentModel` translate framework message history, tool
+definitions and validation feedback to structured inference requests through their
+respective CLI adapters (`CodexTextModel` and `AntigravityTextModel`). They translate
+the validated CLI response to the same function-call messages used by API providers.
+Python tools execute in MAPIT, never inside the CLI jobs. Both CLI adapters enforce
+read-only isolation, disabled host shell commands, empty sandbox directories, minimum
+environment forwarding, and process cancellation cleanup. No framework OAuth backend or
+direct token handling is introduced. The rest of the agent is provider-independent.
 
 ## Response compatibility
 

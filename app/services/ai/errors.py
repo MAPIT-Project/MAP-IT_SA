@@ -8,6 +8,7 @@ def generation_error_message(error: Exception, provider: str | None = None) -> s
         "openai": "OpenAI",
         "openrouter": "OpenRouter",
         "codex": "Codex",
+        "antigravity": "Antigravity",
     }.get(provider, "AI provider")
     code = getattr(error, "status_code", None) or getattr(error, "code", None)
     if callable(code):

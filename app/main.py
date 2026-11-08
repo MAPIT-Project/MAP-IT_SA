@@ -125,6 +125,8 @@ async def startup_event():
         providers.append("OpenRouter")
     if settings.codex_enabled:
         providers.append("Codex (local CLI enabled; availability checked by health endpoint)")
+    if settings.antigravity_enabled:
+        providers.append("Antigravity (local CLI enabled; availability checked by health endpoint)")
     logger.info(f"Available AI providers: {', '.join(providers) if providers else 'None'}")
 
     # Log embedding configuration

@@ -16,6 +16,7 @@ from pydantic_ai.models import Model
 from pydantic_ai.usage import UsageLimits
 
 from app.core.config import settings
+from app.services.ai.antigravity import AntigravityError
 from app.services.ai.budget import InferenceBudgetError, budgeted_inference
 from app.services.ai.codex import CodexError
 from app.services.ai.errors import generation_error_message
@@ -102,6 +103,8 @@ class ObservedModel(Model):
         timeout = (
             settings.codex_timeout_seconds
             if self.mapit_provider == "codex"
+            else settings.antigravity_timeout_seconds
+            if self.mapit_provider == "antigravity"
             else settings.agent_model_timeout_seconds
         )
         response = await asyncio.wait_for(
@@ -374,7 +377,7 @@ async def run_agent_loop(owner, query, context, plan, event_callback=None, propo
         raise
     except UsageLimitExceeded:
         plan.error = "Agent execution limit reached"
-    except CodexError as exc:
+    except (CodexError, AntigravityError) as exc:
         # Adapter diagnostics are deliberately content-free and actionable.
         plan.error = str(exc)
     except TimeoutError:

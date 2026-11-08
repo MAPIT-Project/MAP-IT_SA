@@ -36,10 +36,15 @@ def configure(args):
         os.environ["DEFAULT_AI_PROVIDER"] = args.provider
     if args.provider == "codex":
         os.environ["CODEX_ENABLED"] = "true"
+    if args.provider == "antigravity":
+        os.environ["ANTIGRAVITY_ENABLED"] = "true"
     if args.model:
         os.environ[f"{args.provider.upper()}_MODEL"] = args.model
     if args.reasoning_effort:
-        os.environ["CODEX_REASONING_EFFORT"] = args.reasoning_effort
+        if args.provider == "codex":
+            os.environ["CODEX_REASONING_EFFORT"] = args.reasoning_effort
+        elif args.provider == "antigravity":
+            os.environ["ANTIGRAVITY_REASONING_EFFORT"] = args.reasoning_effort
     os.environ["AGENT_FRAMEWORK"] = "pydantic"
     if args.local_services:
         os.environ["DATABASE_URL"] = local_database_url(
@@ -79,6 +84,11 @@ async def check_runtime():
     if "codex" in selected.values():
         await CodexTextModel(settings).check_available()
         report["codex_cli_authenticated"] = True
+    if "antigravity" in selected.values():
+        from app.services.ai.antigravity import AntigravityTextModel
+
+        await AntigravityTextModel(settings).check_available()
+        report["antigravity_cli_available"] = True
     import psycopg2
     import redis
 
@@ -104,10 +114,13 @@ async def check_runtime():
 def arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--env-file", type=Path, required=True)
-    parser.add_argument("--provider", choices=("gemini", "openai", "openrouter", "codex"))
+    parser.add_argument(
+        "--provider", choices=("gemini", "openai", "openrouter", "codex", "antigravity")
+    )
     parser.add_argument("--model")
     parser.add_argument(
-        "--reasoning-effort", choices=("minimal", "low", "medium", "high", "xhigh", "max", "ultra")
+        "--reasoning-effort",
+        choices=("minimal", "low", "medium", "high", "xhigh", "max", "ultra"),
     )
     parser.add_argument("--local-services", action="store_true")
     parser.add_argument("--database-port", type=int, default=54322)
@@ -120,8 +133,8 @@ def arguments(argv=None):
     args = parser.parse_args(argv)
     if args.model and not args.provider:
         parser.error("--model requires --provider")
-    if args.reasoning_effort and args.provider != "codex":
-        parser.error("--reasoning-effort requires --provider codex")
+    if args.reasoning_effort and args.provider not in ("codex", "antigravity"):
+        parser.error("--reasoning-effort requires --provider codex or antigravity")
     return args
 
 

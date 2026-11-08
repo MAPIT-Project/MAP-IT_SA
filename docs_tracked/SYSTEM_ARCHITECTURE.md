@@ -68,8 +68,10 @@ The system uses a sophisticated **agentic architecture** that can:
 
 | Aspect | Description |
 |--------|-------------|
+| **Agent Framework** | **Pydantic AI** (`app/services/agents/framework/runtime.py`) provides the core ReAct reasoning loop, strict tool schema validation, and multi-provider abstraction (`AGENT_FRAMEWORK=pydantic`). |
+| **AI Providers** | Supports Google Gemini API, OpenAI API, OpenRouter API, local **Antigravity CLI** (`gemini-3.8-flash-high`), and local **Codex CLI** (`gpt-6.1-sol`). |
 | **Intent Classification** | None - the agent dynamically decides what tools to use. |
-| **Routing** | Single `ToolAwareAgent` handles all queries. |
+| **Routing** | Single unified agent loop handles all queries with 42 available tools. |
 | **Response Formatting** | Post-processor formats structured data with rich formatting (emojis, links). |
 | **API Enrichment** | Automatic on-demand enrichment for missing call data via EU Portal API. |
 
@@ -295,15 +297,36 @@ Ensures that time-sensitive data is always accurate.
 ### Environment Variables
 
 ```bash
-# AI Models
-GEMINI_API_KEY=your_key
-GEMINI_MODEL=gemini-3-flash-preview       # Used by all agentic components
-DEFAULT_AI_PROVIDER=gemini
+# AI Provider Options:
+# Option 1: Antigravity CLI (Local Gemini 3.8 Flash high reasoning, no API keys)
+DEFAULT_AI_PROVIDER=antigravity
+ANTIGRAVITY_ENABLED=true
+ANTIGRAVITY_CLI_PATH=agy
+ANTIGRAVITY_MODEL=gemini-3.8-flash-high
+ANTIGRAVITY_REASONING_EFFORT=high
+ANTIGRAVITY_TIMEOUT_SECONDS=300
+
+# Option 2: Codex CLI (Local GPT-6.1 Sol, no API keys)
+# DEFAULT_AI_PROVIDER=codex
+# CODEX_ENABLED=true
+# CODEX_MODEL=gpt-6.1-sol
+# CODEX_REASONING_EFFORT=high
+# CODEX_TIMEOUT_SECONDS=120
+
+# Option 3: Gemini API
+# DEFAULT_AI_PROVIDER=gemini
+# GEMINI_API_KEY=your_gemini_key
+# GEMINI_MODEL=gemini-3-flash-preview
+
+# Embeddings (Always uses Google 3072-dim embeddings)
+GOOGLE_EMBEDDING_API_KEY=your_key  # Or GEMINI_API_KEY
+EMBEDDING_MODEL=gemini-embedding-001
+EMBEDDING_DIMENSION=3072
 
 # Database
 DATABASE_URL=postgresql://...
 SUPABASE_URL=http://localhost:54321
-SUPABASE_KEY=your_key
+SUPABASE_SERVICE_KEY=your_key
 
 # Neo4j
 NEO4J_URI=bolt://neo4j:7687
@@ -311,13 +334,14 @@ NEO4J_USER=neo4j
 NEO4J_PASSWORD=your_password
 ```
 
-### Agentic Configuration
+### Agent Framework Configuration
 
-```python
-# In tool_aware_agent.py
-ToolAwareAgent(
-    max_iterations=5         # Max reasoning iterations
-)
+```bash
+# Agent Engine
+AGENT_FRAMEWORK=pydantic       # 'pydantic' (default) or 'legacy' (rollback)
+AGENT_RUN_TIMEOUT_SECONDS=300  # Total wall-clock run timeout
+AGENT_TOOL_TIMEOUT_SECONDS=60  # Individual tool timeout
+AGENT_MAX_TOOL_CALLS=20        # Max tool calls per query
 ```
 
 ---

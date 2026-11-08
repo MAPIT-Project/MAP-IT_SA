@@ -234,12 +234,25 @@ async def check_text_provider() -> ServiceHealth:
 
             await CodexTextModel(settings).check_available()
             return ServiceHealth(
-                name="codex", status="healthy", message="CLI and ChatGPT login available",
+                name="codex",
+                status="healthy",
+                message="CLI and ChatGPT login available",
                 details={"model": settings.codex_model, "inference_checked": False},
+            )
+        if selected == "antigravity":
+            from ..services.ai.antigravity import AntigravityTextModel
+
+            await AntigravityTextModel(settings).check_available()
+            return ServiceHealth(
+                name="antigravity",
+                status="healthy",
+                message="Antigravity CLI available",
+                details={"model": settings.antigravity_model, "inference_checked": False},
             )
         configured = bool(getattr(settings, f"{selected}_api_key"))
         return ServiceHealth(
-            name=selected, status="healthy" if configured else "unhealthy",
+            name=selected,
+            status="healthy" if configured else "unhealthy",
             message="API key configured" if configured else "API key missing",
             details={"model": getattr(settings, f"{selected}_model"), "inference_checked": False},
         )
@@ -370,7 +383,9 @@ async def health_check() -> dict[str, Any]:
     # Determine overall status
     # The configured text provider is critical, alongside PostgreSQL.
     critical_services = ["postgres"]
-    critical_services.append(settings.ai_step_providers.get("chat_reasoning", settings.default_ai_provider))
+    critical_services.append(
+        settings.ai_step_providers.get("chat_reasoning", settings.default_ai_provider)
+    )
 
     critical_healthy = all(
         services.get(svc, {}).get("status") in ["healthy", "Not configured"]
@@ -468,7 +483,11 @@ async def dependencies_status() -> dict[str, Any]:
         if isinstance(check, ServiceHealth):
             dependencies[check.name] = {
                 **check.to_dict(),
-                "critical": check.name in ["postgres", settings.ai_step_providers.get("chat_reasoning", settings.default_ai_provider)],
+                "critical": check.name
+                in [
+                    "postgres",
+                    settings.ai_step_providers.get("chat_reasoning", settings.default_ai_provider),
+                ],
                 "fallback_available": check.name in ["neo4j", "redis", "embeddings"],
             }
 
@@ -481,6 +500,7 @@ async def dependencies_status() -> dict[str, Any]:
             "ai_provider": settings.default_ai_provider,
             "ai_step_providers": settings.ai_step_providers,
             "codex_enabled": settings.codex_enabled,
+            "antigravity_enabled": settings.antigravity_enabled,
         },
         "timestamp": datetime.now(UTC).isoformat(),
     }

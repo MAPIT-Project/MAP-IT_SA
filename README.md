@@ -32,8 +32,9 @@ MAP-IT is designed to help researchers, consultants, and organizations navigate 
 - **Supabase Account** (for pgvector document storage)
 - **Google Gemini API Key** (Primary AI reasoning and embeddings)
 
-Text generation can also use the authenticated local Codex CLI. See
-[Local Codex provider](docs_tracked/CODEX_LOCAL_PROVIDER.md) for opt-in setup,
+Text generation can also use the authenticated local Codex or Antigravity CLI. See
+[Local Codex provider](docs_tracked/CODEX_LOCAL_PROVIDER.md) and
+[Local Antigravity provider](docs_tracked/ANTIGRAVITY_LOCAL_PROVIDER.md) for opt-in setup,
 global and named-step selection, and host limitations. Google embeddings keep
 their existing model and 3072-dimensional vectors.
 
@@ -71,7 +72,14 @@ chat and V4 proposal sessions. See [agent migration and rollback](docs_tracked/P
 
 6. **Run API**
    ```bash
-   make run-reload  # Accessible at http://localhost:8000
+   # Option A: Standard API run with Gemini API key (accessible at http://localhost:8000)
+   make run-reload
+
+   # Option B: Run with local Antigravity CLI on host (accessible at http://localhost:18000)
+   python scripts/run_local_api.py --provider antigravity --local-services --port 18000
+
+   # Option C: Run with local Codex CLI on host (accessible at http://localhost:18000)
+   python scripts/run_local_api.py --provider codex --local-services --port 18000
    ```
 
 ---
@@ -83,6 +91,10 @@ To keep things organized, the documentation is divided into specialized guides:
 | Guide | Description |
 |-------|-------------|
 | **[CLAUDE.md](CLAUDE.md)** | **Recommended Start Point**: Deep dive into developer rules, system architecture overview, command references, and agentic tool designs. |
+| **[Developer Setup](docs_tracked/DEVELOPER_SETUP.md)** | Backend setup, virtualenvs, Make commands, port layouts, and troubleshooting. |
+| **[Antigravity Local Provider](docs_tracked/ANTIGRAVITY_LOCAL_PROVIDER.md)** | How to use local `agy` CLI with Gemini 3.8 Flash high reasoning without paid API keys. |
+| **[Codex Local Provider](docs_tracked/CODEX_LOCAL_PROVIDER.md)** | How to use local Codex CLI with GPT-6.1 Sol models. |
+| **[Pydantic AI Agent](docs_tracked/PYDANTIC_AI_AGENT.md)** | Architecture of the Pydantic AI agent framework, tool schemas, and provider mapping. |
 | **[Tool Reference](docs/guides/TOOL_REFERENCE.md)** | Detailed explanation of all 42+ agentic tools. |
 | **[Data Ingestion](docs/guides/DATA_INGESTION.md)** | How to get the data, run ingestion scripts, and setup the graph. |
 | **[Database Schema](docs/DATABASE_SCHEMA.md)** | Deep dive into the 35 active PostgreSQL tables and vector search logic. |
@@ -94,8 +106,9 @@ To keep things organized, the documentation is divided into specialized guides:
 
 ## 🧠 Key Architecture: V3 Simplified
 
-The project has transitioned to a **Simplified Agentic Architecture**:
-- **No Manual Intent Routing**: The `ToolAwareAgent` analyzes the query and decides which tools to call dynamically.
+The project has transitioned to a **Simplified Agentic Architecture** powered by **Pydantic AI**:
+- **Pydantic AI Framework**: ReAct reasoning and tool orchestration with strict input schemas and native tool calling across providers (Gemini, OpenAI, OpenRouter, Codex, Antigravity).
+- **No Manual Intent Routing**: The agent analyzes the query and decides which tools to call dynamically.
 - **ReAct Pattern**: The agent follows a Reasoning + Acting loop to solve complex queries.
 - **Hybrid Data Flow**: Tools automatically merge results from Neo4j (Graph), PostgreSQL (Structured), and pgvector (Unstructured) using **RRF (Reciprocal Rank Fusion)**.
 

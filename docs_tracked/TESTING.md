@@ -6,6 +6,10 @@
 make test
 make test PYTHON=.venv/pydantic-agent/bin/python \
   PYTEST_ARGS="--timeout=5 --tb=short -p no:cacheprovider"
+
+# Run focused tests for CLI providers and Pydantic AI agent models:
+pytest tests/test_antigravity_adapter.py tests/test_codex_adapter.py \
+  tests/test_local_api_launcher.py tests/test_pydantic_agent_models.py -v
 ```
 
 The offline runner supplies dummy settings, disables dotenv, and blocks network,

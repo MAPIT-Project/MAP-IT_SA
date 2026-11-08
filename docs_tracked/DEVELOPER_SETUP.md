@@ -206,6 +206,23 @@ curl -fsS http://localhost:8000/api/health/live
 Use the host URLs from section 3 and set up frontend `BACKEND_URL`
 `http://localhost:8000`. Do not also start the Compose service `api` in this mode.
 
+**Local CLI provider mode — Antigravity or Codex CLI on host:**
+
+When using local CLI-based AI providers (Antigravity or Codex), the CLI binary runs on the host to access your local login session and keyring.
+
+```bash
+# 1. Start backing databases in Docker (ensure compose 'api' container is stopped):
+docker compose up -d redis neo4j
+
+# 2. Run API on host mapped to port 18000 (matches default frontend BACKEND_URL):
+python scripts/run_local_api.py --env-file .env --provider antigravity --local-services --port 18000
+# Or for Codex:
+python scripts/run_local_api.py --env-file .env --provider codex --local-services --port 18000
+
+# 3. Verify health
+curl -fsS http://localhost:18000/api/health/live
+```
+
 ## 8. Actual V3 and V4 routes
 
 The V3 prefix in `conversation_routes_v3.py` is `/api/v3/conversation`:
@@ -280,6 +297,25 @@ docker network inspect supabase_network_supabase_cli
 
 Don't manually create an empty network with the same name if you really want the Supabase containers
 reaches; Start Supabase so that the correct containers are linked to it.
+
+### CLI provider not found (`Antigravity CLI not found at 'agy'` or `Codex CLI not found`)
+
+If you see an error like:
+```text
+Antigravity CLI not found at 'agy'. Install it or set ANTIGRAVITY_CLI_PATH
+```
+or a similar message for Codex, it means the API is running **inside a Docker container** (e.g. from `docker compose up --build`). The Docker container does not have `agy`/`codex` installed and cannot reach your host machine's D-Bus keyring session.
+
+**Solution:**
+1. Stop the Docker API container:
+   ```bash
+   docker compose stop api
+   ```
+2. Keep the backing services running (`redis`, `neo4j`, `supabase`).
+3. Run the FastAPI application on your host using `scripts/run_local_api.py`:
+   ```bash
+   python scripts/run_local_api.py --env-file .env --provider antigravity --local-services --port 18000
+   ```
 
 ### API is using the wrong port
 

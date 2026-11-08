@@ -56,7 +56,7 @@ class ConversationNamer:
             self.model = create_text_model("conversation_naming", model="gemini-2.0-flash-lite")
             logger.info("ConversationNamer initialized with %s", self.provider)
         except Exception as e:
-            if self.provider == "codex":
+            if self.provider in ("codex", "antigravity"):
                 raise
             logger.warning("Failed to initialize naming provider: %s", e)
 

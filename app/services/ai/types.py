@@ -6,6 +6,9 @@ from typing import Literal, get_args
 CodexReasoningEffort = Literal["minimal", "low", "medium", "high", "xhigh", "max", "ultra"]
 CODEX_REASONING_EFFORTS = get_args(CodexReasoningEffort)
 
+AntigravityReasoningEffort = Literal["low", "medium", "high", "xhigh", "max"]
+ANTIGRAVITY_REASONING_EFFORTS = get_args(AntigravityReasoningEffort)
+
 
 @dataclass
 class TextResponse:

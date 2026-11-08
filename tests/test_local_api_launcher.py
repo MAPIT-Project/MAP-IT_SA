@@ -57,6 +57,31 @@ def test_codex_launch_uses_process_overrides_and_preserves_embedding_key(monkeyp
     assert os.environ["REDIS_PORT"] == "16379"
 
 
+def test_antigravity_launch_uses_process_overrides(monkeypatch):
+    import dotenv
+
+    monkeypatch.setattr(dotenv, "load_dotenv", lambda **kwargs: False)
+    monkeypatch.setenv("DATABASE_URL", "postgresql://dummy:dummy@docker-db:5432/postgres")
+    args = arguments(
+        [
+            "--env-file",
+            "dummy.env",
+            "--provider",
+            "antigravity",
+            "--model",
+            "gemini-3.8-flash-high",
+            "--reasoning-effort",
+            "high",
+            "--local-services",
+        ]
+    )
+    configure(args)
+    assert os.environ["DEFAULT_AI_PROVIDER"] == "antigravity"
+    assert os.environ["ANTIGRAVITY_ENABLED"] == "true"
+    assert os.environ["ANTIGRAVITY_MODEL"] == "gemini-3.8-flash-high"
+    assert os.environ["ANTIGRAVITY_REASONING_EFFORT"] == "high"
+
+
 def test_api_provider_selection_remains_available(monkeypatch):
     import dotenv
 

@@ -30,6 +30,8 @@ def resolve_provider(step, provider=None):
         raise ValueError(f"Unsupported AI provider: {selected}")
     if selected == "codex" and not settings.codex_enabled:
         raise ValueError("Codex requires local opt-in: set CODEX_ENABLED=true")
+    if selected == "antigravity" and not settings.antigravity_enabled:
+        raise ValueError("Antigravity requires local opt-in: set ANTIGRAVITY_ENABLED=true")
     return selected
 
 
@@ -39,6 +41,8 @@ def provider_scope(provider):
         raise ValueError(f"Unsupported AI provider: {provider}")
     if provider == "codex" and not settings.codex_enabled:
         raise ValueError("Codex requires local opt-in: set CODEX_ENABLED=true")
+    if provider == "antigravity" and not settings.antigravity_enabled:
+        raise ValueError("Antigravity requires local opt-in: set ANTIGRAVITY_ENABLED=true")
     token = _request_provider.set(provider)
     try:
         yield
@@ -181,6 +185,8 @@ class TextModel:
     def _configured_model(self, provider):
         if provider == "codex":
             return settings.codex_model or None
+        if provider == "antigravity":
+            return settings.antigravity_model or "gemini-3.8-flash-high"
         if provider == "gemini":
             return (
                 self.model_hint
@@ -201,12 +207,22 @@ class TextModel:
     def _get_model(self):
         provider = self.provider
         model_name = self._configured_model(provider)
-        effort = settings.codex_reasoning_effort if provider == "codex" else None
+        effort = (
+            settings.codex_reasoning_effort
+            if provider == "codex"
+            else settings.antigravity_reasoning_effort
+            if provider == "antigravity"
+            else None
+        )
         key = (provider, model_name, effort)
         if key not in self._models:
             api_key_override = self.api_key if provider == self._api_key_provider else None
             if provider == "codex":
                 model = CodexTextModel(settings)
+            elif provider == "antigravity":
+                from app.services.ai.antigravity import AntigravityTextModel
+
+                model = AntigravityTextModel(settings)
             elif provider == "gemini":
                 import google.generativeai as genai
 

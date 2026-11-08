@@ -15,7 +15,7 @@ class QuestionRequest(BaseModel):
     max_results: int | None = Field(
         5, ge=1, le=20, description="Maximum number of projects to retrieve"
     )
-    ai_provider: Literal["gemini", "openai", "openrouter", "codex"] | None = Field(
+    ai_provider: Literal["gemini", "openai", "openrouter", "codex", "antigravity"] | None = Field(
         None, description="Explicit text provider override; otherwise use configured step routing"
     )
     ai_version: str | None = Field("V9", description="RAG version to use (V2-V9)")

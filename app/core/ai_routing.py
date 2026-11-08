@@ -2,8 +2,8 @@
 
 from typing import Literal
 
-AIProvider = Literal["gemini", "openai", "openrouter", "codex"]
-PROVIDERS = frozenset({"gemini", "openai", "openrouter", "codex"})
+AIProvider = Literal["gemini", "openai", "openrouter", "codex", "antigravity"]
+PROVIDERS = frozenset({"gemini", "openai", "openrouter", "codex", "antigravity"})
 TEXT_STEPS = frozenset(
     {
         "chat_reasoning",

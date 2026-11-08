@@ -8,7 +8,7 @@ from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 from app.core.ai_routing import TEXT_STEPS, AIProvider
-from app.services.ai.types import CodexReasoningEffort
+from app.services.ai.types import AntigravityReasoningEffort, CodexReasoningEffort
 
 
 class Settings(BaseSettings):
@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     codex_model: str | None = None
     codex_reasoning_effort: CodexReasoningEffort | None = None
     codex_timeout_seconds: float = Field(default=120.0, gt=0, le=1800)
+    antigravity_enabled: bool = False
+    antigravity_cli_path: str = "agy"
+    antigravity_model: str = "gemini-3.8-flash-high"
+    antigravity_reasoning_effort: AntigravityReasoningEffort | None = "high"
+    antigravity_timeout_seconds: float = Field(default=300.0, gt=0, le=1800)
     openai_model: str = "gpt-4-turbo"
     gemini_model: str = "gemini-3-flash-preview"
     gemini_pro_model: str = "gemini-3.1-pro-preview"

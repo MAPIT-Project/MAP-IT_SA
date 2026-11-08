@@ -32,7 +32,7 @@ analytics_service = get_conversation_analytics_service()
 class MessageRequest(BaseModel):
     message: str
     include_context: bool = True
-    ai_provider: Literal["gemini", "openai", "openrouter", "codex"] | None = None
+    ai_provider: Literal["gemini", "openai", "openrouter", "codex", "antigravity"] | None = None
 
 
 class MessageResponse(BaseModel):

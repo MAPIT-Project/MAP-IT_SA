@@ -128,7 +128,7 @@ class InferenceBudget:
             frozenset(allowed_providers) if allowed_providers is not None else frozenset({"codex"})
         )
         if not self.allowed_providers or any(
-            provider not in {"codex", "gemini", "openai", "openrouter"}
+            provider not in {"codex", "antigravity", "gemini", "openai", "openrouter"}
             for provider in self.allowed_providers
         ):
             raise ValueError("allowed_providers must name supported providers")

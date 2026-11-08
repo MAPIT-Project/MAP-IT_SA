@@ -31,6 +31,9 @@ gaps, this is stated in the status column.
 | [DATA_INGESTION.md](guides/DATA_INGESTION.md) | Runbook | Actual ingestion scripts, data sources, defaults, and reproducibility limits. | Current with explicit data blockers |
 | [TOOL_REFERENCE.md](guides/TOOL_REFERENCE.md) | Reference | All registered agent tools, parameters, categories, and data stores. | Generated/checked against registry |
 | [DEVELOPER_SETUP.md](../docs_tracked/DEVELOPER_SETUP.md) | Backend onboarding | Backend venv, Make targets, Compose, and test commands. | Current; full-stack setup remains in `START_HERE` |
+| [ANTIGRAVITY_LOCAL_PROVIDER.md](../docs_tracked/ANTIGRAVITY_LOCAL_PROVIDER.md) | AI provider guide | Antigravity CLI integration with Gemini 3.8 Flash high reasoning. | Current |
+| [CODEX_LOCAL_PROVIDER.md](../docs_tracked/CODEX_LOCAL_PROVIDER.md) | AI provider guide | Codex CLI integration with GPT-6.1 Sol models. | Current |
+| [PYDANTIC_AI_AGENT.md](../docs_tracked/PYDANTIC_AI_AGENT.md) | Agent architecture | Pydantic AI agent framework, tool schemas, and provider mapping. | Current |
 | [SYSTEM_ARCHITECTURE.md](../docs_tracked/SYSTEM_ARCHITECTURE.md) | Architecture | Extensive V3/V4 backend architecture and services. | Current basis; auth/frontend/deployment details follow canonical root docs |
 | [CONVERSATION_STABILITY_ARCHITECTURE.md](../docs_tracked/CONVERSATION_STABILITY_ARCHITECTURE.md) | Technical design | Locks, storage, and stability/test design for conversations. | Current design; do not use run commands as release evidence |
 | [MIGRATION_LEDGER.md](../migration/MIGRATION_LEDGER.md) | Migration register | SQL files, checksums, dependencies, and safe decision path. | Current snapshot; applied status partly unknown |

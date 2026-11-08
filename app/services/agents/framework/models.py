@@ -48,7 +48,7 @@ def _history(messages: list[ModelMessage]) -> list[dict[str, Any]]:
                     history.append({"role": "system", "content": part.content})
                 elif isinstance(part, UserPromptPart):
                     if not isinstance(part.content, str):
-                        raise UserError("MAPIT's Codex agent supports text prompts only")
+                        raise UserError("MAPIT's CLI agent supports text prompts only")
                     history.append({"role": "user", "content": part.content})
                 elif isinstance(part, ToolReturnPart):
                     history.append(
@@ -70,7 +70,7 @@ def _history(messages: list[ModelMessage]) -> list[dict[str, Any]]:
                         }
                     )
                 else:
-                    raise UserError("Unsupported request content for MAPIT's Codex agent")
+                    raise UserError("Unsupported request content for MAPIT's CLI agent")
         elif isinstance(message, ModelResponse):
             for part in message.parts:
                 if isinstance(part, TextPart):
@@ -87,10 +87,10 @@ def _history(messages: list[ModelMessage]) -> list[dict[str, Any]]:
                         }
                     )
                 elif part.part_kind != "thinking":
-                    raise UserError("Unsupported response content for MAPIT's Codex agent")
+                    raise UserError("Unsupported response content for MAPIT's CLI agent")
                 # Provider-private reasoning/encrypted thinking is not sent back.
         else:
-            raise UserError("Unsupported message type for MAPIT's Codex agent")
+            raise UserError("Unsupported message type for MAPIT's CLI agent")
     return history
 
 
@@ -258,14 +258,16 @@ class CodexAgentModel(Model):
         )
         decision = validate_json(response.text, schema)
         parts: list[ToolCallPart | TextPart] = [
-            ToolCallPart(tool_name=call["name"], args=call["arguments"], provider_name="codex")
+            ToolCallPart(tool_name=call["name"], args=call["arguments"], provider_name=self.system)
             for call in decision["tool_calls"]
         ]
         text = decision["text"]
         if text:
             parts.append(TextPart(text))
         if not parts:
-            raise ValueError("Codex agent returned neither a function call nor an answer")
+            raise ValueError(
+                f"{self.system.capitalize()} agent returned neither a function call nor an answer"
+            )
         raw_usage = response.usage or {}
         usage = RequestUsage(
             input_tokens=raw_usage.get("input_tokens", 0),
@@ -275,11 +277,19 @@ class CodexAgentModel(Model):
         )
         return ModelResponse(
             parts=parts,
-            provider_name="codex",
+            provider_name=self.system,
             model_name=response.model_name,
             usage=usage,
             finish_reason="tool_call" if decision["tool_calls"] else "stop",
         )
+
+
+class AntigravityAgentModel(CodexAgentModel):
+    """Translate framework function messages to inference-only Antigravity CLI decisions."""
+
+    @property
+    def system(self) -> str:
+        return "antigravity"
 
 
 @asynccontextmanager
@@ -294,6 +304,11 @@ async def model_for_step(
     selected = resolve_provider(step)
     if selected == "codex":
         yield CodexAgentModel(CodexTextModel(settings)), selected
+        return
+    if selected == "antigravity":
+        from app.services.ai.antigravity import AntigravityTextModel
+
+        yield AntigravityAgentModel(AntigravityTextModel(settings)), selected
         return
     api_key = getattr(settings, f"{selected}_api_key")
     if not api_key:

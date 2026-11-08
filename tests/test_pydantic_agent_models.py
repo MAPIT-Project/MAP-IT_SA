@@ -3,7 +3,7 @@
 import asyncio
 import json
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from pydantic_ai.messages import ModelRequest, ToolCallPart, ToolReturnPart, UserPromptPart
@@ -241,3 +241,18 @@ async def test_codex_selection_needs_no_api_keys_or_api_fallback(monkeypatch):
             assert isinstance(model, models.CodexAgentModel)
             assert model.transport is cli
     constructor.assert_called_once_with(settings)
+
+
+@pytest.mark.asyncio
+async def test_antigravity_selection_needs_no_api_keys(monkeypatch):
+    monkeypatch.setattr(settings, "antigravity_enabled", True)
+    for name in ("gemini", "openai", "openrouter"):
+        monkeypatch.setattr(settings, f"{name}_api_key", None)
+    cli = SimpleNamespace(model_name="gemini-3.8-flash-high")
+    with patch("app.services.ai.antigravity.AntigravityTextModel", return_value=cli) as mock_cls:
+        with provider_scope("antigravity"):
+            async with models.model_for_step() as (model, provider):
+                assert provider == "antigravity"
+                assert isinstance(model, models.AntigravityAgentModel)
+                assert model.transport is cli
+        mock_cls.assert_called_once_with(settings)

@@ -29,14 +29,16 @@ This is a **production-grade Retrieval-Augmented Generation (RAG) system** for q
 
 ### V3 Architecture
 The V3 architecture uses a **single agentic loop** without intent classification:
-- **No intent classification** - The agent decides what tools to use based on query and context
-- **Single ToolAwareAgent** - Handles all query types with ReAct pattern
-- **Rich response formatting** - Post-processor formats calls/projects with emojis, links, structured data
-- **API enrichment** - Missing call data (titles, descriptions) fetched from EU Portal API on-demand
+- **Pydantic AI Framework** - Modern ReAct loop with strict tool schema validation and native tool calling across providers (`app/services/agents/framework/runtime.py`). Configurable via `AGENT_FRAMEWORK=pydantic` (default) or `legacy` (rollback).
+- **No intent classification** - The agent decides what tools to use dynamically based on query and context.
+- **Single ToolAwareAgent / Pydantic AI Agent** - Handles all query types with ReAct pattern.
+- **Rich response formatting** - Post-processor formats calls/projects with emojis, links, structured data.
+- **API enrichment** - Missing call data (titles, descriptions) fetched from EU Portal API on-demand.
 
 **V3 Components:**
 - `conversation_routes_v3.py` - V3 API routes at `/api/v3/conversation/...`
-- `ToolAwareAgent` - Single agentic loop for all queries
+- `app/services/agents/framework/runtime.py` - Pydantic AI execution engine and agent lifecycle
+- `ToolAwareAgent` - Core agentic service and tool execution layer
 - `V3ResponseFormatter` - Post-processor for rich formatting
 - `CallEnrichmentService` - On-demand API enrichment for missing data
 
@@ -805,10 +807,13 @@ New database tables added for analytics and feedback (in `migration/` directory)
 
 ### Multi-Provider AI Support
 The system supports multiple LLM providers:
-- **OpenAI GPT-4**: High-quality responses
-- **Google Gemini**: Cost-effective processing
-- **OpenRouter**: Access to multiple models via unified API
-- Provider selection via `ai_provider` parameter or `DEFAULT_AI_PROVIDER` env var
+- **Google Gemini**: Primary API provider (`gemini-3-flash-preview` / `gemini-3.1-pro-preview`).
+- **Antigravity CLI**: Local CLI provider via `agy` (`gemini-3.8-flash-high`) on high reasoning without API keys.
+- **Codex CLI**: Local CLI provider via `codex exec` (`gpt-6.1-sol`) without API keys.
+- **OpenAI GPT-4**: High-quality responses via OpenAI API.
+- **OpenRouter**: Access to open and specialized models via unified API.
+- **Provider Selection**: Global default via `DEFAULT_AI_PROVIDER`, per-step via `AI_STEP_PROVIDERS`, or per-request via `ai_provider`.
+- **Local Host Launcher**: When using local CLI providers (`antigravity` or `codex`), run the API on the host with `python scripts/run_local_api.py --provider <provider> --local-services --port 18000` while databases run in Docker.
 
 ### Streaming vs Async Processing
 - **Streaming**: Real-time SSE responses via `/api/v3/conversation/{id}/message/stream`

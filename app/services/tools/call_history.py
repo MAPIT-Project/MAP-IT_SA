@@ -231,7 +231,7 @@ class CallHistoryTool:
             )
             logger.info("Keyword expansion provider initialized: %s", self.provider)
         except Exception as e:
-            if self.provider == "codex":
+            if self.provider in ("codex", "antigravity"):
                 raise
             logger.warning("Keyword expansion provider unavailable: %s", e)
 
