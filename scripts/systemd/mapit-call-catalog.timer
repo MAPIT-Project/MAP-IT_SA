@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh MAPIT official call catalogue every six hours
+
+[Timer]
+OnCalendar=*-*-* 00,06,12,18:15:00 UTC
+RandomizedDelaySec=120
+Persistent=true
+Unit=mapit-call-catalog.service
+
+[Install]
+WantedBy=timers.target

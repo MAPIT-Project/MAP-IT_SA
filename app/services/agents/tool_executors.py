@@ -174,7 +174,7 @@ class ToolExecutorsMixin:
 
             return await search_funding_calls_execute(
                 keywords=params.get("keywords", ""),
-                status=params.get("status", "open"),
+                status=params.get("status"),
                 year=params.get("year"),
                 cluster=params.get("cluster"),
             )
@@ -443,6 +443,7 @@ class ToolExecutorsMixin:
                 min_projects=params.get("min_projects", 2),
                 role_filter=params.get("role_filter"),
                 limit=params.get("limit", 20),
+                programme=params.get("programme"),
             )
 
             return result

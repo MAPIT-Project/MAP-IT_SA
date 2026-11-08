@@ -19,6 +19,8 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime
 from typing import Any
 
+from ..call_query import query_groups, query_year
+
 logger = logging.getLogger(__name__)
 
 
@@ -187,7 +189,10 @@ class SpeculativeExecutor:
 
         # Tool-specific parameter generation
         default_params = {
-            "search_funding_calls": {"keywords": keywords, "status": "open"},
+            "search_funding_calls": {
+                "keywords": " ".join(group[0] for group in query_groups(query)),
+                **({"year": query_year(query)} if query_year(query) else {}),
+            },
             "search_projects": {"keywords": keywords},
             "search_documents": {
                 "query": query[:200],  # Truncate for search
@@ -482,6 +487,18 @@ class SpeculativeExecutor:
         For search tools, we require significant keyword overlap.
         For statistics tools, we require exact parameter matches.
         """
+        if tool_name == "search_funding_calls":
+            # A broad keyword overlap must never reuse a different year/status/cluster.
+            for field in ("status", "year", "cluster"):
+                if (
+                    str(cached_params.get(field) or "").lower()
+                    != str(requested_params.get(field) or "").lower()
+                ):
+                    return False
+            return set(query_groups(cached_params.get("keywords", ""))) == set(
+                query_groups(requested_params.get("keywords", ""))
+            )
+
         # Tools that require exact parameter match (country, programme, etc.)
         exact_match_tools = {
             "get_country_statistics": "country",

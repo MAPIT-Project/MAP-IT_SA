@@ -164,8 +164,7 @@ class TestParameterGeneration:
         """Test parameter generation for search_funding_calls."""
         params = executor._generate_default_params("search_funding_calls", "Find hydrogen funding")
         assert "keywords" in params
-        assert "status" in params
-        assert params["status"] == "open"
+        assert "status" not in params  # General discovery includes upcoming calls.
 
     def test_projects_params(self, executor):
         """Test parameter generation for search_projects."""

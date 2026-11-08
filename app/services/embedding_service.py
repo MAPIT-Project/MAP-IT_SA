@@ -135,7 +135,10 @@ class EmbeddingService:
             try:
                 # Generate batch embeddings
                 results = genai.embed_content(
-                    model=self.model_name, content=batch, task_type="retrieval_document"
+                    model=self.model_name,
+                    content=batch,
+                    task_type="retrieval_document",
+                    output_dimensionality=self.embedding_dimension,
                 )
 
                 if not results or "embedding" not in results:
@@ -274,9 +277,9 @@ class EmbeddingService:
 
     def validate_embedding(self, embedding: np.ndarray) -> bool:
         """Validate embedding dimensions and values."""
-        if embedding.shape[0] != self.embedding_dimension:
+        if embedding.ndim != 1 or embedding.shape[0] != self.embedding_dimension:
             logger.error(
-                f"❌ Invalid embedding dimension: {embedding.shape[0]} != {self.embedding_dimension}"
+                f"❌ Invalid embedding shape: {embedding.shape}; expected ({self.embedding_dimension},)"
             )
             return False
 
@@ -288,7 +291,7 @@ class EmbeddingService:
         # Check if embedding is not all zeros (unless it's intentionally a zero vector)
         if np.all(embedding == 0):
             logger.warning("⚠️ Embedding is all zeros")
-            return True  # Allow zero vectors as they might be intentional fallbacks
+            return False  # A failure sentinel is not a valid semantic query.
 
         # Check if embedding has reasonable magnitude
         magnitude = np.linalg.norm(embedding)

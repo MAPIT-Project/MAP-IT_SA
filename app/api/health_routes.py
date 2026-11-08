@@ -83,13 +83,11 @@ async def check_postgres() -> ServiceHealth:
         cursor.fetchone()
 
         # Get connection count
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT count(*)
             FROM pg_stat_activity
             WHERE datname = current_database()
-        """
-        )
+        """)
         connection_count = cursor.fetchone()[0]
 
         cursor.close()
@@ -407,6 +405,31 @@ async def health_check() -> dict[str, Any]:
         "timestamp": datetime.now(UTC).isoformat(),
         "version": settings.app_version,
         "environment": "docker" if settings.docker_env else "local",
+    }
+
+
+@router.get("/calls")
+async def call_catalogue_health(response: Response) -> dict[str, Any]:
+    """Data freshness, independent of LLM/embedding health and without paid API calls."""
+    from ..core.config import settings
+    from ..services.call_catalog import CallCatalog
+
+    result = await asyncio.to_thread(CallCatalog(settings.database_url).health)
+    if result.get("stale"):
+        response.status_code = 503
+    return result
+
+
+@router.get("/cordis")
+async def cordis_configuration_health():
+    """Optional connector configuration; no external extraction is started."""
+    from ..core.config import settings
+
+    configured = bool(settings.cordis_api_key)
+    return {
+        "source": "cordis_det",
+        "configured": configured,
+        "status": "configured_unverified" if configured else "not_configured",
     }
 
 

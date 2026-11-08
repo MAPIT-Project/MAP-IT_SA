@@ -903,6 +903,14 @@ class LocalProjectSearchService:
             Tuple of (filters dict, list of search terms)
         """
         filters = explicit_filters.copy() if explicit_filters else {}
+        # Tool callers naturally use the public programme name. The database
+        # stores HORIZON, so an explicit 'Horizon Europe' must not filter out
+        # every project in both keyword and vector retrieval.
+        if isinstance(filters.get("programme"), str):
+            value = re.sub(r"[\s_-]+", " ", filters["programme"].strip()).lower()
+            filters["programme"] = self.PROGRAMME_MAPPINGS.get(
+                value, filters["programme"].strip().upper()
+            )
         query_lower = query.lower()
         remaining_query = query
 

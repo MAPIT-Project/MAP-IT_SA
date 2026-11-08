@@ -3,6 +3,7 @@ __pycache__/
 *$py.class
 *.so
 .env
+compose.override.yaml
 .venv
 env/
 venv/
@@ -12,3 +13,7 @@ venv.bak/
 .git/
 .github/
 .vscode/
+/tmp/document-refresh-*/
+/data/official_documents/
+/data/cordis_exports/
+/data/cordis_backups/

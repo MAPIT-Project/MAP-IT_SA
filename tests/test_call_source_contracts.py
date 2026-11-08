@@ -41,7 +41,8 @@ def test_open_multi_programme_query_checks_actual_dates():
     )
     assert "deadline >= CURRENT_DATE" in query
     assert "opening_date IS NULL OR opening_date <= CURRENT_DATE" in query
-    assert "lower(status) = 'open'" in query
+    assert "open" in parameters
+    assert "WHEN opening_date > CURRENT_DATE THEN 'upcoming'" in query
     assert "horizon_europe" in parameters
 
 

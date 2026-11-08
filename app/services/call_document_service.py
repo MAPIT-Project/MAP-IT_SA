@@ -26,6 +26,12 @@ from ..core.config import settings
 logger = logging.getLogger(__name__)
 
 
+def document_period(url: str) -> str | None:
+    """The framework period in /docs/2021-2027/ is not the document edition."""
+    match = re.search(r"/wp-call/(20\d{2}(?:-20\d{2})?)/", url)
+    return match.group(1) if match else None
+
+
 class CallDocumentService:
     """Automatic document fetching and processing for calls"""
 
@@ -139,6 +145,24 @@ class CallDocumentService:
             if not result or result[0] == 0:
                 return None
 
+            cluster = self._extract_cluster_from_call_id(call_identifier)
+            year = re.search(r"-(20\d{2})(?:-|$)", call_identifier)
+            if cluster and year:
+                cursor.execute(
+                    """SELECT 1 FROM call_document_mappings m
+                    JOIN shared_documents d ON d.id=m.document_id
+                    WHERE m.call_identifier=%s AND d.document_type='work_programme'
+                      AND d.scope_identifier=%s
+                      AND NOT COALESCE(d.metadata,'{}'::jsonb) ? 'superseded_by'
+                      AND public.mapit_document_year_matches(
+                          COALESCE(d.metadata->>'programme_year',d.document_version),%s)
+                    LIMIT 1""",
+                    (call_identifier, cluster, year.group(1)),
+                )
+                if not cursor.fetchone():
+                    logger.info("Cached documents lack the work programme for this call year")
+                    return None
+
             # Get document details
             cursor.execute(
                 """
@@ -146,7 +170,10 @@ class CallDocumentService:
                     sd.id,
                     sd.document_key,
                     sd.document_type,
-                    sd.document_title
+                    sd.document_title,
+                    sd.document_version,
+                    sd.document_url,
+                    sd.metadata
                 FROM call_document_mappings cdm
                 JOIN shared_documents sd ON cdm.document_id = sd.id
                 WHERE cdm.call_identifier = %s
@@ -155,7 +182,17 @@ class CallDocumentService:
             )
 
             documents = [
-                {"id": row[0], "key": row[1], "type": row[2], "title": row[3]}
+                {
+                    "id": row[0],
+                    "key": row[1],
+                    "type": row[2],
+                    "title": row[3],
+                    "version": row[4],
+                    "source_url": row[5],
+                    "provenance": (row[6] or {}).get(
+                        "provenance", {"status": "source_not_verified"}
+                    ),
+                }
                 for row in cursor.fetchall()
             ]
 
@@ -432,26 +469,28 @@ class CallDocumentService:
 
         url_lower = url.lower()
         title_lower = title.lower()
+        period = document_period(url) or "unknown"
 
         # Detect type
-        if "general-annex" in url_lower or "wp-13" in url_lower:
+        if "general-annex" in url_lower:
             return {
                 "type": "general_annexes",
                 "scope": "global",
-                "key": "he_general_annexes_2023-2025",
+                "key": f"he_general_annexes_{period}",
             }
         elif "programme-guide" in url_lower:
             return {"type": "programme_guide", "scope": "global", "key": "he_programme_guide"}
         elif "wp-" in url_lower or "work" in title_lower and "programme" in title_lower:
             # Extract cluster number
             cluster_match = re.search(r"wp-(\d+)", url_lower)
-            if cluster_match:
-                cluster_num = cluster_match.group(1)
+            if cluster_match and 4 <= int(cluster_match.group(1)) <= 9:
+                # WP part 4 is Cluster 1 (Health), part 7 is Cluster 4.
+                cluster_num = str(int(cluster_match.group(1)) - 3)
                 return {
                     "type": "work_programme",
                     "scope": "cluster",
                     "scope_identifier": f"CLUSTER-{cluster_num}",
-                    "key": f"he_wp_cluster{cluster_num}_2023-2025",
+                    "key": f"he_wp_cluster{cluster_num}_{period}",
                 }
         elif "mga" in url_lower or "grant" in url_lower and "agreement" in url_lower:
             if "annotated" in url_lower or "aga" in url_lower:
@@ -544,6 +583,8 @@ class CallDocumentService:
             cursor.execute(
                 """
                 SELECT id FROM shared_documents WHERE document_url = %s
+                AND NOT COALESCE(metadata, '{}'::jsonb) ? 'superseded_by'
+                ORDER BY last_updated DESC, id DESC LIMIT 1
             """,
                 (url,),
             )
@@ -598,14 +639,19 @@ class CallDocumentService:
                     doc_key,
                     doc_type,
                     doc_title,
-                    "2023-2025",
+                    document_period(url) or "unknown",
                     scope,
                     scope_identifier,
                     parsed["full_text"],
                     url,
                     file_path,
                     file_hash,
-                    Json({"page_count": parsed["metadata"].get("page_count", 0)}),
+                    Json(
+                        {
+                            "page_count": parsed["metadata"].get("page_count", 0),
+                            "programme_year": document_period(url),
+                        }
+                    ),
                 ),
             )
 
@@ -695,24 +741,27 @@ class CallDocumentService:
         match = re.search(r"CL(\d+)", call_id, re.IGNORECASE)
         if match:
             return f"CLUSTER-{match.group(1)}"
+        if call_id.upper().startswith("HORIZON-HLTH-"):
+            return "CLUSTER-1"
         return None
 
     def _ensure_cluster_work_programme(self, call_identifier: str) -> int | None:
         """
         Ensure cluster-specific work programme is available and return its document_id.
-        Looks for patterns like: "HE Main Work Programme 2023–2025 – X. [Cluster Name]"
-        where X matches the cluster number from the call ID.
+        Require an edition covering the call year, preferring verified sources.
         """
         # Extract cluster number from call ID (e.g., CL3 → 3)
-        cluster_match = re.search(r"CL(\d+)", call_identifier, re.IGNORECASE)
-        if not cluster_match:
+        cluster_id = self._extract_cluster_from_call_id(call_identifier)
+        year_match = re.search(r"-(20\d{2})(?:-|$)", call_identifier)
+        if not cluster_id or not year_match:
             logger.info(f"No cluster detected in call ID: {call_identifier}")
             return None
 
-        cluster_num = cluster_match.group(1)
+        cluster_num = cluster_id.split("-")[1]
+        year = year_match.group(1)
 
         # Map cluster numbers to work programme patterns
-        # Format: "HE Main Work Programme 2023–2025 – {cluster_num}. {cluster_name}"
+        # Historical titles may use the WP part number instead of the cluster.
         cluster_patterns = {
             "1": "Health",
             "2": "Culture",  # Full: Culture, creativity and inclusive society
@@ -728,23 +777,29 @@ class CallDocumentService:
             cursor = conn.cursor()
 
             # Try to find the cluster-specific WP
-            pattern = f"%Work Programme%{cluster_num}%"
+            pattern = f"%Work Programme%Cluster {cluster_num}%"
             if cluster_num in cluster_patterns:
-                pattern_with_name = (
-                    f"%Work Programme%{cluster_num}%{cluster_patterns[cluster_num]}%"
-                )
+                pattern_with_name = f"%Work Programme%{cluster_patterns[cluster_num]}%"
             else:
                 pattern_with_name = pattern
 
             cursor.execute(
                 """
                 SELECT id FROM shared_documents
-                WHERE document_title ILIKE %s
-                   OR document_title ILIKE %s
-                ORDER BY document_title
+                WHERE (scope_identifier = %s OR document_title ILIKE %s
+                   OR document_title ILIKE %s)
+                  AND document_type = 'work_programme'
+                  AND NOT COALESCE(metadata, '{}'::jsonb) ? 'superseded_by'
+                  AND public.mapit_document_year_matches(
+                      COALESCE(metadata->>'programme_year', document_version), %s)
+                ORDER BY
+                    (metadata->'provenance'->>'status' IN
+                        ('verified_exact_bytes','verified_official_download')) DESC NULLS LAST,
+                    (metadata->>'programme_year'=%s OR document_version=%s) DESC NULLS LAST,
+                    last_updated DESC, id DESC
                 LIMIT 1
             """,
-                (pattern, pattern_with_name),
+                (cluster_id, pattern, pattern_with_name, year, year, year),
             )
 
             result = cursor.fetchone()

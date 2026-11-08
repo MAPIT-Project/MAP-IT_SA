@@ -4,7 +4,7 @@ Application configuration settings.
 
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings
 
 from app.core.ai_routing import TEXT_STEPS, AIProvider
@@ -88,6 +88,14 @@ class Settings(BaseSettings):
         "https://ec.europa.eu/info/funding-tenders/opportunities/data/topicDetails"
     )
     eu_portal_facet_url: str = "https://api.tech.ec.europa.eu/search-api/prod/rest/facet"
+
+    # CORDIS DET credentials belong only to the server, never the browser.
+    cordis_api_key: SecretStr | None = None
+
+    @field_validator("cordis_api_key", mode="before")
+    @classmethod
+    def normalize_cordis_key(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
 
     # Call Enrichment Service Configuration
     call_enrichment_max_retries: int = 3

@@ -656,27 +656,8 @@ class CallEnrichmentService:
                             logger.info(f"✅ Found exact match for {topic_code}")
                             return self._parse_search_result(result, topic_code)
 
-                # Try partial match (topic_code contained in identifier or vice versa)
-                for result in results:
-                    metadata = result.get("metadata", {})
-                    identifiers = metadata.get("identifier", [])
-                    if identifiers:
-                        result_id = (
-                            identifiers[0].upper()
-                            if isinstance(identifiers, list)
-                            else str(identifiers).upper()
-                        )
-                        if topic_code.upper() in result_id or result_id in topic_code.upper():
-                            logger.info(f"✅ Found partial match: {result_id} for {topic_code}")
-                            return self._parse_search_result(result, topic_code)
-
-                # If no match but we have results, use the first one as fallback
-                if results:
-                    first_id = results[0].get("metadata", {}).get("identifier", ["unknown"])[0]
-                    logger.info(
-                        f"⚠️ No exact match for {topic_code}, using closest result: {first_id}"
-                    )
-                    return self._parse_search_result(results[0], topic_code)
+                # Unrelated search hits are not details for the requested topic.
+                # Let the caller report missing evidence or suggest alternatives.
 
             logger.warning(f"API returned status {response.status_code} for {topic_code}")
             return None
@@ -828,6 +809,11 @@ class CallEnrichmentService:
 
     def _cache_call(self, topic_code: str, data: dict[str, Any]) -> bool:
         """Cache enriched call data to database."""
+        from .call_catalog import programme_for_topic
+        from .call_query import query_year
+
+        if data.get("status") not in {"open", "upcoming", "closed", "cancelled"}:
+            return False  # Unknown source status must not violate the catalogue contract.
         try:
             conn = psycopg2.connect(self.db_url)
             cursor = conn.cursor()
@@ -838,25 +824,27 @@ class CallEnrichmentService:
                 INSERT INTO funding_calls (
                     programme, topic_code, title, scope, expected_outcome,
                     deadline, status, budget_total, action_type,
-                    call_identifier, portal_url, metadata
+                    call_identifier, portal_url, metadata, call_year
                 ) VALUES (
-                    'horizon_europe', %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s,
                     %s, %s, %s, %s,
-                    %s, %s, %s::jsonb
+                    %s, %s, %s::jsonb, %s
                 )
                 ON CONFLICT (topic_code) DO UPDATE SET
+                    call_year = COALESCE(EXCLUDED.call_year, funding_calls.call_year),
                     title = COALESCE(EXCLUDED.title, funding_calls.title),
-                    scope = COALESCE(EXCLUDED.scope, funding_calls.scope),
-                    expected_outcome = COALESCE(EXCLUDED.expected_outcome, funding_calls.expected_outcome),
+                    scope = COALESCE(NULLIF(EXCLUDED.scope, ''), funding_calls.scope),
+                    expected_outcome = COALESCE(NULLIF(EXCLUDED.expected_outcome, ''), funding_calls.expected_outcome),
                     deadline = COALESCE(EXCLUDED.deadline, funding_calls.deadline),
                     status = COALESCE(EXCLUDED.status, funding_calls.status),
                     budget_total = COALESCE(EXCLUDED.budget_total, funding_calls.budget_total),
                     action_type = COALESCE(EXCLUDED.action_type, funding_calls.action_type),
                     portal_url = COALESCE(EXCLUDED.portal_url, funding_calls.portal_url),
-                    metadata = funding_calls.metadata || EXCLUDED.metadata,
+                    metadata = COALESCE(funding_calls.metadata, '{}'::jsonb) || EXCLUDED.metadata,
                     updated_at = NOW()
             """,
                 (
+                    programme_for_topic(topic_code) or "other",
                     topic_code,
                     data.get("title"),
                     data.get("scope"),
@@ -868,6 +856,7 @@ class CallEnrichmentService:
                     data.get("call_identifier"),
                     data.get("portal_url"),
                     '{"enriched_from_api": true}',
+                    query_year(topic_code),
                 ),
             )
 

@@ -975,7 +975,15 @@ Key principle: if results from one tool need analysis alongside another tool's r
 
 When users search for funding calls (e.g., "Find AI calls", "open healthcare calls"):
 
-**Iteration 1**: Search with `search_funding_calls(keywords='...', status='open')`
+**Iteration 1**: For general discovery (including Dutch questions such as "zoek calls op AI & Health"),
+use `search_funding_calls(keywords='AI health')` without a status filter. This includes BOTH open and
+upcoming calls. Restrict status only when the user explicitly asks for open, upcoming, or closed calls.
+Pass a requested year as `year=2027`; do not silently default to the current year or exclude future calls.
+
+Always inspect `catalogue` and `limitations` in search results. If the catalogue is stale/unavailable
+or retrieval failed, state that coverage could not be verified. NEVER turn a source failure or an
+incomplete local catalogue into a definitive claim that no relevant calls exist. Preserve the official
+call identifiers, links, opening dates, and open/upcoming distinctions in the answer.
 
 **If 0 results returned** (common between call cycles):
 - DO NOT conclude "no calls found"

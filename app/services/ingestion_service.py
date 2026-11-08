@@ -3,6 +3,7 @@ Document ingestion service that orchestrates the complete pipeline.
 """
 
 import asyncio
+import hashlib
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
@@ -60,6 +61,8 @@ class DocumentIngestionService:
                 }
 
             # Step 2: Create document record
+            with open(file_path, "rb") as source_file:
+                content_sha256 = hashlib.file_digest(source_file, "sha256").hexdigest()
             document_data = {
                 "title": self._extract_title(text_content, doc_metadata, file_path),
                 "source_type": "pdf" if file_path.endswith(".pdf") else "file",
@@ -69,7 +72,16 @@ class DocumentIngestionService:
                 "programme_year": programme_year or self._infer_programme_year(text_content),
                 "status": "processing",
                 "file_hash": file_hash,
-                "metadata": {**doc_metadata, **(metadata or {})},
+                "metadata": {
+                    **doc_metadata,
+                    **(metadata or {}),
+                    # Client metadata must never assert that we verified the origin.
+                    "provenance": {
+                        "status": "unverified" if source_url else "source_unknown",
+                        "claimed_source_url": source_url,
+                        "content_sha256": content_sha256,
+                    },
+                },
             }
 
             document = self.supabase.insert_document(document_data)
@@ -101,6 +113,8 @@ class DocumentIngestionService:
                     document_id, "failed", {"error": "Embedding generation failed"}
                 )
                 raise Exception("Embedding generation failed")
+            if not all(self.embedder.validate_embedding(embedding) for embedding in embeddings):
+                raise ValueError("Embedding generation produced invalid vectors")
 
             # Step 5: Prepare chunks for database insertion
             db_chunks = []
@@ -119,7 +133,7 @@ class DocumentIngestionService:
 
             # Step 7: Update document status
             final_metadata = {
-                **doc_metadata,
+                **document_data["metadata"],
                 "total_chunks": len(inserted_chunks),
                 "chunking_stats": self.chunker.get_chunking_stats(chunks),
                 "ingestion_completed_at": datetime.now(UTC).isoformat(),

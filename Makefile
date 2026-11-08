@@ -1,9 +1,10 @@
 PYTHON := python3
 PIP := pip
 PYTEST_ARGS ?=
+CORDIS_ARGS ?=
 EVAL_ARGS ?=
 
-.PHONY: help install install-dev run run-reload docker-up docker-down lint format test test-tools test-live clean precommit hooks
+.PHONY: help install install-dev run run-reload docker-up docker-down lint format test test-tools test-live clean precommit hooks refresh-cordis
 
 help:
 	@echo "Common commands:"
@@ -18,6 +19,7 @@ help:
 	@echo "  make test           Run guarded offline tests"
 	@echo "  make test-tools     Check tools against read-only source evidence (zero model calls)"
 	@echo "  make test-live      Run compact source-backed questions (30 model requests maximum)"
+	@echo "  make refresh-cordis CORDIS_ARGS='--export data/cordis_exports/FILE.zip [--apply]'"
 	@echo "  make precommit      Run pre-commit on all files"
 	@echo "  make hooks          Install pre-commit git hooks"
 
@@ -65,3 +67,7 @@ hooks:
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	rm -rf .pytest_cache .ruff_cache .mypy_cache
+
+# Run in the API environment, where database/embedding settings are configured.
+refresh-cordis:
+	docker compose exec -T -e PYTHONPATH=/app api python scripts/refresh_cordis.py $(CORDIS_ARGS)

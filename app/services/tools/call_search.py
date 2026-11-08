@@ -19,6 +19,7 @@ Uses LocalCallSearchService for local database queries and CallEnrichmentService
 for direct EU Portal API access as a last resort.
 """
 
+import asyncio
 import logging
 from typing import Any
 
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 async def search_funding_calls_execute(
     keywords: str | list,
-    status: str = "open",
+    status: str | None = None,
     year: int | str | None = None,
     cluster: str | None = None,
 ) -> dict[str, Any]:
@@ -36,7 +37,7 @@ async def search_funding_calls_execute(
 
     Args:
         keywords: Search keywords (string or list of strings).
-        status: Call status filter - "open", "upcoming", "closed", or "all" (default "open").
+        status: Call status filter - "open", "upcoming", "closed", or "all". Omit to include open AND upcoming calls.
         year: Optional year filter.
         cluster: Optional cluster filter.
 
@@ -45,62 +46,70 @@ async def search_funding_calls_execute(
     """
     try:
         from ..local_call_search_service import LocalCallSearchService
+        from ..call_catalog import CallCatalog
+        from ..call_query import effective_status, query_year
 
-        call_service = LocalCallSearchService()
+        call_service = await asyncio.to_thread(LocalCallSearchService)
 
         # Handle keywords being a list or string
         if isinstance(keywords, list):
             keywords = " ".join(keywords)
 
-        # Determine include_closed based on status
-        # - "open": show only open calls (exclude closed)
-        # - "upcoming": show only upcoming calls (exclude closed and open)
-        # - "closed": show only closed calls
-        # - "all": show all calls
-        include_closed = status in ("closed", "upcoming", "all")
-
-        # LocalCallSearchService.search_calls uses 'num_results' not 'limit'
-        results = call_service.search_calls(
+        if status not in (None, "open", "upcoming", "closed", "all"):
+            return {"success": False, "error": "Invalid call status", "calls": [], "calls_found": 0}
+        year = year or query_year(keywords)
+        include_closed = status in ("closed", "all")
+        results = await asyncio.to_thread(
+            call_service.search_calls,
             query=keywords,
-            num_results=50,  # Get more results to filter by status
+            num_results=50,
             include_closed=include_closed,
             year_filter=str(year) if year else None,
             cluster=cluster,
+            status_filter=status,
         )
-
-        calls = results.get("calls", [])
-
-        # Filter by status if requested
-        # The enrichment service adds status, so we need to filter after getting results
+        coverage = await asyncio.to_thread(CallCatalog(call_service._db_url).health)
+        limitations = []
+        if coverage.get("stale"):
+            limitations.append(
+                "The local catalogue has not completed a successful EU Portal sync in the last "
+                "24 hours. An empty result is not evidence that no relevant calls exist."
+            )
+        if results.get("success") is False:
+            return {
+                "success": False,
+                "error": results.get("error", "Call retrieval failed"),
+                "calls": [],
+                "calls_found": 0,
+                "catalogue": coverage,
+                "limitations": limitations,
+            }
         filtered_calls = []
-        for c in calls:
-            call_status = c.get("status", "unknown")
-
-            if status == "open":
-                # Include only open calls
-                if call_status == "open":
-                    filtered_calls.append(c)
-            elif status == "upcoming":
-                # Include only upcoming calls (published but not yet open)
-                if call_status == "upcoming":
-                    filtered_calls.append(c)
-            elif status == "closed":
-                # Include only closed calls
-                if call_status == "closed":
-                    filtered_calls.append(c)
-            elif status == "all":
-                # Include all calls (closed, open, upcoming)
-                filtered_calls.append(c)
-            else:
-                # Unknown status - include all
-                filtered_calls.append(c)
+        for c in results.get("calls", []):
+            c["status"] = effective_status(c)
+            if status in ("open", "upcoming", "closed") and c["status"] != status:
+                continue
+            if status is None and c["status"] not in ("open", "upcoming"):
+                continue
+            if year and str(c.get("call_year")) != str(year):
+                continue
+            if cluster and str(c.get("cluster", "")).upper() != cluster.upper():
+                continue
+            filtered_calls.append(c)
 
         # Pass through ALL available fields for rich formatting
         return {
+            "success": True,
+            "catalogue": coverage,
+            "limitations": limitations,
+            "status_filter": status or "open_and_upcoming",
             "calls_found": len(filtered_calls),
             "calls": [
                 {
                     "call_id": c.get("topic_code", ""),  # topic_code is the actual call ID
+                    "programme": c.get("programme"),
+                    "opening_date": c.get("opening_date"),
+                    "second_stage_deadline": c.get("second_stage_deadline"),
                     "title": c.get("title", ""),
                     "deadline": c.get("deadline", ""),
                     "type": c.get("action_type", ""),
@@ -118,7 +127,7 @@ async def search_funding_calls_execute(
         }
     except Exception as e:
         logger.error(f"Funding calls search error: {e}")
-        return {"error": str(e), "calls": []}
+        return {"success": False, "error": str(e), "calls": [], "calls_found": 0}
 
 
 async def get_call_details_execute(call_id: str) -> dict[str, Any]:
@@ -164,6 +173,8 @@ async def get_call_details_execute(call_id: str) -> dict[str, Any]:
                 "deadline": (
                     str(call_details.get("deadline")) if call_details.get("deadline") else None
                 ),
+                "opening_date": call_details.get("opening_date"),
+                "second_stage_deadline": call_details.get("second_stage_deadline"),
                 "type": call_details.get("action_type"),
                 "cluster": call_details.get("cluster"),
                 "budget": call_details.get("budget"),

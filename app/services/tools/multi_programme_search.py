@@ -16,6 +16,8 @@ from typing import Any
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+from ..call_query import keyword_predicate, effective_status, query_year, STATUS_SQL, concept_rank
+
 logger = logging.getLogger(__name__)
 
 
@@ -320,25 +322,21 @@ class MultiProgrammeSearchTool:
             cursor = conn.cursor()
 
             # Check if funding_calls table exists
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables
                     WHERE table_name = 'funding_calls'
                 )
-            """
-            )
+            """)
             table_exists = cursor.fetchone()[0]
 
             if table_exists:
                 # Get counts per programme
-                cursor.execute(
-                    """
+                cursor.execute("""
                     SELECT programme, COUNT(*)
                     FROM funding_calls
                     GROUP BY programme
-                """
-                )
+                """)
                 for row in cursor.fetchall():
                     self._programme_counts[row[0]] = row[1]
 
@@ -426,7 +424,7 @@ class MultiProgrammeSearchTool:
                         programme=programme,
                         programme_name=programme_info["name"],
                         programme_icon=programme_info["icon"],
-                        status=row["status"],
+                        status=effective_status(row),
                         deadline=row["deadline"] if isinstance(row["deadline"], date) else None,
                         action_type=row.get("action_type"),
                         budget_min=(
@@ -458,8 +456,17 @@ class MultiProgrammeSearchTool:
             # Sort all results by relevance
             results.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
 
+            from ..call_catalog import CallCatalog
+
+            coverage = CallCatalog(self._db_url).health()
             # Build response
             return {
+                "catalogue": coverage,
+                "limitations": (
+                    ["Call catalogue is stale; zero local matches do not prove no calls exist."]
+                    if coverage.get("stale")
+                    else []
+                ),
                 "success": True,
                 "query": keywords,
                 "total_results": len(results),
@@ -494,24 +501,24 @@ class MultiProgrammeSearchTool:
     ) -> tuple:
         """Build SQL query for a specific programme."""
         conditions = ["programme = %s"]
-        params = [programme]
+        params = ["erasmus" if programme == "erasmus_plus" else programme]
 
-        # Status filter
-        if status == "open":
-            conditions.extend(
-                [
-                    "lower(status) = 'open'",
-                    "deadline >= CURRENT_DATE",
-                    "(opening_date IS NULL OR opening_date <= CURRENT_DATE)",
-                ]
-            )
-        elif status:
-            conditions.append("status = %s")
+        # Keep dates authoritative when source status labels lag behind.
+        if status in ("open", "upcoming", "closed"):
+            conditions.append(f"({STATUS_SQL}) = %s")
             params.append(status)
+            if status == "open":
+                conditions.extend(
+                    [
+                        "deadline >= CURRENT_DATE",
+                        "(opening_date IS NULL OR opening_date <= CURRENT_DATE)",
+                    ]
+                )
         elif not include_closed:
-            conditions.append("status != 'closed'")
+            conditions.append(f"({STATUS_SQL}) IN ('open', 'upcoming')")
 
         # Year filter
+        year = year or query_year(keywords)
         if year:
             conditions.append("call_year = %s")
             params.append(year)
@@ -521,97 +528,19 @@ class MultiProgrammeSearchTool:
             conditions.append("action_type ILIKE %s")
             params.append(f"%{action_type}%")
 
-        # Keyword search using full-text with OR logic for multiple keywords
-        keyword_parts = []
-        if keywords:
-            # Split keywords by comma first
-            keyword_parts = [kw.strip() for kw in keywords.split(",") if kw.strip()]
-
-            # If no commas, try to extract meaningful keyword groups
-            if len(keyword_parts) == 1:
-                # Define known multi-word phrases to extract
-                known_phrases = [
-                    "sustainable agriculture",
-                    "farm to fork",
-                    "food systems",
-                    "soil health",
-                    "climate adaptation",
-                    "clean energy",
-                    "climate change",
-                    "circular economy",
-                    "digital transformation",
-                    "artificial intelligence",
-                    "machine learning",
-                    "higher education",
-                    "vocational training",
-                    "creative industries",
-                    "cultural heritage",
-                    "public health",
-                ]
-
-                # Extract known phrases
-                remaining_keywords = keywords.lower()
-                extracted_parts = []
-
-                for phrase in sorted(known_phrases, key=len, reverse=True):
-                    if phrase in remaining_keywords:
-                        extracted_parts.append(phrase)
-                        remaining_keywords = remaining_keywords.replace(phrase, " ")
-
-                # Add remaining individual words
-                remaining_words = [
-                    w.strip()
-                    for w in remaining_keywords.split()
-                    if w.strip() and len(w.strip()) > 2
-                ]
-                extracted_parts.extend(remaining_words)
-
-                # Use extracted parts if we found multiple, otherwise keep original
-                if len(extracted_parts) > 1:
-                    keyword_parts = extracted_parts
-
-            if keyword_parts:
-                # Build OR-based search for each keyword group
-                keyword_conditions = []
-                keyword_params = []
-
-                for kw in keyword_parts:
-                    # For each keyword, use both full-text search and ILIKE
-                    keyword_conditions.append(
-                        """
-                        (
-                            to_tsvector('english', COALESCE(title, '') || ' ' ||
-                                COALESCE(scope, '') || ' ' || COALESCE(expected_outcome, ''))
-                            @@ plainto_tsquery('english', %s)
-                            OR title ILIKE %s
-                            OR scope ILIKE %s
-                            OR topic_code ILIKE %s
-                        )
-                        """
-                    )
-                    keyword_pattern = f"%{kw}%"
-                    keyword_params.extend([kw, keyword_pattern, keyword_pattern, keyword_pattern])
-
-                # Join all keyword conditions with OR
-                combined_keyword_condition = "(" + " OR ".join(keyword_conditions) + ")"
-                conditions.append(combined_keyword_condition)
-                params.extend(keyword_params)
-
+        # Match concepts with synonyms while retaining intersection semantics.
+        condition, keyword_params = keyword_predicate(keywords)
+        conditions.append(condition)
+        params.extend(keyword_params)
         where_clause = " AND ".join(conditions)
+        relevance_query = "plainto_tsquery('english', %s)"
+        relevance_param = keywords or ""
 
-        # Build ts_rank with combined tsquery using OR logic
-        if keyword_parts:
-            # Create OR-based tsquery: (word1 & word2) | (word3) | ...
-            tsquery_parts = " | ".join(f"({kw.replace(' ', ' & ')})" for kw in keyword_parts)
-            relevance_query = "to_tsquery('english', %s)"
-            relevance_param = tsquery_parts
-        else:
-            relevance_query = "plainto_tsquery('english', %s)"
-            relevance_param = keywords or ""
+        title_rank, title_params = concept_rank(keywords)
 
         # Build query with relevance scoring
         query = f"""
-            SELECT *,
+            SELECT *, ({title_rank}) as title_relevance,
                 ts_rank(
                     to_tsvector('english', COALESCE(title, '') || ' ' || COALESCE(scope, '')),
                     {relevance_query}
@@ -619,6 +548,7 @@ class MultiProgrammeSearchTool:
             FROM funding_calls
             WHERE {where_clause}
             ORDER BY
+                title_relevance DESC,
                 CASE status
                     WHEN 'open' THEN 1
                     WHEN 'upcoming' THEN 2
@@ -629,8 +559,7 @@ class MultiProgrammeSearchTool:
             LIMIT %s
         """
 
-        params.insert(0, relevance_param)  # For ts_rank
-        params.append(limit)
+        params = title_params + [relevance_param] + params + [limit]
 
         return query, params
 

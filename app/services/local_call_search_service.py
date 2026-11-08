@@ -19,6 +19,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from .vector_search_service import VectorSearchService
+from .call_query import effective_status, keyword_predicate, query_year, STATUS_SQL, concept_rank
 
 logger = logging.getLogger(__name__)
 
@@ -198,14 +199,12 @@ class LocalCallSearchService:
         try:
             conn = psycopg2.connect(self._db_url)
             cursor = conn.cursor()
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables
                     WHERE table_name = 'funding_calls'
                 )
-            """
-            )
+            """)
             self._structured_available = cursor.fetchone()[0]
 
             if self._structured_available:
@@ -214,11 +213,9 @@ class LocalCallSearchService:
                 logger.info(f"✅ Structured call database available ({count} calls)")
 
                 # Check if semantic search is available (embedding column exists and has data)
-                cursor.execute(
-                    """
+                cursor.execute("""
                     SELECT COUNT(*) FROM funding_calls WHERE embedding IS NOT NULL
-                """
-                )
+                """)
                 embedding_count = cursor.fetchone()[0]
                 if embedding_count > 0:
                     self._semantic_search_available = True
@@ -461,6 +458,7 @@ class LocalCallSearchService:
         include_closed: bool = False,
         year_filter: str | None = None,
         use_semantic: bool = True,
+        status_filter: str | None = None,
     ) -> dict[str, Any]:
         """
         Search for calls matching the query in local Work Programme documents.
@@ -491,6 +489,8 @@ class LocalCallSearchService:
                 "calls": [],
             }
 
+        year_filter = year_filter or query_year(query)
+
         # Get current date dynamically
         today = date.today()
         current_year = today.year
@@ -509,6 +509,7 @@ class LocalCallSearchService:
                 include_closed=include_closed,
                 year_filter=int(year_filter) if year_filter else None,
                 current_year=current_year,
+                status_filter=status_filter,
             )
 
             if structured_results and len(structured_results) > 0:
@@ -520,7 +521,9 @@ class LocalCallSearchService:
                 )
 
                 # Enhance with graph context (related clusters, experienced orgs)
-                graph_context = self._search_graph_enhanced(query) if self._graph_service else None
+                graph_context = (
+                    None  # Current calls do not need historical project-graph enrichment.
+                )
 
                 # Limit to num_results after resolution (children may expand count)
                 final_results = resolved_results[:num_results]
@@ -550,7 +553,11 @@ class LocalCallSearchService:
                 query=query,
                 num_results=num_results,
                 include_closed=include_closed,
-                similarity_threshold=0.4,  # Adjust threshold as needed
+                similarity_threshold=0.4,
+                year_filter=int(year_filter) if year_filter else None,
+                cluster=cluster,
+                action_type=action_type,
+                status_filter=status_filter,
             )
 
             if semantic_results and len(semantic_results) > 0:
@@ -571,7 +578,7 @@ class LocalCallSearchService:
                 logger.info(f"✅ Found {len(formatted_calls)} results via semantic search")
 
                 # Enhance with graph context (related clusters, experienced orgs)
-                graph_context = self._search_graph_enhanced(query)
+                graph_context = None
 
                 return {
                     "success": True,
@@ -646,6 +653,10 @@ class LocalCallSearchService:
 
         # Search vector database
         try:
+            if self.vector_service is None:
+                raise RuntimeError(
+                    "Document search unavailable; use catalogue coverage to interpret empty results"
+                )
             results = self.vector_service.hybrid_search(
                 query=enhanced_query,
                 num_results=num_results * 6,  # Get more for filtering/dedup
@@ -681,13 +692,6 @@ class LocalCallSearchService:
             if not call_info.topic_code:
                 logger.debug("Skipping result without topic code")
                 continue
-
-            # YEAR FILTERING - Only show current/upcoming calls by default
-            if not include_closed:
-                call_year = self._extract_year_from_call(call_info)
-                if call_year and call_year < current_year:
-                    logger.debug(f"Skipping old call {call_info.topic_code} (year={call_year})")
-                    continue
 
             # Specific year filter
             if year_filter:
@@ -818,6 +822,7 @@ class LocalCallSearchService:
         include_closed: bool = False,
         year_filter: int | None = None,
         current_year: int = 2025,
+        status_filter: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Search the structured funding_calls table.
@@ -840,65 +845,18 @@ class LocalCallSearchService:
 
             # For topic code queries, use exact or LIKE match first
             if is_topic_code and query:
-                query_parts.append(
-                    """
+                query_parts.append("""
                     AND (
                         topic_code ILIKE %s
                         OR topic_code ILIKE %s
                     )
-                """
-                )
+                """)
                 params.append(query.upper())  # Exact match
                 params.append(f"%{query.upper()}%")  # Partial match
             elif query:
-                # Combined search: full-text search OR word-boundary-aware matching
-                # For multi-word queries like "AI healthcare", ALL keywords must match (AND logic)
-                words = [w.strip() for w in query.split() if len(w.strip()) >= 2]
-
-                if words:
-                    # First add the FTS query parameter
-                    len(params)
-                    params.append(query)  # This will be used for plainto_tsquery
-
-                    # Build conditions for each word with word-boundary awareness
-                    # ALL words must match (AND logic) to avoid false positives
-                    word_conditions = []
-                    for word in words[:5]:  # Limit to first 5 words
-                        # For short words (2-3 chars like "AI"), use word-boundary matching
-                        # to avoid matching inside other words like "sustAInable"
-                        if len(word) <= 3:
-                            # Use regex word boundary matching for short words
-                            # PostgreSQL regex: \m = word start, \M = word end
-                            word_conditions.append(
-                                "(topic_code ~* %s OR title ~* %s OR scope ~* %s "
-                                "OR expected_outcome ~* %s)"
-                            )
-                            word_boundary_pattern = f"\\m{word}\\M"
-                            params.extend([word_boundary_pattern] * 4)
-                        else:
-                            # For longer words, simple ILIKE is fine
-                            word_conditions.append(
-                                "(topic_code ILIKE %s OR title ILIKE %s OR scope ILIKE %s "
-                                "OR expected_outcome ILIKE %s)"
-                            )
-                            params.extend([f"%{word}%"] * 4)
-
-                    # Use AND to require ALL keywords match (not just any one)
-                    query_parts.append(
-                        f"""
-                        AND (
-                            to_tsvector('english',
-                                COALESCE(title, '') || ' ' ||
-                                COALESCE(scope, '') || ' ' ||
-                                COALESCE(expected_outcome, '')
-                            ) @@ plainto_tsquery('english', %s)
-                            OR ({" AND ".join(word_conditions)})
-                        )
-                    """
-                    )
-                else:
-                    # Fallback for empty query
-                    query_parts.append("AND 1=1")
+                condition, keyword_params = keyword_predicate(query)
+                query_parts.append("AND (" + condition + ")")
+                params.extend(keyword_params)
 
             # Cluster filter
             if cluster:
@@ -916,38 +874,27 @@ class LocalCallSearchService:
                 if year_filter:
                     query_parts.append("AND call_year = %s")
                     params.append(year_filter)
+                if status_filter in ("open", "upcoming", "closed"):
+                    query_parts.append(f"AND ({STATUS_SQL}) = %s")
+                    params.append(status_filter)
                 elif not include_closed:
-                    # Only current and future years
-                    query_parts.append("AND call_year >= %s")
-                    params.append(current_year)
-
-                # Status filter - exclude closed calls and calls with PAST deadlines
-                # But ALLOW calls with NULL deadlines (we'll try to enrich them)
-                if not include_closed:
-                    query_parts.append(
-                        """
-                        AND status != 'closed'
-                        AND (deadline IS NULL OR deadline >= CURRENT_DATE)
-                    """
-                    )
+                    query_parts.append(f"AND ({STATUS_SQL}) IN ('open', 'upcoming')")
 
             # Order by relevance and deadline
             if is_topic_code:
                 # For topic code queries, order by exact match first
-                query_parts.append(
-                    """
+                query_parts.append("""
                     ORDER BY
                         CASE WHEN topic_code ILIKE %s THEN 0 ELSE 1 END,
                         deadline ASC NULLS LAST
                     LIMIT %s
-                """
-                )
+                """)
                 params.extend([query.upper(), num_results])
             else:
                 # For text queries, order by full-text rank
-                query_parts.append(
-                    """
-                    ORDER BY
+                title_rank, title_params = concept_rank(query)
+                query_parts.append(f"""
+                    ORDER BY ({title_rank}) DESC,
                         ts_rank(
                             to_tsvector('english',
                                 COALESCE(title, '') || ' ' ||
@@ -958,9 +905,8 @@ class LocalCallSearchService:
                         ) DESC,
                         deadline ASC NULLS LAST
                     LIMIT %s
-                """
-                )
-                params.extend([query, num_results])
+                """)
+                params.extend(title_params + [query, num_results])
 
             full_query = " ".join(query_parts)
             logger.debug(f"Executing structured search: {full_query[:200]}...")
@@ -981,6 +927,10 @@ class LocalCallSearchService:
         num_results: int = 10,
         include_closed: bool = False,
         similarity_threshold: float = 0.4,
+        year_filter: int | None = None,
+        cluster: str | None = None,
+        action_type: str | None = None,
+        status_filter: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Search for calls using semantic similarity.
@@ -996,7 +946,9 @@ class LocalCallSearchService:
             # Generate query embedding
             query_embedding = self._embedding_service.generate_query_embedding(query)
 
-            if query_embedding is None or len(query_embedding) == 0:
+            if query_embedding is None or not self._embedding_service.validate_embedding(
+                query_embedding
+            ):
                 logger.warning("Failed to generate query embedding")
                 return []
 
@@ -1007,54 +959,31 @@ class LocalCallSearchService:
             # Build the semantic search query
             embedding_list = query_embedding.tolist()
 
-            # Note: Parent calls (ending with '-') are included in search
-            # They will be resolved to their children in _resolve_parent_calls_to_children
-            if include_closed:
-                cursor.execute(
-                    """
-                    SELECT
-                        id, topic_code, title, scope, expected_outcome,
-                        deadline, status, cluster, action_type, budget_total,
-                        destination, portal_url, call_year,
-                        1 - (embedding <=> %s::vector) as similarity
-                    FROM funding_calls
-                    WHERE embedding IS NOT NULL
-                    AND 1 - (embedding <=> %s::vector) > %s
-                    ORDER BY embedding <=> %s::vector
-                    LIMIT %s
-                """,
-                    (
-                        embedding_list,
-                        embedding_list,
-                        similarity_threshold,
-                        embedding_list,
-                        num_results,
-                    ),
-                )
-            else:
-                cursor.execute(
-                    """
-                    SELECT
-                        id, topic_code, title, scope, expected_outcome,
-                        deadline, status, cluster, action_type, budget_total,
-                        destination, portal_url, call_year,
-                        1 - (embedding <=> %s::vector) as similarity
-                    FROM funding_calls
-                    WHERE embedding IS NOT NULL
-                    AND status != 'closed'
-                    AND (deadline IS NULL OR deadline >= CURRENT_DATE)
-                    AND 1 - (embedding <=> %s::vector) > %s
-                    ORDER BY embedding <=> %s::vector
-                    LIMIT %s
-                """,
-                    (
-                        embedding_list,
-                        embedding_list,
-                        similarity_threshold,
-                        embedding_list,
-                        num_results,
-                    ),
-                )
+            conditions = ["embedding IS NOT NULL", "1 - (embedding <=> %s::vector) > %s"]
+            parameters = [embedding_list, embedding_list, similarity_threshold]
+            if year_filter:
+                conditions.append("call_year = %s")
+                parameters.append(year_filter)
+            if cluster:
+                conditions.append("cluster = %s")
+                parameters.append(cluster.upper())
+            if action_type:
+                conditions.append("action_type = %s")
+                parameters.append(action_type.upper())
+            if status_filter in ("open", "upcoming", "closed"):
+                conditions.append(f"({STATUS_SQL}) = %s")
+                parameters.append(status_filter)
+            elif not include_closed:
+                conditions.append(f"({STATUS_SQL}) IN ('open', 'upcoming')")
+            cursor.execute(
+                f"""SELECT id, topic_code, title, scope, expected_outcome,
+                    deadline, opening_date, status, cluster, action_type, budget_total,
+                    destination, portal_url, call_year, programme,
+                    1 - (embedding <=> %s::vector) as similarity
+                    FROM funding_calls WHERE {" AND ".join(conditions)}
+                    ORDER BY embedding <=> %s::vector LIMIT %s""",
+                parameters + [embedding_list, num_results],
+            )
 
             results = cursor.fetchall()
             conn.close()
@@ -1429,7 +1358,7 @@ class LocalCallSearchService:
         deadline = deadline_str
 
         # Normalize status: if deadline has passed, mark as closed regardless of stored status
-        status = call.get("status", "unknown")
+        status = effective_status(call)
         if deadline_date:
             today = date.today()
             if deadline_date < today:
@@ -1451,6 +1380,13 @@ class LocalCallSearchService:
 
         return {
             "topic_code": call.get("topic_code"),
+            "programme": call.get("programme"),
+            "opening_date": str(call.get("opening_date")) if call.get("opening_date") else None,
+            "second_stage_deadline": (
+                str(call.get("second_stage_deadline"))
+                if call.get("second_stage_deadline")
+                else None
+            ),
             "title": call.get("title"),
             "description": call.get("scope") or call.get("expected_outcome") or "",
             "expected_outcome": call.get("expected_outcome"),

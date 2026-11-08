@@ -8,6 +8,7 @@ venv/
 
 # Env
 .env
+compose.override.yaml
 
 # Tooling caches
 .pytest_cache/
@@ -191,3 +192,6 @@ test_outputs/
 neo4j_backup/
 GEMINI.md
 mapit_dump.dump
+
+# Local validation artifacts and database exports
+/tmp/

@@ -131,7 +131,8 @@ async def test_framework_runs_validated_tool_and_preserves_events(monkeypatch):
         events.append(event)
 
     current = plan()
-    count, results = await runtime.run_agent_loop(owner, "Synthetic query", "", current, emit)
+    with provider_scope("gemini"):
+        count, results = await runtime.run_agent_loop(owner, "Synthetic query", "", current, emit)
     assert count == 2
     assert current.framework == "pydantic"
     assert current.error is None
@@ -368,6 +369,29 @@ async def test_execution_error_is_not_recorded_as_success(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_hallucinated_facts_are_not_published_after_all_tools_fail(monkeypatch):
+    owner = owner_with_tool()
+    owner._execute_tool_calls = AsyncMock(
+        return_value=[
+            ToolCall("synthetic_search", {"limit": 2}, success=False, error="Source unavailable")
+        ]
+    )
+
+    def respond(messages, info):
+        if tool_returns(messages):
+            return final(info, "The budget is €999 million and the deadline is 31 December 2027.")
+        return ModelResponse([ToolCallPart("synthetic_search", {"limit": 2})])
+
+    use_model(monkeypatch, respond)
+    current = plan()
+    await runtime.run_agent_loop(owner, "What is the deadline and budget?", "", current)
+    assert "999" not in current.final_answer
+    assert "31 December" not in current.final_answer
+    assert "cannot verify" in current.final_answer
+    assert "does not prove" in current.final_answer
+
+
+@pytest.mark.asyncio
 async def test_framework_request_limit_retains_results(monkeypatch):
     owner = owner_with_tool()
     owner.max_iterations = 2
@@ -561,3 +585,42 @@ def test_disabled_smart_routing_sets_model_in_new_request_context(monkeypatch):
     owner._select_model_for_query("analysis", "Synthetic request")
     assert owner.llm is owner.llm_flash
     assert owner._active_model_name == "synthetic-flash"
+
+
+@pytest.mark.asyncio
+async def test_failed_retrieval_replaces_invented_answer_and_resets_confidence(monkeypatch):
+    owner = owner_with_tool()
+    owner._execute_tool_calls = AsyncMock(
+        return_value=[
+            ToolCall(
+                "synthetic_search",
+                {"limit": 2},
+                result={"error": "Source unavailable"},
+                success=True,
+            )
+        ]
+    )
+
+    def respond(messages, info):
+        if tool_returns(messages):
+            return ModelResponse(
+                [
+                    ToolCallPart(
+                        info.output_tools[0].name,
+                        {
+                            "answer": "The deadline is definitely tomorrow and the award is EUR 8 million.",
+                            "confidence": 0.99,
+                        },
+                    )
+                ]
+            )
+        return ModelResponse([ToolCallPart("synthetic_search", {"limit": 2})])
+
+    use_model(monkeypatch, respond)
+    current = plan()
+    await runtime.run_agent_loop(owner, "What is the deadline?", "", current)
+    assert current.error is None
+    assert "cannot verify" in current.final_answer
+    assert "EUR 8 million" not in current.final_answer
+    assert current.confidence == 0.0
+    assert current.reasoning_steps[0].tool_calls[0].success is False

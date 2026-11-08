@@ -6,6 +6,7 @@ import logging
 import uuid
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile
 
@@ -35,11 +36,25 @@ async def upload_document(
     document_type: str | None = None,
     programme_year: str | None = None,
     metadata: str | None = None,
+    source_url: str | None = None,
     ingestion_service: DocumentIngestionService = Depends(get_ingestion_service),
 ):
     """Upload a document for processing and ingestion."""
 
     try:
+        # A supplied origin is a claim, not proof of an official document.
+        # Preserve it without fetching arbitrary URLs during upload.
+        if source_url:
+            origin = urlsplit(source_url)
+            if (
+                origin.scheme != "https"
+                or not origin.hostname
+                or origin.username
+                or origin.password
+            ):
+                raise HTTPException(
+                    status_code=400, detail="Source URL must be an HTTPS URL without credentials"
+                )
         # Validate file
         if not file.filename:
             raise HTTPException(status_code=400, detail="No file provided")
@@ -84,6 +99,8 @@ async def upload_document(
                 import json
 
                 parsed_metadata = json.loads(metadata)
+                if not isinstance(parsed_metadata, dict):
+                    raise HTTPException(status_code=400, detail="Metadata must be a JSON object")
             except json.JSONDecodeError:
                 logger.warning(f"⚠️ Invalid metadata JSON: {metadata}")
 
@@ -93,7 +110,7 @@ async def upload_document(
             str(file_path),
             document_type,
             programme_year,
-            None,  # source_url
+            source_url,
             parsed_metadata,
         )
 

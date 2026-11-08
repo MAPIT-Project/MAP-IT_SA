@@ -22,6 +22,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY app/ ./app/
 COPY main.py .
+COPY scripts/sync_funding_calls.py ./scripts/sync_funding_calls.py
+COPY scripts/reembed_funding_calls.py ./scripts/reembed_funding_calls.py
+COPY scripts/audit_document_sources.py ./scripts/audit_document_sources.py
+COPY scripts/apply_document_refresh.py ./scripts/apply_document_refresh.py
+COPY scripts/sync_verified_document_revisions.py ./scripts/sync_verified_document_revisions.py
+COPY scripts/record_document_source_reviews.py ./scripts/record_document_source_reviews.py
+COPY scripts/check_pending_document_sources.py ./scripts/check_pending_document_sources.py
+COPY scripts/cordis_extract.py ./scripts/cordis_extract.py
+COPY scripts/import_cordis_projects.py ./scripts/import_cordis_projects.py
+COPY scripts/sql/ ./scripts/sql/
 
 # Create a .env file if it doesn't exist (this will be overwritten by mounted volume)
 RUN touch .env

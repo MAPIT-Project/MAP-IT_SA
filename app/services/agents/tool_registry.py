@@ -404,7 +404,7 @@ This uses AI to automatically expand keywords to related terms (e.g., "AI" → i
                 category=ToolCategory.CALLS,
                 parameters={
                     "keywords": "SHORT, SPECIFIC keywords to search for. DO NOT pass full sentences.",
-                    "status": "Optional: 'open', 'upcoming', 'closed'",
+                    "status": "Optional: 'open', 'upcoming', 'closed'. Omit for both open and upcoming calls. Set only when the user explicitly restricts status.",
                     "year": "Optional: specific year",
                 },
                 examples=[

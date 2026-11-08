@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh MAPIT calls from the EU Funding and Tenders Portal
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker exec map-it_sa-api-1 python /app/scripts/sync_funding_calls.py
+ExecStartPost=/usr/bin/docker exec map-it_sa-api-1 python /app/scripts/reembed_funding_calls.py --limit 500 --batch-size 20
+TimeoutStartSec=20min

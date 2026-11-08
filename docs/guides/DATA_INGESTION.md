@@ -1,3 +1,5 @@
+> For ongoing refreshes of an existing installation, use the [Data Refresh runbooks](../data-refresh.md). The CORDIS runner covers PostgreSQL, organisations, Neo4j, embeddings and verification.
+
 # Data ingestion and data bootstrap
 
 **Status:** current runbook, with known blockers

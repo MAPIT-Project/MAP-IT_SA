@@ -56,6 +56,10 @@ register_middleware(app)
 # Health routes - Kubernetes readiness/liveness probes
 app.include_router(health_router)
 
+from .api.data_overview_routes import router as data_overview_router
+
+app.include_router(data_overview_router)
+
 app.include_router(document_router)
 # V3 conversation routes - simplified agentic architecture (no intent classification)
 app.include_router(conversation_router_v3)
