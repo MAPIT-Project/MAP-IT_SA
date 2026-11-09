@@ -16,7 +16,7 @@ AS $function$
 BEGIN
     RETURN QUERY
     WITH vector_search AS (
-        SELECT 
+        SELECT
             c.id,
             c.document_id,
             c.content,
@@ -28,7 +28,7 @@ BEGIN
         LIMIT match_count * 2
     ),
     text_search AS (
-        SELECT 
+        SELECT
             c.id,
             c.document_id,
             c.content,
@@ -41,18 +41,18 @@ BEGIN
         LIMIT match_count * 2
     ),
     combined AS (
-        SELECT 
+        SELECT
             COALESCE(v.id, t.id) as chunk_id,
             COALESCE(v.document_id, t.document_id) as doc_id,
             COALESCE(v.content, t.content) as content_text,
             COALESCE(v.section_title, t.section_title) as section_title,
             COALESCE(v.page_number, t.page_number) as page_number,
-            (COALESCE(v.vector_score, 0.0) * vector_weight + 
+            (COALESCE(v.vector_score, 0.0) * vector_weight +
              COALESCE(t.text_score, 0.0) * (1.0 - vector_weight))::DOUBLE PRECISION as score
         FROM vector_search v
         FULL OUTER JOIN text_search t ON v.id = t.id
     )
-    SELECT 
+    SELECT
         combined.chunk_id,
         combined.doc_id as document_id,
         combined.content_text as content,
@@ -74,7 +74,7 @@ CREATE OR REPLACE FUNCTION public.keyword_search(query_text text, limit_count in
 AS $function$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         c.id as chunk_id,
         c.document_id,
         c.content,
@@ -85,7 +85,7 @@ BEGIN
         c.page_number
     FROM document_chunks c
     JOIN horizon_documents d ON c.document_id = d.id
-    WHERE 
+    WHERE
         c.content_tokens @@ plainto_tsquery('english', query_text)
         AND d.status = 'active' AND (d.created_by IS NOT NULL OR public.mapit_public_source_searchable(d.metadata))
         AND (filter_document_type IS NULL OR d.document_type = filter_document_type)
@@ -101,7 +101,7 @@ CREATE OR REPLACE FUNCTION public.search_documents(query_embedding vector, match
 AS $function$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         c.id as chunk_id,
         c.document_id,
         c.content,
@@ -113,7 +113,7 @@ BEGIN
         c.page_number
     FROM document_chunks c
     JOIN horizon_documents d ON c.document_id = d.id
-    WHERE 
+    WHERE
         d.status = 'active' AND (d.created_by IS NOT NULL OR public.mapit_public_source_searchable(d.metadata))
         AND (filter_document_type IS NULL OR d.document_type = filter_document_type)
         AND public.mapit_document_year_matches(d.programme_year, filter_year)
