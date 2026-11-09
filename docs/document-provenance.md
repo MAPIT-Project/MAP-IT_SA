@@ -47,3 +47,28 @@ documents are not silently approved or removed. Automatic discovery/approval of
 future revisions and checking whether every answer claim is supported remain
 separate work. Model training, an SLM architecture, and guaranteed factual
 correctness cannot be inferred from a restricted retrieval corpus.
+
+## Verify legacy records that lack origins
+
+Use `scripts/verify_document_origins.py` in the API environment. It checks existing
+source URLs and an optional JSON list of candidate official download URLs. Discover
+candidates from the relevant programme's publication pages; a candidate URL is not
+proof until the downloaded PDF's SHA256 matches the stored SHA256.
+
+```bash
+docker compose exec -T -e PYTHONPATH=/app api python scripts/verify_document_origins.py \
+  --candidates tmp/official-candidate-urls.json \
+  --output tmp/source-verification/audit.json
+```
+
+Inspect the dry-run report, then repeat with `--apply` to record matching origins.
+The report and `.before.json` backup are private (mode 0600). Each run checks at
+most 250 explicit candidates with two concurrent downloads, an official HTTPS
+host/redirect allowlist, a 20 MB limit per download and a 20-second request timeout.
+Application updates both document libraries as one guarded transaction. Changed
+record hashes, metadata or general-library activation state abort the update.
+Document text, embeddings, editions and archival state are preserved. Already
+verified records, pending reviews and existing revision warnings are excluded.
+Sources with different bytes or only a legacy MD5 identifier remain unresolved;
+a title match does not verify them. See the [9 November audit](source-verification-2026-11-09.md)
+for results and remaining work.

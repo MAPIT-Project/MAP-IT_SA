@@ -17,3 +17,6 @@ venv.bak/
 /data/official_documents/
 /data/cordis_exports/
 /data/cordis_backups/
+
+# Local source audit downloads, reports and database exports
+/tmp/

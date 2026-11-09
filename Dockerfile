@@ -29,6 +29,7 @@ COPY scripts/apply_document_refresh.py ./scripts/apply_document_refresh.py
 COPY scripts/sync_verified_document_revisions.py ./scripts/sync_verified_document_revisions.py
 COPY scripts/record_document_source_reviews.py ./scripts/record_document_source_reviews.py
 COPY scripts/check_pending_document_sources.py ./scripts/check_pending_document_sources.py
+COPY scripts/verify_document_origins.py ./scripts/verify_document_origins.py
 COPY scripts/cordis_extract.py ./scripts/cordis_extract.py
 COPY scripts/import_cordis_projects.py ./scripts/import_cordis_projects.py
 COPY scripts/sql/ ./scripts/sql/

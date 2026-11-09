@@ -60,3 +60,6 @@ For calls, retain the sync/freshness results and check the vector backlog. For
 documents, retain publication results, reviewed source/version evidence and
 retrieval checks. Preserve these records so the import date can be distinguished
 from each source record's own update date.
+
+For missing source origins, see [legacy document verification](document-provenance.md#verify-legacy-records-that-lack-origins).
+This is a metadata-only verification pass, separate from ingesting newer editions.
