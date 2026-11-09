@@ -349,7 +349,7 @@ class ToolExecutorsMixin:
             if not org_name:
                 return {"error": "organization_name is required", "partners": []}
 
-            return await get_collaboration_network_execute(org_name=org_name)
+            return await get_collaboration_network_execute(org_name=org_name, topic=params.get("topic"))
         except Exception as e:
             logger.error(f"Collaboration network error: {e}")
             return {"error": str(e), "partners": []}

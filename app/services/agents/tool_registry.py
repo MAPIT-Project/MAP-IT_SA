@@ -584,9 +584,10 @@ Returns: Organization name, country, project count, coordinator count, total fun
         self.register_tool(
             Tool(
                 name="get_collaboration_network",
-                description="Get the collaboration network showing which organizations frequently partner together",
+                description="Get an organisation's collaboration partners and shared project evidence with CORDIS links. For questions about collaborations in a topic, pass topic (e.g. hydrogen) to filter shared project titles and objectives directly. This avoids separately inspecting every project in a general network.",
                 category=ToolCategory.PROJECTS,
-                parameters={"organization_name": "Name of the organization to find partners for"},
+                parameters={"organization_name": "Name of the organization to find partners for",
+                            "topic": "Optional topic keyword to filter shared projects, e.g. hydrogen"},
                 examples=["get_collaboration_network(organization_name='CNRS')"],
             )
         )

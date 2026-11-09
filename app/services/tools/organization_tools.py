@@ -182,7 +182,7 @@ async def find_organization_projects_execute(org_name: str, role: str | None = N
         return {"error": str(e), "projects": []}
 
 
-async def get_collaboration_network_execute(org_name: str) -> dict:
+async def get_collaboration_network_execute(org_name: str, topic: str | None = None) -> dict:
     """
     Get collaboration network for an organization.
 
@@ -208,6 +208,7 @@ async def get_collaboration_network_execute(org_name: str) -> dict:
             organization_name=org_name,
             depth=1,
             limit=30,
+            topic=topic,
         )
 
         return result

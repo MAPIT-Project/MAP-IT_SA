@@ -1866,7 +1866,8 @@ class GraphSearchService:
             return []
 
     def get_organization_collaboration_network(
-        self, organization_name: str, depth: int = 1, limit: int = 50
+        self, organization_name: str, depth: int = 1, limit: int = 50,
+        topic: str | None = None,
     ) -> dict[str, Any]:
         """
         Get the collaboration network of an organization.
@@ -1875,11 +1876,13 @@ class GraphSearchService:
             organization_name: Name of the organization
             depth: How many hops of collaboration to explore (1 = direct partners)
             limit: Maximum number of collaborating organizations to return
+            topic: Optional literal keyword in shared project titles, objectives or acronyms.
 
         Returns:
-            Dict with organization network data
+            Dict with organization network data and up to five shared projects per partner.
         """
-        params = {"org_name": organization_name.lower(), "depth": depth, "limit": limit}
+        params = {"org_name": organization_name.lower(), "depth": depth, "limit": limit,
+                  "topic": (topic or "").strip().lower()}
 
         query = """
         MATCH (o1:Organization)-[:PARTICIPATES_IN]->(p:Project)
@@ -1887,13 +1890,17 @@ class GraphSearchService:
         WHERE (toLower(o1.name) CONTAINS $org_name
             OR toLower(o1.shortName) CONTAINS $org_name)
           AND o1 <> o2
-        WITH o1, o2, COUNT(DISTINCT p) as collaboration_count
+          AND ($topic = '' OR toLower(coalesce(p.title, '')) CONTAINS $topic
+               OR toLower(coalesce(p.objective, '')) CONTAINS $topic
+               OR toLower(coalesce(p.acronym, '')) CONTAINS $topic)
+        WITH o1, o2, COUNT(DISTINCT p) as collaboration_count,
+             collect(DISTINCT {id: p.id, acronym: p.acronym, title: p.title})[..5] as shared_projects
         ORDER BY collaboration_count DESC
         LIMIT $limit
         RETURN o1.name as source_org, o1.country as source_country,
                o2.name as partner_org, o2.country as partner_country,
                o2.activityType as partner_type, o2.sme as partner_is_sme,
-               collaboration_count
+               collaboration_count, shared_projects
         """
 
         try:
@@ -1915,6 +1922,10 @@ class GraphSearchService:
                         "type": r.get("partner_type"),
                         "is_sme": r.get("partner_is_sme"),
                         "collaborations": r.get("collaboration_count"),
+                        "shared_projects": [
+                            {**project, "cordis_url": f"https://cordis.europa.eu/project/id/{project['id']}"}
+                            for project in (r.get("shared_projects") or []) if project.get("id")
+                        ],
                     }
                 )
 
@@ -1924,6 +1935,8 @@ class GraphSearchService:
                 "country": source_country,
                 "partners": partners,
                 "total_partners": len(partners),
+                "topic_filter": topic,
+                "scope": "Stored project titles, objectives and acronyms; up to five shared project examples per partner. Not an exhaustive thematic classification.",
             }
         except Exception as e:
             logger.error(f"Error getting collaboration network: {e}")
