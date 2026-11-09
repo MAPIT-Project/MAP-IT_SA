@@ -72,3 +72,10 @@ verified records, pending reviews and existing revision warnings are excluded.
 Sources with different bytes or only a legacy MD5 identifier remain unresolved;
 a title match does not verify them. See the [9 November audit](source-verification-2026-11-09.md)
 for results and remaining work.
+
+## Retrieval and unresolved records
+
+Unresolved public publications are now retained in reversible quarantine and
+excluded from normal research retrieval. Verified historical editions and pending
+legal reviews retain their separate states. See [document lifecycle](document-lifecycle.md)
+for the enforced search policy, maintenance, restoration and applied cleanup.

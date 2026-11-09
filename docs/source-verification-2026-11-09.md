@@ -61,3 +61,11 @@ Twenty-five focused tests passed for exact matching, official-host restrictions,
 non-PDF responses, pending/warning preservation, stale-record rollback, private
 audit files, discovery and dashboard inventory. The dashboard reads persisted
 verification metadata; use Refresh after the short API cache expires.
+
+## Subsequent lifecycle cleanup
+
+The counts above describe the verification pass before quarantine. The remaining
+13 origin gaps and two unresolved historical revision warnings were subsequently
+retained in the archive, with backups and guarded restoration. Normal retrieval
+now excludes them. See [document lifecycle](document-lifecycle.md) for current
+counts and validation; the six pending reviews remain separate.

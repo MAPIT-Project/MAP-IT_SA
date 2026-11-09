@@ -9,12 +9,14 @@ from app.services.data_overview import document_inventory, document_programme, p
 
 
 def document(id, **kwargs):
+    metadata = kwargs.pop("metadata", {})
+    metadata = {"programme": "horizon_europe", "provenance": {"status": "verified_exact_bytes"}, **metadata}
     return {
         "id": id,
         "title": "Health programme",
-        "metadata": {"programme": "horizon_europe"},
         "status": "active",
         "chunks": 12,
+        "metadata": metadata,
         **kwargs,
     }
 
@@ -25,8 +27,7 @@ def test_shared_rules_and_unassigned_records_are_not_claimed_as_one_programme():
             {
                 "title": "AGA",
                 "source_url": "https://ec.europa.eu/info/funding-tenders/opportunities/docs/common/aga.pdf",
-                "metadata": {"programme": "horizon_europe"},
-            }
+                    }
         )
         == "shared"
     )

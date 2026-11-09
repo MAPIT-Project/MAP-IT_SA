@@ -98,6 +98,7 @@ To keep things organized, the documentation is divided into specialized guides:
 | **[Tool Reference](docs/guides/TOOL_REFERENCE.md)** | Detailed explanation of all 42+ agentic tools. |
 | **[Evaluation Demo](docs/demo/README.md)** | Tested demo questions, feature walkthrough, recorded fallbacks and readiness evidence for 9 November 2026. |
 | **[Data Refresh](docs/data-refresh.md)** | Repeatable refresh runbooks for CORDIS projects/organisations, funding calls and official documents; backups, retries and verification. |
+| **[Document Lifecycle](docs/document-lifecycle.md)** | Verified public-source retrieval, reversible quarantine, maintenance and restoration. |
 | **[Data Ingestion](docs/guides/DATA_INGESTION.md)** | How to get the data, run ingestion scripts, and setup the graph. |
 | **[Database Schema](docs/DATABASE_SCHEMA.md)** | Deep dive into the 35 active PostgreSQL tables and vector search logic. |
 | **[Roadmap & Status](docs/guides/ROADMAP.md)** | Current implementation status, system limits, and future plans. |

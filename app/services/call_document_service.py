@@ -16,6 +16,7 @@ import hashlib
 import json
 import logging
 import re
+from uuid import uuid4
 from pathlib import Path
 
 import requests
@@ -134,6 +135,8 @@ class CallDocumentService:
                     COUNT(DISTINCT cdm.document_id) as doc_count,
                     COUNT(DISTINCT sdc.id) as chunk_count
                 FROM call_document_mappings cdm
+                JOIN shared_documents trusted_doc ON trusted_doc.id=cdm.document_id
+                  AND public.mapit_public_source_searchable(trusted_doc.metadata)
                 LEFT JOIN shared_document_chunks sdc ON cdm.document_id = sdc.document_id
                 WHERE cdm.call_identifier = %s
             """,
@@ -153,7 +156,7 @@ class CallDocumentService:
                     JOIN shared_documents d ON d.id=m.document_id
                     WHERE m.call_identifier=%s AND d.document_type='work_programme'
                       AND d.scope_identifier=%s
-                      AND NOT COALESCE(d.metadata,'{}'::jsonb) ? 'superseded_by'
+                      AND public.mapit_public_source_searchable(d.metadata)
                       AND public.mapit_document_year_matches(
                           COALESCE(d.metadata->>'programme_year',d.document_version),%s)
                     LIMIT 1""",
@@ -177,6 +180,7 @@ class CallDocumentService:
                 FROM call_document_mappings cdm
                 JOIN shared_documents sd ON cdm.document_id = sd.id
                 WHERE cdm.call_identifier = %s
+                  AND public.mapit_public_source_searchable(sd.metadata)
             """,
                 (call_identifier,),
             )
@@ -526,9 +530,20 @@ class CallDocumentService:
                 logger.info(f"⏭️  Document already exists: {doc_key}")
                 return doc_id
 
+            conn = self.db_pool.getconn()
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT 1 FROM shared_documents WHERE document_url=%s AND NOT public.mapit_public_source_searchable(metadata) LIMIT 1", (url,))
+                    if cursor.fetchone():
+                        logger.info("Existing publication retained for source review; automatic replacement skipped")
+                        return None
+            finally:
+                self.db_pool.putconn(conn)
+
             # Download PDF
             logger.info(f"📥 Downloading: {doc_info['title']}")
-            file_path = self.shared_docs_dir / f"{doc_key}.pdf"
+            # Retain prior PDF bytes; mutable official URLs must not overwrite originals.
+            file_path = self.shared_docs_dir / f"{doc_key}-{uuid4().hex}.pdf"
 
             response = requests.get(url, timeout=60, stream=True)
             response.raise_for_status()
@@ -542,6 +557,7 @@ class CallDocumentService:
 
             # Compute hash
             file_hash = self._compute_file_hash(file_path)
+            doc_key = f"{doc_key}_{file_hash}"
 
             # Parse and chunk
             from scripts.manual_document_upload import SimpleChunker, SimpleDocumentParser
@@ -583,7 +599,7 @@ class CallDocumentService:
             cursor.execute(
                 """
                 SELECT id FROM shared_documents WHERE document_url = %s
-                AND NOT COALESCE(metadata, '{}'::jsonb) ? 'superseded_by'
+                AND public.mapit_public_source_searchable(metadata)
                 ORDER BY last_updated DESC, id DESC LIMIT 1
             """,
                 (url,),
@@ -628,11 +644,7 @@ class CallDocumentService:
                     last_updated, metadata
                 )
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
-                ON CONFLICT (document_key) DO UPDATE SET
-                    document_content = EXCLUDED.document_content,
-                    document_url = EXCLUDED.document_url,
-                    file_hash = EXCLUDED.file_hash,
-                    last_updated = NOW()
+                ON CONFLICT (document_key) DO NOTHING
                 RETURNING id
             """,
                 (
@@ -655,14 +667,18 @@ class CallDocumentService:
                 ),
             )
 
-            document_id = cursor.fetchone()[0]
+            inserted = cursor.fetchone()
+            if inserted is None:
+                # Existing versions, review state and chunk evidence are immutable here.
+                cursor.execute("SELECT id FROM shared_documents WHERE document_key=%s AND file_hash=%s", (doc_key, file_hash))
+                existing = cursor.fetchone()
+                if existing is None:
+                    raise ValueError("Document key exists with different content; publication retained")
+                conn.commit()
+                return existing[0]
+            document_id = inserted[0]
 
-            # Delete old chunks
-            cursor.execute(
-                "DELETE FROM shared_document_chunks WHERE document_id = %s", (document_id,)
-            )
-
-            # Insert chunks
+            # Only this newly inserted record can receive chunks.
             for chunk in chunks:
                 cursor.execute(
                     """
@@ -789,7 +805,7 @@ class CallDocumentService:
                 WHERE (scope_identifier = %s OR document_title ILIKE %s
                    OR document_title ILIKE %s)
                   AND document_type = 'work_programme'
-                  AND NOT COALESCE(metadata, '{}'::jsonb) ? 'superseded_by'
+                  AND public.mapit_public_source_searchable(metadata)
                   AND public.mapit_document_year_matches(
                       COALESCE(metadata->>'programme_year', document_version), %s)
                 ORDER BY

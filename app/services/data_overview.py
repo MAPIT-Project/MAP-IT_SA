@@ -12,6 +12,8 @@ import re
 from urllib.parse import urlsplit
 
 import psycopg2
+
+from app.services.document_trust import public_source_searchable
 from psycopg2.extras import RealDictCursor
 
 PROGRAMMES = {
@@ -90,9 +92,11 @@ def document_inventory(general, shared):
             row = dict(raw)
             metadata = row.get("metadata") or {}
             status = row.get("status") or "active"
-            if metadata.get("superseded_by"):
+            if metadata.get("superseded_by") or metadata.get("retrieval_status") == "quarantined":
                 status = "archived"
-            elif metadata.get("review_state") == "pending":
+            elif metadata.get("review_state") == "pending" or (
+                status == "active" and not public_source_searchable(metadata)
+            ):
                 status = "pending_review"
             parent = str(metadata.get("horizon_document_id") or "")
             existing = by_parent.get(parent) if store == "call_library" and parent else None
@@ -116,7 +120,10 @@ def document_inventory(general, shared):
                 "chunks": int(row.get("chunks") or 0),
                 "source_url": public_url(row.get("source_url")),
                 "source_status": provenance.get("status") or "source_not_verified",
-                "source_warning": provenance.get("warning"),
+                "source_warning": provenance.get("warning") or (
+                    (metadata.get("origin_quarantine") or {}).get("reason")
+                    if metadata.get("retrieval_status") == "quarantined" else None
+                ),
                 "updated_at": row.get("last_updated"),
                 "stores": [store],
             }

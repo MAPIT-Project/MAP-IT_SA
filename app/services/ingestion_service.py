@@ -198,7 +198,13 @@ class DocumentIngestionService:
                 "programme_year": programme_year or self._infer_programme_year(text_content),
                 "status": "processing",
                 "file_hash": content_hash,
-                "metadata": {**doc_metadata, **(metadata or {})},
+                "metadata": {
+                    **doc_metadata, **(metadata or {}),
+                    "provenance": {
+                        "status": "unverified", "claimed_source_url": url,
+                        "text_sha256": hashlib.sha256(text_content.encode()).hexdigest(),
+                    },
+                },
             }
 
             document = self.supabase.insert_document(document_data)

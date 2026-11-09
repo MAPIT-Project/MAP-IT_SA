@@ -63,3 +63,7 @@ from each source record's own update date.
 
 For missing source origins, see [legacy document verification](document-provenance.md#verify-legacy-records-that-lack-origins).
 This is a metadata-only verification pass, separate from ingesting newer editions.
+
+After verification, use the [document lifecycle runbook](document-lifecycle.md)
+to quarantine unresolved public records without deleting evidence. Apply its SQL
+migration before deploying code that uses the public-source retrieval predicate.
