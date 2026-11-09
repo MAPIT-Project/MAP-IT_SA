@@ -203,8 +203,6 @@ This document corrects the operational confusion; the configuration files have d
 | `MAPIT_API_URL` | One Neo4j error scenario | No | No | `http://localhost:8000` | Test environment | Deviating name without underscore; not interchangeable with `MAP_IT_API_URL`. |
 | `API_BASE_URL` | A few quality scenarios | No | No | `http://localhost:8000` | Test environment | Third alias for the test API base URL. |
 | `SKIP_LIVE_API_TESTS` | Quality tests | No | No | live tests are only skipped with value `1` | CI/test | Set to `1` to skip live API tests. |
-| `GITHUB_OUTPUT` | GitHub Actions | By runner | No | none | CI | Runner file in which `scripts/quality_gate.py` writes outputs. |
-| `GITHUB_STEP_SUMMARY` | GitHub Actions | By runner | No | none | CI | Runner file for the Markdown job summary. |
 
 ## Docker Compose and image-internal variables
 

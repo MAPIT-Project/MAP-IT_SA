@@ -141,3 +141,5 @@ guards, `make test-live`, and the difference between mocked tests and live evalu
 
 ## ❤️ Credits & Support
 Developed and maintained by **Anmar Ram** ([anmar.noah@gmail.com](mailto:anmar.noah@gmail.com)) for the MAP-IT platform. For technical inquiries, refer to the [System Architecture](docs_tracked/SYSTEM_ARCHITECTURE.md).
+
+GitHub CI is intentionally disabled: no GitHub Actions workflows are configured. Run quality checks locally using the commands above.

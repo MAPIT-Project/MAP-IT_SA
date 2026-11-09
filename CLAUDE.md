@@ -1141,24 +1141,14 @@ print(f"Degradation: {result.degradation_detected}")
 | Quality drop | `QualityEvaluatorAgent` | `evaluate_conversation()` |
 | Tool not called | `ConversationFlowAgent` | Check `turn.tools_used` |
 
-### CI/CD Integration
+### Local quality checks
 
-**GitHub Actions Workflow** (`.github/workflows/conversation-tests.yml`):
-- Service containers (postgres, redis, neo4j)
-- API server startup
-- Scenario test execution
-- Quality baseline comparison
-- Artifact upload for results
+GitHub CI is intentionally removed. No GitHub Actions workflows are installed;
+do not reintroduce CI unless explicitly requested. Run checks locally with
+`make test`, `make lint`, and `scripts/quality_gate.py` as appropriate.
 
-**Pre-commit Hook**:
-- Runs quick smoke tests for changes to `conversation_manager.py` or `memory_service.py`
-- Configure in `.pre-commit-config.yaml`
-
-**Quality Gate**:
-- Fails PR if any scenario test fails
-- Fails PR if quality score below 75
-- Fails PR if race condition detected
-- Fails PR if context integrity check fails
+Pre-commit hooks remain optional local tooling configured in
+`.pre-commit-config.yaml`.
 
 ### Key Files
 

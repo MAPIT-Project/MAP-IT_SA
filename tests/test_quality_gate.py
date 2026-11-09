@@ -1,7 +1,7 @@
 """
 Tests for Quality Gate Script (Task 027).
 
-This test file validates the quality gate functionality that blocks PRs if:
+This test file validates the local quality gate, which fails if:
 1. Any scenario test fails
 2. Quality score below 75
 3. Race condition detected
@@ -582,78 +582,6 @@ class TestQualityGateResult:
         assert len(result.failed_tests) == 2
         assert result.summary == "2 tests failed"
 
-
-class TestWorkflowIntegration:
-    """Tests for workflow configuration integration."""
-
-    def test_quality_gate_job_in_workflow(self):
-        """Test that quality-gate job is properly configured in workflow."""
-        import yaml
-
-        workflow_path = (
-            Path(__file__).parent.parent / ".github" / "workflows" / "conversation-tests.yml"
-        )
-
-        if not workflow_path.exists():
-            pytest.skip("Workflow file not found")
-
-        with open(workflow_path) as f:
-            config = yaml.safe_load(f)
-
-        # Check quality-gate job exists
-        assert "jobs" in config
-        jobs = config["jobs"]
-        assert "quality-gate" in jobs, "quality-gate job should exist"
-
-        quality_gate_job = jobs["quality-gate"]
-
-        # Check job configuration
-        assert "needs" in quality_gate_job
-        needs = quality_gate_job["needs"]
-        assert "integration-tests" in needs
-        assert "race-condition-tests" in needs
-
-        # Check it only runs on PRs
-        assert "if" in quality_gate_job
-        assert "pull_request" in quality_gate_job["if"]
-
-        # Check steps include quality gate script
-        steps = quality_gate_job.get("steps", [])
-        quality_gate_step = None
-        for step in steps:
-            if "Quality Gate" in step.get("name", ""):
-                quality_gate_step = step
-                break
-
-        assert quality_gate_step is not None, "Should have Quality Gate step"
-        assert "run" in quality_gate_step
-        assert "quality_gate.py" in quality_gate_step["run"]
-
-    def test_final_status_depends_on_quality_gate(self):
-        """Test that final-status job depends on quality-gate."""
-        import yaml
-
-        workflow_path = (
-            Path(__file__).parent.parent / ".github" / "workflows" / "conversation-tests.yml"
-        )
-
-        if not workflow_path.exists():
-            pytest.skip("Workflow file not found")
-
-        with open(workflow_path) as f:
-            config = yaml.safe_load(f)
-
-        jobs = config["jobs"]
-        final_status_job = jobs.get("final-status")
-
-        assert final_status_job is not None
-        assert "needs" in final_status_job
-
-        needs = final_status_job["needs"]
-        if isinstance(needs, str):
-            needs = [needs]
-
-        assert "quality-gate" in needs, "final-status should depend on quality-gate"
 
 
 if __name__ == "__main__":

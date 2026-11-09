@@ -1196,6 +1196,8 @@ async def evaluate_with_claude(query: str, response: str) -> dict:
 
 ### GitHub Actions Workflow
 
+Historical example only: GitHub CI is intentionally removed from this repository. Do not install this workflow unless explicitly requested.
+
 ```yaml
 # .github/workflows/quality.yml
 name: Response Quality Tests

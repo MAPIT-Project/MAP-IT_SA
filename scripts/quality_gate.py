@@ -2,7 +2,7 @@
 """
 Quality Gate Script for MAPIT Conversation Stability.
 
-This script evaluates test results and determines if a PR should pass or fail
+This script evaluates local test results and determines if quality checks pass or fail
 based on quality criteria defined in the PRD Task 027:
 
 1. Any scenario test fails -> FAIL
@@ -24,7 +24,6 @@ Exit codes:
 import argparse
 import json
 import logging
-import os
 import sys
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -351,47 +350,6 @@ def evaluate_quality_gate(
     )
 
 
-def write_github_output(result: QualityGateResult):
-    """Write result to GitHub Actions output."""
-    github_output = os.environ.get("GITHUB_OUTPUT")
-    if github_output:
-        with open(github_output, "a") as f:
-            f.write(f"passed={str(result.passed).lower()}\n")
-            f.write(f"summary={result.summary}\n")
-            if result.quality_score is not None:
-                f.write(f"quality_score={result.quality_score:.1f}\n")
-
-
-def write_github_summary(result: QualityGateResult, threshold: int):
-    """Write result to GitHub Actions step summary."""
-    github_summary = os.environ.get("GITHUB_STEP_SUMMARY")
-    if github_summary:
-        status_emoji = "✅" if result.passed else "❌"
-        with open(github_summary, "a") as f:
-            f.write(f"## Quality Gate Results {status_emoji}\n\n")
-            f.write("| Check | Status |\n")
-            f.write("|-------|--------|\n")
-            f.write(
-                f"| Scenario Tests | "
-                f"{'✅ Passed' if result.scenario_tests_passed else '❌ Failed'} |\n"
-            )
-            score_status = "⏭️ Skipped"
-            if result.quality_score is not None:
-                score_status = (
-                    f"{'✅' if result.quality_score_passed else '❌'} "
-                    f"{result.quality_score:.1f}/{threshold}"
-                )
-            f.write(f"| Quality Score | {score_status} |\n")
-            f.write(
-                f"| Race Conditions | "
-                f"{'✅ None' if result.race_condition_passed else '❌ Detected'} |\n"
-            )
-            f.write(
-                f"| Context Integrity | "
-                f"{'✅ Maintained' if result.context_integrity_passed else '❌ Failed'} |\n"
-            )
-            f.write(f"\n**Result**: {result.summary}\n")
-
 
 def main():
     """Main entry point."""
@@ -442,10 +400,6 @@ def main():
         baseline_path=args.quality_baseline,
         threshold=args.threshold,
     )
-
-    # Write GitHub Actions outputs
-    write_github_output(result)
-    write_github_summary(result, args.threshold)
 
     # Exit with appropriate code
     sys.exit(0 if result.passed else 1)
